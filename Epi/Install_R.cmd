@@ -85,19 +85,18 @@ echo     }
 echo }
 ) > c:\VSCode\data\user-data\User\settings.json
 
-
 ::Add extensions to VSCode
-::code.exe --install-extension github.copilot
-::code.exe --install-extension github.copilot-chat
-::code.exe --install-extension reditorsupport.r
-::code.exe --install-extension rdebugger.r-debugger
+call C:\VSCode\bin\code.cmd --install-extension github.copilot
+call C:\VSCode\bin\code.cmd --install-extension github.copilot-chat
+call C:\VSCode\bin\code.cmd --install-extension reditorsupport.r
+call C:\VSCode\bin\code.cmd --install-extension rdebugger.r-debugger
 
+::Download first script to initialize for course
+::powershell Invoke-WebRequest -Uri 'https://github.com/Model-Lab-Net/Courses/blob/main/Epi/Initialize_R.Rmd' -OutFile 'c:\VSCode\Course\Initialize_R.Rmd'
+curl -o c:\VSCode\Course\Initialize_R.Rmd https://github.com/Model-Lab-Net/Courses/blob/main/Epi/Initialize_R.Rmd
 
 ::Create shortcut link to Desktop
 powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%ALLUSERSPROFILE%\Desktop\RVSCode.lnk');$s.TargetPath='C:\VSCode\code.exe';$s.IconLocation='C:\VSCode\code.exe,0';$s.Save()"
-
-::Download first script to initialize for course
-::powershell Invoke-WebRequest -Uri 'https://___.rmd' -OutFile 'c:\VSCode\data\Course\Code'
 
 
 echo -----------------------Download RStudio  ---  ZIP for portable-----------------------------------
