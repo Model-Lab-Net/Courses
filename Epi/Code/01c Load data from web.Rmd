@@ -1,0 +1,92 @@
+###
+### name: דוד בורג
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: 1
+### date: 19/05/2025
+### source: https://www.gov.il/he/pages/aids-periodicreport2024 באמצעות https://plotdigitizer.com
+###  
+###  כאן נראה איך להטעין קובץ מהאינטרנט וליצור גרפים
+###
+
+# Reset memory
+```{r setup-packages, include false}
+rm(list = ls(all.names = TRUE))
+lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+gc()
+```
+
+# Load required packages
+```{r setup-packages, include false}
+library(tidyverse)
+library(plotly)
+```
+
+# Get data
+```{r load data, include false}
+url <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/main/Epi/Data/HIV_Israel_1981-2023.csv"
+hiv_data <- read.csv(url)
+
+```
+
+# Check out the variables
+```{r load data, include false}
+# Setting the seed based on the current time
+#head(hiv_data)
+glimpse(hiv_data)
+```
+
+# plot the cases
+```{r cases, include false}
+plot_ly(hiv_data, 
+        x = ~year, 
+        y = ~cases, 
+        type = 'scatter', 
+        mode = 'lines',
+        showlegend = FALSE) %>%
+  layout(title = "HIV Cases in Israel (1981–2023)",
+         xaxis = list(title = "Year"),
+         yaxis = list(title = "Cases"))
+```
+
+
+# ploy incidence
+```{r incidence, include false}
+# Create the plot
+plot_ly(hiv_data, 
+        x = ~year, 
+        y = ~incidence_per_miilion, 
+        type = 'scatter', 
+        mode = 'lines',
+        showlegend = FALSE) %>%
+  layout(title = "HIV Cases in Israel (1981–2023)",
+         xaxis = list(title = "Year"),
+         yaxis = list(title = "Cases<br><sup>per million"))
+```
+
+# Show pop
+```{r pop, include false}
+# Create the plot
+plot_ly(hiv_data, 
+        x = ~year, 
+        y = ~cumm, 
+        type = 'scatter', 
+        mode = 'lines',
+        showlegend = FALSE) %>%
+  layout(title = "HIV Cases in Israel (1981–2023)",
+         xaxis = list(title = "Year"),
+         yaxis = list(title = "HIV+ population"))
+```
+
+# Show pop per million
+```{r pop, include false}
+# Create the plot
+plot_ly(hiv_data, 
+        x = ~year, 
+        y = ~incidence_pop, 
+        type = 'scatter', 
+        mode = 'lines',
+        showlegend = FALSE) %>%
+  layout(title = "HIV Cases in Israel (1981–2023)",
+         xaxis = list(title = "Year"),
+         yaxis = list(title = "HIV+ population<br><sup>per million"))
+```
