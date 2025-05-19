@@ -5,12 +5,12 @@ lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.
 gc()
 ```
 
-
 # Load required packages
 ```{r setup-packages, include false}
 # List of packages to install and load
 packages <- c("readr", "tidyverse", "tibble", "gt", "plotly", "dplyr",
-              "skimr", "kableExtra"
+              "skimr", "kableExtra", "rmarkdown", "descr", "knitr",
+              "languageserver"
              )
 
 # Loop to check, install, and load packages
@@ -30,7 +30,6 @@ for (pkg in packages) {
 download.file("https://____/nhanes.csv", destfile = "C:/RVSCode/Course/Data", mode = "wb")
 ```
 
-
 # Download nhanes data /w variables
 ```{r download-data, include false}
 # file url and destination information
@@ -41,7 +40,6 @@ file_url <- paste0(base_url, file)
 # download file
 download.file(file_url, destfile = dest_path, mode = "wb")
 ```
-
 
 # Download course data
 ```{r download-data, include false}
@@ -70,7 +68,6 @@ for (file in files)
     }
 ```
 
-
 # Load data packages
 ```{r setup-packages, include false}
 # List of packages to install and load
@@ -95,7 +92,7 @@ files <- c("____", "____", "____", "____",
            "____", "____", "____", "____"
            )
 # Base URL
-base_url <- "https://_____"
+base_url <- "https://github.com/Model-Lab-Net/Courses/tree/main/Epi/Data"
 
 # Destination folder
 dest_folder <- "C:/RVSCode/Course/Data"
@@ -115,8 +112,8 @@ for (file in files)
 ```
 
 
-# Download more dataset
-```{r download-data, include false}
+# Download more datasets
+```{r download-more_data, include false}
 # List of files to download
 files <- c("https://_____,",
            "https://_____,",
@@ -129,5 +126,33 @@ for (file in files)
     {
        download.file(file, destfile = dest_folder, mode = "wb")    # Download file to specified folder
        cat("Downloaded:", file, "to", dest_folder, "\n")           # Print status 
+    }
+```
+
+
+# Download code examples for Course
+```{r download-data, include false}
+# List of files to download
+files <- c("01a Load data from table.Rmd", "____",
+           "____", "____",
+           "____", "____",
+           )
+# Base URL
+base_url <- "https://github.com/Model-Lab-Net/Courses/tree/main/Epi/Code"
+
+# Destination folder
+dest_folder <- "C:/RVSCode/Course/Data"
+# Create destination folder if it doesn't exist
+if (!dir.exists(dest_folder)) {
+  dir.create(dest_folder, recursive = TRUE)
+}
+
+# Loop through each file and download
+for (file in files)
+    {
+       file_url <- paste0(base_url, file)                            # Construct full URL
+       dest_path <- file.path(dest_folder, file)                     # Construct destination path
+       download.file(file_url, destfile = dest_path, mode = "wb")    # Download file to specified folder
+       cat("Downloaded:", file, "to", dest_path, "\n")               # Print status 
     }
 ```
