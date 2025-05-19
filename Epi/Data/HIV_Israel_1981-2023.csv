@@ -1,4 +1,4 @@
-Year,Cases,Pop_m,Pop,Cumm,incidence_per_miilion,incidece_pop
+year,cases,pop_m,pop,cumm,incidence_per_miilion,incidece_pop
 1982,2,4.064,4064000,2,0.5,0.5
 1983,4,4.119,4119000,6,1.0,1.5
 1984,4,4.2,4200000,10,1.0,2.4
