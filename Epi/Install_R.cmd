@@ -14,7 +14,7 @@ set CURL_VERSION=8.14.0_1
 c:
 md c:\temp
 cd c:\temp
-if not exist curl.zip powershell Invoke-WebRequest -Uri 'https://curl.se/windows/dl-8.13.0_3/curl-%CURL_VERSION%-win64-mingw.zip' -OutFile 'c:\temp\curl.zip'
+if not exist curl.zip powershell Invoke-WebRequest -Uri 'https://curl.se/windows/dl-%CURL_VERSION%/curl-%CURL_VERSION%-win64-mingw.zip' -OutFile 'c:\temp\curl.zip'
 powershell Expand-Archive -Path "C:\temp\curl.zip" -DestinationPath "C:\Temp" 
 move c:\temp\curl-8.13.0_3-win64-mingw\bin\*.* c:\temp
 
