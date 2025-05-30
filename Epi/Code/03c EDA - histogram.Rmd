@@ -1,0 +1,130 @@
+###
+### name: דוד בורג
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: 3
+### date: 19/05/2025
+###  
+###  סטטיסטיקה תאורית
+###
+
+# Reset memory
+```{r setup-packages, include false}
+rm(list = ls(all.names = TRUE))
+lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+gc()
+```
+
+# Load required packages
+```{r setup-packages, include false}
+library(gtsummary)
+library(tidyverse)
+library(kableExtra)
+library(tibble)
+library(patchwork)
+library(here)
+library(readxl)
+library(plotly)
+```
+
+# Get data
+```{r load data, include false}
+path <- "./Data/peptic_ulcer.xlsx"
+pep <- read_excel(path)
+```
+
+# Check out the variables [same as before]
+```{r load data, include false}
+glimpse(pep)
+print(pep, n=20)
+
+kable_table_pep <- pep %>%
+  slice_head(n = 20) %>%  # Show first 20 rows
+  kable("html", align = 'c', caption = "Tibble for Peptic Ulcer data (First 20 Rows)") %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+    full_width = FALSE,
+    font_size = 14
+  ) %>%
+  scroll_box(height = "400px")
+print(kable_table_pep)
+```
+
+# use only a few variables [same as before]
+```{r sort_data, include false}
+# This take the ten variables we want and put them is a new dataframe
+pep <- pep %>% 
+  select(age, systolic, diastolic, hemoglobin, twc, 
+         ASA, PULP, perforation, gender, epigastric_pain, 
+         malena, tenderness, degree_perforation, outcome) 
+
+kable_table_pep <- pep %>%
+  slice_head(n = 20) %>%  # Show first 20 rows
+  kable("html", align = 'c', caption = "Tibble for Peptic Ulcer data (First 20 Rows)") %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+    full_width = FALSE,
+    font_size = 14
+  ) %>%
+  scroll_box(height = "400px")
+print(kable_table_pep)
+```
+
+# Show histogram
+```{r select_data, include false}
+# A histogram of systolic blood pressure of patients
+plotly_hist <- ggplot(data = pep, mapping = aes(x = systolic)) + 
+  geom_histogram(binwidth = 10) +
+  ylab("Frequency") +                          # add y-axis label
+  xlab("Systolic Blood Pressure") +            # add x-axis label
+  ggtitle("Systolic BP distribution") +        # add title
+  theme_bw()
+ggplotly(plotly_hist)
+```
+
+
+# Show density curve
+```{r select_data, include false}
+# A histogram of systolic blood pressure of patients
+plotly_dens <- ggplot(data = pep, mapping = aes(x = diastolic)) + 
+  geom_density() +
+  xlab("Diastolic BP (mmHg)") +
+  ylab("Density") +
+  labs(title = "Density distribution for diastolic BP",
+       caption = "Source : Peptic ulcer disease data") +
+  theme_bw()
+ggplotly(plotly_dens)
+```
+
+# Show histogram with density curve
+```{r select_data, include false}
+# A histogram of systolic blood pressure of patients
+combined_plot <- ggplot(data = pep, aes(x = systolic)) +
+  geom_histogram(aes(y = ..density..), binwidth = 10) +
+  geom_density(color = "black", size = 0.5) +
+  xlab("Systolic Blood Pressure") +
+  ylab("Density") +
+  ggtitle("Distribution of Systolic Blood Pressure") +
+  theme_bw()
+ggplotly(combined_plot)
+```
+
+
+# Show histogram with density curve togetehr with box plot
+```{r select_data, include false}
+# Create a box plot of outcome by age
+box_age <- ggplot(data = pep, aes(x = outcome, y = age)) +
+  geom_boxplot(outlier.shape = NA) + 
+  geom_dotplot(binaxis = "y", binwidth = 1, fill = NA, 
+               alpha = 0.85) +
+  xlab('Outcome') + ylab('Age') +
+  labs(title = "Box-plot",
+       caption = "Source : Peptic ulcer disease data") +
+  theme_bw()
+
+# now combine them with patchwork
+combined_plot |  box_age
+# now combine them with plotly
+subplot(combined_plot, box_age, nrows = 1, margin = 0.05, shareY = FALSE, titleX = TRUE, titleY = TRUE)
+```
+
+
