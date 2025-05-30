@@ -2,7 +2,7 @@
 ### name: דוד בורג
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: 0   
-### date: 30/05/2025
+### date: 19/05/2025
 ###  
 ###  זה קוד שיוריד את כל החבילות והקבצים שנצטרך בקורס הזה
 ###
@@ -164,6 +164,11 @@ for (file in files)
 ```{r download-data, include false}
 # List of files to download
 files <- c("01 --------------", 
+           "# 1st R code.Rmd",
+           "# Histogram.Rmd",
+           "# simple boxplot.Rmd",
+           "# simple regression",
+           "01 --------------",
            "01a Load data from table.Rmd",
            "01b Load data from file.Rmd",
            "01c Load data from web.Rmd",
@@ -171,11 +176,19 @@ files <- c("01 --------------",
            "02a Data wrangling.Rmd",
            "02b Data wrangling.Rmd",
            "03 --------------",
-           "03a Exploratory Data Analysis",
+           "03a EDA - statst.Rmd",
+           "03b EDA - bar grapht.Rmd",
+           "03c EDA - histogramt.Rmd",
+           "03d EDA - means+errorst.Rmd",
            "04 --------------",
            "04a Linear Regression.Rmd",
+           "04b Multi-regression.Rmd",
+           "04c Interaction.Rmd",
+           "04d Prediction.Rmd",
+           "04e Example2.Rmd",
            "05 --------------",
            "05a Logistic Regression.Rmd",
+           "05b Logistic Multi-regression.Rmd",
            "06 --------------",
            "06a Poisson Regression.Rmd",
            "07 --------------",
