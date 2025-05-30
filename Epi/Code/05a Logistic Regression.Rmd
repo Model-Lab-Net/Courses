@@ -1,0 +1,110 @@
+###
+### name: דוד בורג
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: 3
+### date: 19/05/2025
+###  
+###  רגרסיה לוגיסטית
+###
+
+# Reset memory
+```{r setup-packages, include false}
+rm(list = ls(all.names = TRUE))
+lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+gc()
+```
+
+# Load required packages
+```{r setup-packages, include false}
+library(readr)
+library(haven)
+library(tidyverse)
+library(kableExtra)
+library(tibble)
+library(readxl)
+library(gtsummary )
+library(broom)
+library(LogisticDx)
+library(plotly)
+```
+
+# Get data
+```{r load data, include false}
+path <- "./Data/stroke.dta"
+fatal <- read_dta(path)
+```
+
+# Check out the variables
+```{r load data, include false}
+glimpse(fatal)
+print(stroke, n=20)
+
+fatal <- 
+  fatal %>%
+  mutate(across(where(is.labelled), as_factor))
+
+fatal %>%
+  tbl_summary() %>%
+  as_gt()
+
+fatal %>%
+  tbl_summary(by = status) %>%
+  as_gt()  
+```
+
+# Do a logistic regression
+```{r sort_data, include false}
+# This take the ten variables we want and put them is a new dataframe
+fatal_glm_1 <- 
+  glm(status ~ gcs, 
+      data = fatal, 
+      family = binomial(link = 'logit'))
+summary(fatal_glm_1)
+
+tidy(fatal_glm_1, conf.int = TRUE)
+
+# Create a gtsummary table from the model
+tbl_regression(fatal_glm_1, 
+               exponentiate = FALSE,  # set to TRUE if you want odds ratios for logistic regression
+               estimate_fun = ~ style_sigfig(.x, digits = 3)) %>%  # round to 3 significant digits
+  modify_header(
+    #term = "Term",
+    estimate = "Estimate",
+    std.error = "SE",
+    statistic = "F-stat",
+    p.value = "p-value",
+    conf.low = "CI<sub>95%",
+    #conf.high = "Conf. High"
+  ) %>%
+  modify_caption("**Summary of Generalized Linear Model (fatal_glm_1)**")
+
+```
+
+
+# Do another logistic regression
+```{r sort_data, include false}
+# This take the ten variables we want and put them is a new dataframe
+fatal_glm_2 <- 
+  glm(status ~ stroke_type, 
+      data = fatal, 
+      family = binomial(link = 'logit'))
+summary(fatal_glm_2)
+
+tidy(fatal_glm_2, conf.int = TRUE)
+
+# Create a gtsummary table from the model
+tbl_regression(fatal_glm_2, 
+               exponentiate = FALSE,  # set to TRUE if you want odds ratios for logistic regression
+               estimate_fun = ~ style_sigfig(.x, digits = 3)) %>%  # round to 3 significant digits
+  modify_header(
+    #term = "Term",
+    estimate = "Estimate",
+    std.error = "SE",
+    statistic = "F-stat",
+    p.value = "p-value",
+    conf.low = "CI<sub>95%",
+    #conf.high = "Conf. High"
+  ) %>%
+  modify_caption("**Summary of Generalized Linear Model (fatal_glm_2)**")
+
+```

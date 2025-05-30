@@ -1,0 +1,176 @@
+###
+### name: דוד בורג
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: 4
+### date: 19/05/2025
+###  
+###  רגרסיה לינראית
+###
+
+# Reset memory
+```{r setup-packages, include false}
+rm(list = ls(all.names = TRUE))
+lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+gc()
+```
+
+# Load required packages
+```{r setup-packages, include false}
+library(tidyverse)
+library(kableExtra)
+library(tibble)
+library(readxl)
+library(lubridate)
+library(haven)
+library(tidyverse)
+library(gtsummary)
+library(ggplot2)
+library(ggpubr)
+library(GGally)
+library(rsq)
+library(broom)
+library(here)
+library(patchwork)
+library(plotly)
+```
+
+# Get data
+```{r load data, include false}
+path <- "./Data/coronary.dta"
+coronary <- read_dta(path)
+```
+
+# Check out the variables
+```{r load data, include false}
+glimpse(coronary)
+print(coronary, n=20)
+
+
+kable_table_coronary <- coronary %>%
+  slice_head(n = 20) %>%  # Show first 20 rows
+  kable("html", align = 'c', caption = "Tibble for Stroke data (First 20 Rows)") %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+    full_width = FALSE,
+    font_size = 14
+  ) %>%
+  scroll_box(height = "400px")
+
+# Display in console/viewer (R Markdown or viewer needed for full effect)
+print(kable_table_coronary)
+```
+
+# Show summary statistics
+```{r sort_data, include false}
+# Show median and IQR for cholestrol and diastolic blood pressure (numerical variables)
+coronary %>% 
+  select(chol, dbp) %>% 
+  tbl_summary()
+```
+
+
+# Histograms and box plots
+```{r select_data, include false}
+# filter() will select males 7+ years old and send
+# the data to a new dataframe
+hist_chol <-
+  ggplot(coronary, aes(chol)) + 
+  geom_histogram(color = "black", fill = "white")
+hist_dbp <-
+  ggplot(coronary, aes(dbp)) + 
+  geom_histogram(color = "black", fill = "white")
+bplot_chol <- 
+  ggplot(coronary, aes(chol)) + 
+  geom_boxplot()
+bplot_dbp <- 
+  ggplot(coronary, aes(dbp)) + 
+  geom_boxplot()
+# Combine the plots with patchwork
+((hist_chol | bplot_chol) /
+ (hist_dbp | bplot_dbp)) +
+  plot_annotation(title = "Cholesterol and DBP: Histograms and Boxplots")
+
+# Combine the plots with plotly
+combined_plot <- subplot(
+  hist_chol, bplot_chol,
+  hist_dbp, bplot_dbp,
+  nrows = 2, margin = 0.05, titleX = TRUE, titleY = TRUE
+)
+combined_plot
+```
+
+# One variable regression with lm()
+```{r num-to-cat, include false}
+# Do a simple linear regression (SLR) with chol as the dependent variable 
+slr_chol <- lm(chol ~ dbp, data = coronary)
+summary(slr_chol)
+
+tidy(slr_chol) %>%
+  mutate(p.value = format.pval(p.value, digits = 10, eps = .Machine$double.eps)) %>%
+  kable("html", caption = "Simple Linear Regression: Cholesterol ~ DBP (Exact p-values)") %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+    full_width = FALSE,
+    position = "left"
+  )
+```
+
+
+# Show model coefficients (beta)
+```{r num-to-cat, include false}
+# Show table with the model coefficient and its stats
+model_table <- tbl_regression(slr_chol,
+                             label = list(dbp = "Diastolic Blood Pressure"),
+                             conf.int = TRUE,
+                             show_single_row = "dbp",
+                             intercept = TRUE) %>%
+  modify_header(label = "**coeff**",
+                estimate = "**beta**",
+                std.error = "**SE**",
+                statistic = "**t**",
+                p.value = "**p**",
+                conf.low = "**CI<sub>95%**",
+                ) %>%
+  modify_caption("**Table 1: Model Coefficients**")
+model_table
+
+
+# Create a table for specific model fit statistics
+model_table_stats <- tbl_regression(slr_chol,
+                             label = list(dbp = "Diastolic Blood Pressure"),
+                             conf.int = TRUE,
+                             show_single_row = "dbp",
+                             intercept = TRUE) %>%
+  modify_header(label = "**coeff**",
+                estimate = "**beta**",
+                std.error = "**SE**",
+                statistic = "**F**",
+                p.value = "**p**",
+                conf.low = "**CI<sub>95%**") %>%
+  modify_table_body(~ .x %>% filter(label != "Abbreviations")) %>%
+  add_glance_source_note(
+    include = c(r.squared, adj.r.squared, statistic, p.value, logLik, AIC, sigma),
+    label = list(
+      r.squared = "R²",
+      adj.r.squared = "Adj.R²",
+      statistic = "F",
+      p.value = "p",
+      logLik = "log-L",
+      sigma = "\U03C3",
+      AIC = "AIC"
+    )
+  ) %>%
+  modify_caption("**Table 2: Model Coefficients<br>(fit statistics)**")
+
+model_table_stats
+```
+
+
+# Scatter plot
+```{r select_data, include false}
+# Plot scatter with regression line an CIs
+plot_slr <- 
+  ggplot(coronary, aes(x = dbp, y = chol)) + 
+  geom_point() + geom_smooth(method = lm)+
+ggplotly(plot_slr)
+```
