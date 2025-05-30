@@ -1,3 +1,12 @@
+###
+### name: דוד בורג
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: 0   
+### date: 19/05/2025
+###  
+###  זה קוד שיוריד את כל החבילות והקבצים שנצטרך בקורס הזה
+###
+
 # Reset memory
 ```{r setup-packages, include false}
 rm(list = ls(all.names = TRUE))
@@ -10,6 +19,9 @@ gc()
 # List of packages to install and load
 packages <- c("readr", "tidyverse", "tibble", "gt", "plotly", "dplyr",
               "skimr", "kableExtra", "rmarkdown", "descr", "knitr",
+              "lubridate", "rio", "here", "patchwork", "readxl",
+              "forcats", "haven", "haven", "ggpubr", "GGally", "rsq",
+              "broom",
               "languageserver"
              )
 
@@ -21,19 +33,28 @@ for (pkg in packages) {
   }
   library(pkg, character.only = TRUE)
 }
+
+# This will install the LogisticDx package from the archive
+# Note: The package may not be available on CRAN anymore,
+# so the URL is used
+install.packages(c('rms', 'statmod', 'speedglm', 'pROC', 'aod'))
+install.packages(
+  "https://cran.r-project.org/src/contrib/Archive/LogisticDx/LogisticDx_0.3.tar.gz",
+dependencies = TRUE
+)
 ```
 
 
-# Download nhanes data /w variables
+# Download nhanes data
 ```{r download-data, include false}
 # download file
-download.file("https://____/nhanes.csv", destfile = "C:/RVSCode/Course/Data", mode = "wb")
+download.file("https://https://github.com/Model-Lab-Net/Courses/tree/main/Epi/Data/nhanes.csv", destfile = "C:/RVSCode/Course/Data", mode = "wb")
 ```
 
 # Download nhanes data /w variables
 ```{r download-data, include false}
 # file url and destination information
-base_url <- "https://____"
+base_url <- "https://https://github.com/Model-Lab-Net/Courses/tree/main/Epi/Data"
 file <- "nhanes.csv"
 dest_folder <- "C:/RVSCode/Course/Data"
 file_url <- paste0(base_url, file)
@@ -67,6 +88,15 @@ for (file in files)
        cat("Downloaded:", file, "to", dest_path, "\n")               # Print status 
     }
 ```
+
+
+
+# Download some course data
+```{r download-data, include false}
+# file url and destination information
+download.file("https://raw.githubusercontent.com/GTPB/PSLS20/master/data/fev.txt", destfile = "C:/RVSCode/Course/Data/fev.txt")
+```
+
 
 # Load data packages
 ```{r setup-packages, include false}
@@ -133,15 +163,32 @@ for (file in files)
 # Download code examples for Course
 ```{r download-data, include false}
 # List of files to download
-files <- c("01a Load data from table.Rmd", "____",
-           "____", "____",
-           "____", "____",
-           )
+files <- c("01 --------------", 
+           "01a Load data from table.Rmd",
+           "01b Load data from file.Rmd",
+           "01c Load data from web.Rmd",
+           "02 --------------",
+           "02a Data wrangling.Rmd",
+           "02b Data wrangling.Rmd",
+           "03 --------------",
+           "03a Exploratory Data Analysis",
+           "04 --------------",
+           "04a Linear Regression.Rmd",
+           "05 --------------",
+           "05a Logistic Regression.Rmd",
+           "06 --------------",
+           "06a Poisson Regression.Rmd",
+           "07 --------------",
+           "07a Survival Analysis.Rmd",
+           "10 --------------",
+           "John Snow Cholera London_ggplot.Rmd",
+           "John Snow Cholera London_plotly.Rmd",
+          )
 # Base URL
 base_url <- "https://github.com/Model-Lab-Net/Courses/tree/main/Epi/Code"
 
 # Destination folder
-dest_folder <- "C:/RVSCode/Course/Data"
+dest_folder <- "C:/RVSCode/Course/Code"
 # Create destination folder if it doesn't exist
 if (!dir.exists(dest_folder)) {
   dir.create(dest_folder, recursive = TRUE)
