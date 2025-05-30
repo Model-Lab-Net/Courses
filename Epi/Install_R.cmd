@@ -6,8 +6,8 @@
 
 ::----------------------Get everything ready-------------------------------
 set R_VERSION=4.5.0
-set RSTUDIO_VERSION=2024.12.1-563
-set VSCODE_VERSION=17baf841131aa23349f217ca7c570c76ee87b957/VSCode-win32-x64-1.99.3
+set RSTUDIO_VERSION=2025.05.0-496
+set VSCODE_VERSION=848b80aeb52026648a8ff9f7c45a9b0a80641e2e/VSCode-win32-arm64-1.100.2
 
 c:
 md c:\temp
@@ -39,64 +39,66 @@ copy /Y "%programfiles%\R\R-%R_VERSION%\bin\x64\Rlapack.dll"    "%programfiles%\
 
 echo --------------------Download VSCode  ---  ZIP for portable---------------------
 :IInstallVSCode
-::if not exist c:\VSCode md c:\VSCode
-::cd c:\VSCode
-if not exist vscode.zip c:\temp\curl.exe -s -o vscode.zip https://vscode.download.prss.microsoft.com/dbazure/download/stable/%VSCODE_VERSION%.zip
-powershell Expand-Archive -Path "C:\temp\vscode.zip" -DestinationPath "C:\VSCode" 
+::if not exist c:\RVSCode md c:\RVSCode
+::cd c:\RVSCode
+if not exist rvscode.zip c:\temp\curl.exe -s -o rvscode.zip https://vscode.download.prss.microsoft.com/dbazure/download/stable/%VSCODE_VERSION%.zip
+powershell Expand-Archive -Path "C:\temp\rvscode.zip" -DestinationPath "C:\RVSCode" 
 
 
-md c:\VSCode\data\user-data\User\
-md c:\VSCode\R
+md c:\RVSCode\data\user-data\User\
+md c:\RVSCode\R
 
 ::Make folders for main course files
-md c:\VSCode\data\Course\Code
-md c:\VSCode\data\Course\Data
+md c:\RVSCode\data\Course\Code
+md c:\RVSCode\data\Course\Data
 
 ::copy R to VSCode main folder
-robocopy "%programfiles%\R" "c:\VSCode\R" /S
+robocopy "%programfiles%\R" "c:\RVSCode\R" /S
 
 ::install R languaugeserver package
 c:\temp\curl.exe -s -o c:\Temp\languageserver.zip https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_0.3.16.zip
 ::powershell Invoke-WebRequest -Uri 'https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_0.3.16.zip' -OutFile 'c:\Temp\languageserver.zip'
-c:\VSCode\R\R-%R_VERSION%\bin\R.exe CMD INSTALL c:\Temp\languageserver.zip
+c:\RVSCode\R\R-%R_VERSION%\bin\R.exe CMD INSTALL c:\Temp\languageserver.zip
 
 ::Set settings.json for R in VSCode
 (
 echo {
-echo     "r.rpath.windows": "C:\\VSCode\\R\\R-%R_VERSION%\\bin\\R.exe",
+echo     "r.rpath.windows": "C:\\RVSCode\\R\\R-%R_VERSION%\\bin\\R.exe",
 echo     "editor.dropIntoEditor.preferences": [],
 echo     "r.rterm.option": [
-echo         "--r-binary=C:\\VSCode\\R\\R-%R_VERSION%\\bin\\R.exe", 
+echo         "--r-binary=C:\\RVSCode\\R\\R-%R_VERSION%\\bin\\R.exe", 
 echo         "--no-save", 
 echo         "--no-restore"
 echo     ],
-echo     "r.rterm.windows": "C:\\VSCode\\R\\R-%R_VERSION%\\bin\\R.exe",
+echo     "r.rterm.windows": "C:\\RVSCode\\R\\R-%R_VERSION%\\bin\\R.exe",
 echo     "r.bracketedPaste": true,
 echo     "r.plot.useHttpgd": true,
 echo     "terminal.integrated.profiles.windows": {
 echo         "R": {
-echo             "path": "C:\\VSCode\\R\\R-%R_VERSION%\\bin\\R.exe",
+echo             "path": "C:\\RVSCode\\R\\R-%R_VERSION%\\bin\\R.exe",
 echo             "args": [ "--no-save", "--no-restore" ],
 echo             "env": {
-echo                 "PATH": "C:\\VSCode\\R\\R-%R_VERSION%\\bin"
+echo                 "PATH": "C:\\RVSCode\\R\\R-%R_VERSION%\\bin"
 echo             }
 echo         }
 echo     }
 echo }
-) > c:\VSCode\data\user-data\User\settings.json
+) > c:\RVSCode\data\user-data\User\settings.json
+
 
 ::Add extensions to VSCode
-call C:\VSCode\bin\code.cmd --install-extension github.copilot
-call C:\VSCode\bin\code.cmd --install-extension github.copilot-chat
-call C:\VSCode\bin\code.cmd --install-extension reditorsupport.r
-call C:\VSCode\bin\code.cmd --install-extension rdebugger.r-debugger
+call C:\RVSCode\bin\code.cmd --install-extension github.copilot
+call C:\RVSCode\bin\code.cmd --install-extension github.copilot-chat
+call C:\RVSCode\bin\code.cmd --install-extension reditorsupport.r
+call C:\RVSCode\bin\code.cmd --install-extension rdebugger.r-debugger
 
 ::Download first script to initialize for course
-::powershell Invoke-WebRequest -Uri 'https://github.com/Model-Lab-Net/Courses/blob/main/Epi/Initialize_R.Rmd' -OutFile 'c:\VSCode\Course\Initialize_R.Rmd'
-curl -o c:\VSCode\Course\Initialize_R.Rmd https://github.com/Model-Lab-Net/Courses/blob/main/Epi/Initialize_R.Rmd
+::powershell Invoke-WebRequest -Uri 'https://github.com/Model-Lab-Net/Courses/blob/main/Epi/Initialize_R.Rmd' -OutFile 'c:\RVSCode\Course\Initialize_R.Rmd'
+curl -o c:\RVSCode\Course\Initialize_R.Rmd https://github.com/Model-Lab-Net/Courses/blob/main/Epi/Initialize_R.Rmd
 
 ::Create shortcut link to Desktop
-powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%ALLUSERSPROFILE%\Desktop\RVSCode.lnk');$s.TargetPath='C:\VSCode\code.exe';$s.IconLocation='C:\VSCode\code.exe,0';$s.Save()"
+powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%ALLUSERSPROFILE%\Desktop\RVSCode.lnk');$s.TargetPath='C:\RVSCode\code.exe';$s.IconLocation='C:\RVSCode\code.exe,0';$s.Save()"
+
 
 
 echo -----------------------Download RStudio  ---  ZIP for portable-----------------------------------
@@ -186,7 +188,7 @@ echo ------------------------Uninstall R and cleanup----------------------------
 rd /s /q "C:\Program Files\R\R-%R_VERSION%"
 if exist c:\temp\r.exe del /F /S c:\temp\r.exe
 if exist c:\temp\rstudio.zip del /F /S c:\temp\rstudio.zip
-if exist c:\tempCode\VSCode.zip   del /F /S c:\temp\VSCode.zip
+if exist c:\tempCode\rvscode.zip   del /F /S c:\temp\rvscode.zip
 
 
 :exit
