@@ -1,18 +1,20 @@
 @echo off
-:: title -- Code to install R, RStudio and R in VSCode
-:: author -- David Burg
-:: for -- R course
-:: date -- 12/05/2025
+:: Title -- Code to install R, RStudio and R in VSCode
+:: Author -- David Burg
+:: For -- R course
+:: Date -- 12/05/2025
 
 ::----------------------Get everything ready-------------------------------
 set R_VERSION=4.5.0
 set RSTUDIO_VERSION=2025.05.0-496
 set VSCODE_VERSION=848b80aeb52026648a8ff9f7c45a9b0a80641e2e/VSCode-win32-arm64-1.100.2
+set RLANGSERVER_VERSION=0.3.16
+set CURL_VERSION=8.14.0_1
 
 c:
 md c:\temp
 cd c:\temp
-if not exist curl.zip powershell Invoke-WebRequest -Uri 'https://curl.se/windows/dl-8.13.0_3/curl-8.13.0_3-win64-mingw.zip' -OutFile 'c:\temp\curl.zip'
+if not exist curl.zip powershell Invoke-WebRequest -Uri 'https://curl.se/windows/dl-8.13.0_3/curl-%CURL_VERSION%-win64-mingw.zip' -OutFile 'c:\temp\curl.zip'
 powershell Expand-Archive -Path "C:\temp\curl.zip" -DestinationPath "C:\Temp" 
 move c:\temp\curl-8.13.0_3-win64-mingw\bin\*.* c:\temp
 
@@ -57,7 +59,7 @@ robocopy "%programfiles%\R" "c:\RVSCode\R" /S
 
 ::install R languaugeserver package
 c:\temp\curl.exe -s -o c:\Temp\languageserver.zip https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_0.3.16.zip
-::powershell Invoke-WebRequest -Uri 'https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_0.3.16.zip' -OutFile 'c:\Temp\languageserver.zip'
+::powershell Invoke-WebRequest -Uri 'https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_%RLANGSERVER_VERSION%.zip' -OutFile 'c:\Temp\languageserver.zip'
 c:\RVSCode\R\R-%R_VERSION%\bin\R.exe CMD INSTALL c:\Temp\languageserver.zip
 
 ::Set settings.json for R in VSCode
@@ -98,7 +100,6 @@ curl -o c:\RVSCode\Course\Initialize_R.Rmd https://github.com/Model-Lab-Net/Cour
 
 ::Create shortcut link to Desktop
 powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%ALLUSERSPROFILE%\Desktop\RVSCode.lnk');$s.TargetPath='C:\RVSCode\code.exe';$s.IconLocation='C:\RVSCode\code.exe,0';$s.Save()"
-
 
 
 echo -----------------------Download RStudio  ---  ZIP for portable-----------------------------------
