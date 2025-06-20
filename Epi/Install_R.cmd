@@ -5,11 +5,11 @@
 :: Date -- 12/05/2025
 
 ::----------------------Get everything ready-------------------------------
-set R_VERSION=4.5.0
-set RSTUDIO_VERSION=2025.05.0-496
-set VSCODE_VERSION=848b80aeb52026648a8ff9f7c45a9b0a80641e2e/VSCode-win32-arm64-1.100.2
+set R_VERSION=4.5.1
+set RSTUDIO_VERSION=2025.05.1-513
+set VSCODE_VERSION=18e3a1ec544e6907be1e944a94c496e302073435/VSCode-win32-x64-1.101.1.zip
 set RLANGSERVER_VERSION=0.3.16
-set CURL_VERSION=8.14.0_1
+set CURL_VERSION=8.14.1_2
 
 c:
 md c:\temp
