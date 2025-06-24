@@ -1,0 +1,201 @@
+###
+### name: דוד בורג
+### ID  : [מספר תעודת זהות]
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: רגרסיה לוגיסטית 06   
+### date  : 15/06/2025
+###  
+###  מלמד לעשות רגסיה לוגיסטית
+###
+### source: https://github.com/drkamarul/multivar_data_analysis/tree/main/data
+
+
+## Reset memory
+```{r setup-packages, include false}
+rm(list = ls(all.names = TRUE))
+lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+gc()
+```
+
+## Load required packages
+```{r load-packages, include false}
+options("install.lock"=FALSE)
+install.packages("pacman")
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(
+  rio,          # File import
+  here,         # File locator
+  skimr,        # get overview of data
+  tidyverse,    # data management + ggplot2 graphics, 
+  gtsummary,    # summary statistics and tests
+  gt,          # for creating tables
+  rstatix,      # statistics
+  nortest,      # Anderson-Darling test for normality
+  moments,      # skewness and kurtosis
+  corrr,        # correlation analayis for numeric variables
+  janitor,      # adding totals and percents to tables
+  flextable,    # converting tables to HTML
+  dplyr,        # For data manipulation
+  ggplot2,      # For creating plots
+  DescTools,    # For statistical functions like skewness and kurtosis
+  car,          # For Levene's test and ANOVA
+  vctrs,         # For data type handling
+  performance  # For model performance metrics
+            )
+```
+
+## Access the data
+```{r read-data, echo=FALSE}
+## read the data in a file online
+# file <- "./EpiData/stroke.dta"     # use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/stroke.dta"
+df3 <- import(file, trust  = TRUE)
+summary(df3)
+skim(df3)  # get an overview of the data
+```
+## Fix the data
+```{r fix-data, echo=FALSE}
+# Need to change status to be 1,0 
+df3 <- df3 %>% 
+  mutate(status = ifelse(status == 2, 0, 1))
+
+df3 %>%
+  tbl_summary(by = status) %>%
+  as_gt()
+```
+
+## 1st Logistic regression
+```{r logistic_regression, echo=FALSE}
+# Selet the categorical and numerical variables
+y_var1 <- "status"   # Change this to the numerical variable
+x_var1 <- "gcs"      # Change this to the categorial variable
+
+# Perform logistic regression
+log_reg1 <- glm(status ~ gcs, data = df3, family = binomial(link = 'logit'))
+
+# Get -2LL and AIC
+minus_2LL_log_reg1 <- -2 * as.numeric(logLik(log_reg1))
+AIC(log_reg1)
+
+# Calculate Nagelkerke's R²
+r2_val1 <- as.numeric(r2_nagelkerke(log_reg1))
+
+# Disiplay the summary of the logistic regression model
+summary(log_reg1)
+r2_val1
+
+log_reg_summary1 <- tbl_regression(log_reg1, exponentiate = FALSE) %>%
+  as_gt() %>%
+  tab_source_note(
+    source_note = paste0("R² = ", round(r2_val1,3),
+                          ", -2LL = ", round(minus_2LL_log_reg1, 0), 
+                          ", AIC = ", round(AIC(log_reg1), 0)
+                        )
+  )
+log_reg_summary1
+```
+
+## 1st Logistic regression plot
+```{r slr-gtsummary, include=FALSE}
+# use ggplot to show the scatter plot with regression line with linear model and confidence interval
+log_reg1_plot <- ggplot(df3, aes_string(x = x_var1, y = y_var1)) +
+  geom_point() +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = TRUE, color = "blue") +  # Adding the trend line with linear model
+  labs(title = paste("Scatter Plot of", y_var1, "vs", x_var1),
+       x = x_var1,
+       y = y_var1) +
+  theme_minimal()
+log_reg1_plot
+```
+
+## 2nd Logistic regression
+```{r logistic_regression, echo=FALSE}
+# Selet the categorical and numerical variables
+y_var2 <- "status"       # Change this to the numerical variable
+x_var2 <- "age"  # Change this to the categorial variable
+
+# Perform logistic regression
+log_reg2 <- glm(status ~ age, data = df3, family = binomial(link = 'logit'))
+
+# Calculate Nagelkerke's R²
+r2_val2 <- as.numeric(r2_nagelkerke(log_reg2))
+
+# Get -2LL and AIC
+minus_2LL_log_reg2 <- -2 * as.numeric(logLik(log_reg2))
+AIC(log_reg2)
+
+# Disiplay the summary of the logistic regression model
+summary(log_reg2)
+r2_val2
+
+log_reg_summary2 <- tbl_regression(log_reg2, exponentiate = FALSE) %>%
+  as_gt() %>%
+  tab_source_note(
+    source_note = paste0("R² = ", round(r2_val2,3),
+                          ", -2LL = ", round(minus_2LL_log_reg2, 0), 
+                          ", AIC = ", round(AIC(log_reg2), 0)
+                        )
+  )
+log_reg_summary2
+```
+
+## 2st Logistic regression plot
+```{r slr-gtsummary, include=FALSE}
+# use ggplot to show the scatter plot with regression line with linear model and confidence interval
+log_reg2_plot <- ggplot(df3, aes_string(x = x_var2, y = y_var2)) +
+  geom_point() +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = TRUE, color = "blue") +  # Adding the trend line with linear model
+  labs(title = paste("Scatter Plot of", y_var2, "vs", x_var2),
+       x = x_var,
+       y = y_var2) +
+  theme_minimal()
+log_reg2_plot
+```
+
+## Calculate Odds Ratio
+```{r OR, include=FALSE}
+# OR
+or1 <- exp(coef(log_reg1))
+or2 <- exp(coef(log_reg2))
+ 
+# Calculate 95% Confidence Intervals (CI)
+ci1 <- exp(confint(log_reg1))
+ci2 <- exp(confint(log_reg2))
+  
+# Display Odds Ratios and Confidence Intervals
+or1
+ci1
+or2
+ci2
+
+# Recalculate logistic regression for OR
+log_reg1_OR <- tbl_regression(log_reg1, exponentiate = TRUE)
+log_reg2_OR <- tbl_regression(log_reg2, exponentiate = TRUE)
+
+OR_combined_tbl <- tbl_stack(
+  tbls = list(log_reg1_OR, log_reg2_OR)
+  #tab_spanner = c("**1st Model**", "**2nd Model**")
+)
+OR_combined_tbl
+```
+
+## Show log(OR) and OR in one table
+```{r OR, include=FALSE}
+# Recalculate logistic regression for OR
+log_reg1_ <- tbl_regression(log_reg1, exponentiate = FALSE)
+log_reg1_OR <- tbl_regression(log_reg1, exponentiate = TRUE)
+
+log_combined_tbl <- tbl_merge(
+  tbls = list(log_reg1_, log_reg1_OR),
+  tab_spanner = c("**Log Odds**", "**Odds Ratio**")
+)  %>% 
+  as_gt() %>%
+  tab_source_note(
+    source_note = paste0("R² = ", round(r2_val1,3),
+                          ", -2LL = ", round(minus_2LL_log_reg1, 0), 
+                          ", AIC = ", round(AIC(log_reg1), 0)
+                        )
+  )
+
+log_combined_tbl
+```

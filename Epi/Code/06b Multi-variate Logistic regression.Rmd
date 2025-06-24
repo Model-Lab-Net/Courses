@@ -1,0 +1,254 @@
+###
+### name: דוד בורג
+### ID  : [מספר תעודת זהות]
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: רגרסיה לוגיסטית 06   
+### date  : 15/06/2025
+###  
+###  נלמד לעשות רגסיה לוגיסטית מרובה משתנים
+###
+### source: https://github.com/drkamarul/multivar_data_analysis/tree/main/data
+
+
+## Reset memory
+```{r setup-packages, include false}
+rm(list = ls(all.names = TRUE))
+lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+gc()
+```
+
+## Load required packages
+```{r load-packages, include false}
+options("install.lock"=FALSE)
+if (!require("pacman")) install.packages("pacman")
+library(pacman)
+pacman::p_load(
+  rio,                   # File import
+  here,                  # File locator
+  skimr,                 # get overview of data
+  tidyverse,             # data management + ggplot2 graphics, 
+  gtsummary,             # summary statistics and tests
+  gt,                    # for creating tables
+  rstatix,               # statistics
+  nortest,               # Anderson-Darling test for normality
+  moments,               # skewness and kurtosis
+  corrr,                 # correlation analayis for numeric variables
+  janitor,               # adding totals and percents to tables
+  flextable,             # converting tables to HTML
+  dplyr,                 # For data manipulation
+  ggplot2,               # For creating plots
+  DescTools,             # For statistical functions like skewness and kurtosis
+  car,                   # For Levene's test and ANOVA
+  vctrs,                 # For data type handling
+  performance,           # For model performance metrics
+  ResourceSelection,     # For goodness of fit tests
+  broom,                 # For tidying model outputs
+  pROC,                  # For ROC analysis
+  caret                  # For confusion matrix and classification metrics
+            )
+```
+
+## Access the data
+```{r read-data, echo=FALSE}
+## read the data in a file online
+# file <- "./EpiData/stroke.dta"     # use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/stroke.dta"
+df3 <- import(file, trust  = TRUE)
+summary(df3)
+skim(df3)  # get an overview of the data
+
+```
+## Access the data
+```{r fix-data, echo=FALSE}
+# Need to change status to be 1,0 
+df3 <- df3 %>% 
+  mutate(status = ifelse(status == 2, 0, 1))
+
+df3 %>%
+  tbl_summary(by = status) %>%
+  as_gt()
+```
+
+## Multiple Logistic regression
+```{r logistic_regression, echo=FALSE}
+# Perform logistic regression
+mlog_reg <- glm(status ~ gcs + stroke_type + sex + dm + sbp + age , data = df3, family = binomial(link = 'logit'))
+
+# Get -2LL and AIC
+minus_2LL_mlog_reg <- -2 * as.numeric(logLik(mlog_reg))
+AIC(mlog_reg)
+
+# Calculate Nagelkerke's R²
+r2_valm <- as.numeric(r2_nagelkerke(mlog_reg))
+
+# Disiplay the summary of the logistic regression model
+summary(mlog_reg)
+r2_valm
+
+mlog_reg_summary <- tbl_regression(mlog_reg, exponentiate = FALSE)
+mlog_reg_summary
+```
+
+## Calculate Odds Ratio
+```{r OR, include=FALSE}
+# Recalculate logistic regression for OR
+mlog_reg_OR <- tbl_regression(mlog_reg, exponentiate = TRUE)
+mlog_reg_OR
+
+mlog_combined_tbl <- tbl_merge(
+  tbls = list(mlog_reg_summary, mlog_reg_OR),
+  #tab_spanner = c("**1st Model**", "**2nd Model**")
+)  %>% 
+  as_gt() %>%
+  tab_source_note(
+    source_note = paste0("R² = ", round(r2_valm,3),
+                         ",  -2LL = ", round(minus_2LL_mlog_reg, 0), 
+                         ",  AIC = ", round(AIC(mlog_reg), 0)
+                        )
+  )
+
+mlog_combined_tbl
+```
+
+## Add inreaction term
+```{r OR, include=FALSE}
+# Recalculate logistic regression for OR
+mlog_reg_ia <- glm(status ~ gcs + stroke_type + gcs:stroke_type + age, data = df3, family = binomial(link = 'logit'))
+mlog_reg_ia
+tidy(mlog_reg_ia)
+
+mlog_reg_ia_table <- tbl_regression(
+  mlog_reg_ia,
+  exponentiate = TRUE,     # show odds ratios instead of log-odds
+  label = list(
+    gcs ~ "GCS",
+    stroke_type ~ "Stroke Type",
+    `gcs:stroke_type` ~ "GCS × Stroke Type",
+    age ~ "Age"
+  )
+)
+
+mlog_reg_ia_table
+```
+
+
+--------------------------------------------------------
+### !!!   זה ממשיך מהקובץ הקודם   !!! 
+
+
+## Models comparison
+```{r Models-comparison, include=FALSE}
+# Use Anova to compare models based on chisq test
+anova1_result <- anova(mlog_reg, log_reg1, test = 'Chisq')
+anova_df1 <- as.data.frame(anova1_result)
+anova_df1
+annova_summary1 <- anova_df1 %>%
+  mutate(Model = rownames(anova_df1)) %>%
+  select(Model, everything()) %>%
+  gt() %>%
+  tab_header(
+    title = "Model Comparison (Likelihood Ratio Test)"
+  ) %>%
+  fmt_number(columns = where(is.numeric), decimals = 3)
+annova_summary1
+
+# Use only the siginificant variables from the larger model
+mlog_reg_simple <- glm(status ~ gcs + stroke_type, data = df3, family = binomial(link = 'logit'))
+anova2_result <- anova(log_reg1, mlog_reg_simple, test = 'Chisq')
+anova_df2 <- as.data.frame(anova2_result)
+anova_df2
+annova_summary2 <- anova_df2 %>%
+  mutate(Model = rownames(anova_df2)) %>%
+  select(Model, everything()) %>%
+  gt() %>%
+  tab_header(
+    title = "Model Comparison (Likelihood Ratio Test)"
+  ) %>%
+  fmt_number(columns = where(is.numeric), decimals = 3)
+annova_summary2 
+```
+
+---------------------------------------------------------
+
+## Do prediction
+```{r OR, include=FALSE}
+# Estimate the log OR for death of each patient
+predict_values <- augment(mlog_reg_simple)
+predict_values %>%
+  slice(1:10)
+
+predict_probs <- augment(mlog_reg_simple, type.predict = "response")
+predict_probs %>%
+  slice(1:10)
+```
+
+## Goodness of fit
+```{r , echo=FALSE}
+mlog_reg_simple_GOF <- gof(mlog_reg_simple, g = 8)
+
+# ROC analysis
+roc_obj <- roc(df3$status, fitted(mlog_reg_simple))
+auc(roc_obj)  
+ci_auc <- ci.auc(roc_obj)
+ci_auc
+
+roc_df <- data.frame(
+  fpr = 1 - roc_obj$specificities,
+  tpr = roc_obj$sensitivities
+)
+ggplot(roc_df, aes(x = fpr, y = tpr)) +
+  geom_line(color = "blue", size = 1.2) +
+  geom_abline(linetype = "dashed", color = "gray") +  # Diagonal line
+  labs(title = paste("ROC Curve (AUC =", round(auc(roc_obj), 3), ")"),
+       x = "False Positive Rate (1 - Specificity)",
+       y = "True Positive Rate (Sensitivity)") +
+  theme_minimal()
+
+# Hosmer-Lemeshow test
+hoslem.test(df3$status, fitted(mlog_reg_simple), g = 10)
+```
+
+
+## classification table
+```{r , echo=FALSE}
+# Predict class labels based on a threshold of 0.5
+cm <- confusionMatrix(as.factor(pred_class), as.factor(df3$status), positive = "1")
+
+metrics_df <- data.frame(
+  Metric = c("Accuracy", "Sensitivity", "Specificity", "Precision", "F1 Score"),
+  Value = c(cm$overall["Accuracy"],
+            cm$byClass["Sensitivity"],
+            cm$byClass["Specificity"],
+            cm$byClass["Precision"],
+            cm$byClass["F1"])
+)
+
+# Convert the table to a matrix
+cm_table <- cm$table
+
+# Convert to a better display format (wide-style table)
+cm_wide <- as.data.frame.matrix(cm_table)
+
+# Rename rows and columns for clarity
+colnames(cm_wide) <- paste("Obs.", colnames(cm_wide))
+cm_wide <- cbind(`Predicted` = rownames(cm_wide), cm_wide)
+rownames(cm_wide) <- NULL
+
+cm_wide %>%
+  gt() %>%
+  tab_header(title = "Confusion Matrix") %>%
+  fmt_number(everything(), decimals = 0)
+
+
+metrics_df <- metrics_df %>%
+  gt() %>%
+  fmt_number(columns = "Value", decimals = 3) %>%
+  tab_header(title = "Classification Metrics")
+
+#combined_df <- rbind(cm_wide, metrics_df)
+
+#combined_df %>%
+#  gt() %>%
+#  tab_header(title = "Confusion Matrix and Classification Metrics") %>%
+#  fmt_number(columns = c("Actual 0", "Actual 1"), decimals = 3)
+```
