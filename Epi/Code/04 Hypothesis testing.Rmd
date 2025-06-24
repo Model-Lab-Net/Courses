@@ -1,0 +1,221 @@
+###
+### name: דוד בורג
+### ID  : [מספר תעודת זהות]
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: סטטיסטיקה תאורית וניתות בסיסי 02-04   
+### date  : 15/06/2025
+###  
+###  נלמד לבצע ניתוח סטטיסטי פשוט
+###
+### source: https://www.emilyzabor.com/mmedr/tools-manipulate-dataframes.html
+
+
+## Reset memory
+```{r setup-packages, include false}
+rm(list = ls(all.names = TRUE))
+lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+gc()
+```
+
+## Load required packages
+```{r load-packages, include false}  
+options("install.lock"=FALSE)
+if (!require("pacman")) install.packages("pacman")
+library(pacman)
+pacman::p_load(
+  rio,          # File import
+  here,         # File locator
+  skimr,        # get overview of data
+  tidyverse,    # data management + ggplot2 graphics, 
+  gtsummary,    # summary statistics and tests
+  rstatix,      # statistics
+  nortest,      # Anderson-Darling test for normality
+  moments,      # skewness and kurtosis
+  corrr,        # correlation analayis for numeric variables
+  janitor,      # adding totals and percents to tables
+  flextable,    # converting tables to HTML
+  dplyr,        # For data manipulation
+  ggplot2,      # For creating plots
+  DescTools,    # For statistical functions like skewness and kurtosis
+  car,          # For Levene's test and ANOVA
+  vctrs         # For data type handling
+            )
+```
+
+## Access the data
+```{r read-data, echo=FALSE}
+## read the data in a file online
+# file <- "./EpiData/linelist_cleaned.rds"     # use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/zabore/mmedr/refs/heads/main/data/breastcancer.csv"
+df1 <- import(file, trust  = TRUE)
+glimpse(df_bc)
+df_bc <- clean_names(df_bc)
+# Recode grade from I,II,III to 1,2,3
+df_bc$grade <- as.integer(factor(df_bc$grade, levels = c("I", "II", "III"), labels = c(1, 2, 3)))
+glimpse(df_bc)
+```
+
+## T test for independent samples
+```{r t-test, echo=FALSE}
+# Test for variance homogeneity
+levene_result <- levene(ht_cm ~ gender, data = df1, var.equal = TRUE)
+(levene_result)
+
+t_test_result <- t.test(ht_cm ~ gender, data = df1, var.equal = FALSE)
+t_test_result
+```
+
+## Two-way ANOVA
+```{r ANOVA, echo=FALSE}
+# Perform Levene's Test for homogeneity of variances
+
+# Do the ANOVA
+anova_result <- aov(temp ~ cough * fever, data = df1)
+summary(anova_result)
+
+# Tukey HSD test
+tukey_result <- TukeyHSD(anova_result)
+tukey_result
+```
+
+## Mann-Whitney test
+```{r t-test, echo=FALSE}
+# Test for variance homogeneity
+levene_result <- levene(days_onset_hosp ~ outcome, data = df1, var.equal = TRUE)
+levene_result
+
+MW_test <- wilcox.test(days_onset_hosp ~ outcome, data = df1, na.action = na.exclude)
+MW_test
+```
+
+## Chi-Square test 
+```{r chi-square, echo=FALSE}
+# Map character grades to integers
+contingency_table <- table(df_bc$grade, df_bc$rt)
+contingency_table
+
+chisq.test(x = df_bc$grade, y = df_bc$rt)
+```
+
+## Spearman regression
+```{r chi-square, echo=FALSE}
+spearman <- cor.test(df_bc$tumor_size_cm , df_bc$grade, method = "spearman", use = "complete.obs")
+
+# Print the test result
+spearman
+```
+
+
+# Paired T test / Wilcoxon ranked sum
+```{r paired-t-test, echo=FALSE}
+# Some data on depression Rx
+x <- c(1.83,  0.50,  1.62,  2.48, 1.68, 1.88, 1.55, 3.06, 1.30)     # pre
+y <- c(0.878, 0.647, 0.598, 2.05, 1.06, 1.29, 1.06, 3.14, 1.29)     # post
+paired_t_test_result <- t.test(x, y, paired = TRUE)
+paired_t_test_result
+
+wilcox.test(x, y, paired = TRUE)
+```
+
+
+
+
+### ---------------------------------------------
+
+
+
+
+## Q1
+```{r question1}
+
+library(ggplot2)
+
+
+ggplot(data, aes(x = height0, y = weight0)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +  # Adding the trend line with linear model
+  labs(title = "Scatter Plot of Weight vs Height",
+       x = " Height (cm)",
+       y = "Weight (kg)")
+
+
+
+##pearson
+test_result <- cor.test(data$weight0, data$height0, method = "pearson", use = "complete.obs")
+print(test_result)
+
+
+
+#spearman
+spearman_test_result <- cor.test(data$weight0, data$height0, method = "spearman", use = "complete.obs")
+
+# Print the test result
+print(spearman_test_result)
+```
+##chi square
+```{r pressure, echo=FALSE}
+
+ 
+data$pacifier_dich <- factor(data$pacifier_dich, levels = c(0, 1), labels = c("no", "yes"))
+data$newborn_gender <- factor(data$newborn_gender, levels = c(0, 1), labels = c("male", "female"))
+# Create a contingency table
+table_data <- table(data$pacifier_dich, data$newborn_gender)
+table_data
+
+# Calculate and print the percentage table
+percent_table <- prop.table(table_data, margin = 1) * 100  # Row percentages
+print(percent_table)
+print(column_percentages)
+column_percentages <- prop.table(table_data, margin = 2) * 100 #column percentages
+print(column_percentages)
+
+# Perform the chi-square test
+chi_test <- chisq.test(table_data)
+
+# Print the results of the chi-square test
+print(chi_test)
+
+
+expected_counts <- chi_test$expected
+expected_counts
+count_violations <- sum(expected_counts < 5)
+total_counts <- length(expected_counts)
+percentage_violations <- (count_violations / total_counts) * 100
+percentage_violations
+
+
+cat("Percentage of expected counts less than 5:", percentage_violations, "%\n")
+if (percentage_violations > 20) {
+  cat("Warning: More than 20% of expected counts are less than 5, which violates chi-square test assumptions.\n")
+}
+
+```
+
+
+## OR and RR for 2*2
+```{r question1}
+install.packages("epitools")
+library(epitools)
+
+# Create a contingency table
+contingency_table <- table(data$newborn_gender ,data$pacifier_dich)
+
+# Compute Odds Ratio (OR) and Relative Risk (RR)
+OR_result <- epitab(contingency_table, method = "oddsratio")
+print(OR_result)
+
+RR_result <- epitab(contingency_table, method = "riskratio")
+print(RR_result)
+```
+
+
+##fisher
+```{r pressure, echo=FALSE}
+contingency_table <- table(data$newborn_gender, data$pacifier_dich)
+
+# Perform Fisher's exact test
+fisher_result <- fisher.test(contingency_table)
+
+# Print the result
+print(fisher_result)
+```
