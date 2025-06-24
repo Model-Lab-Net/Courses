@@ -7,6 +7,7 @@
 ###  
 ###  נלמד לבצע ניתוח סטטיסטי פשוט
 ###
+### source: https://epirhandbook.com/en/
 
 
 ## Reset memory
@@ -23,21 +24,11 @@ if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
   rio,          # File import
-  here,         # File locator
-  skimr,        # get overview of data
   tidyverse,    # data management + ggplot2 graphics, 
-  gtsummary,    # summary statistics and tests
-  rstatix,      # statistics
+  gt,           # Nice beuatiful tables
   nortest,      # Anderson-Darling test for normality
-  moments,      # skewness and kurtosis
-  corrr,        # correlation analayis for numeric variables
-  janitor,      # adding totals and percents to tables
-  flextable,    # converting tables to HTML
-  dplyr,        # For data manipulation
   ggplot2,      # For creating plots
-  DescTools,    # For statistical functions like skewness and kurtosis
-  car,          # For Levene's test and ANOVA
-  vctrs         # For data type handling
+  DescTools    # For statistical functions like skewness and kurtosis
             )
 ```
 
@@ -62,94 +53,49 @@ glimpse(df1)
 
 ## Select numerical variable for analysis
 ```{r descriptives, echo=TRUE}
-## ---= Central tendency and dispersion =---
 variable <- "age"
 ```
 
 ## Desctiptive statistics for a numeric variable
 ```{r descriptives, echo=TRUE}
-## ---= Central tendency and dispersion =---
-mean1 <- mean(df1[[variable]], na.rm = TRUE)        # Mean
-mode1 <- as.vector(Mode(df1[[variable]]))           # Mode
-median1 <- median(df1[[variable]], na.rm = TRUE)    # Median
-sd1 <- sd(df1[[variable]], na.rm = TRUE)            # Standard Deviation
-iqr1 <- IQR(df1[[variable]], na.rm = TRUE)          # Interquartile Range
-min1 <- min(df1[[variable]], na.rm = TRUE)          # Minimum
-max1 <- max(df1[[variable]], na.rm = TRUE)          # Maximum
 
-# Create a data frame to neatly display the statistics
-stats_df <- data.frame(
-  Statistic = c("Mean", "Mode", "Median", "Standard Deviation", "Interquartile Range", "Minimum", "Maximum"),
-  Value = c(mean1, mode1, median1, sd1, iqr1, min1, max1)
-)
-# print a table with knitr
-knitr::kable(stats_df, col.names = c("Statistic", "Value"), caption = "Summary Statistics")
+# Summary statistics with Desctools
+desc_result <- Desc(df1[variable], plotit = TRUE)
+desc_result
+
+mean1 <- Mean(df1[[variable]], na.rm = TRUE)
+sd1 <- sd(df1[[variable]], na.rm = TRUE)
+CI1 <- MeanCI(df1[[variable]], na.rm = TRUE)
+  lower_meanci_1 <- as.numeric((CI1["lwr.ci"]))
+  upper_meanci_1 <- as.numeric((CI1["upr.ci"]))
+mode1 <- as.numeric(Mode(df1[[variable]], na.rm = TRUE))
+median1 <- Median(df1[[variable]], na.rm = TRUE)
+q25_1 <- as.numeric(Quantile(df1[[variable]], probs = 0.25, na.rm = TRUE))
+q75_1 <- as.numeric(Quantile(df1[[variable]], probs = 0.75, na.rm = TRUE))
+IQR1 <- IQR(df1[[variable]], na.rm = TRUE)
+min1 <- min(df1[[variable]], na.rm = TRUE)
+max1 <- max(df1[[variable]], na.rm = TRUE)
+skew1 <- Skew(df1[[variable]], na.rm = TRUE)                            # Skewness
+kurt1 <- Kurt(df1[[variable]], na.rm = TRUE)                            # Kurtosis
+norm1 <- ad.test(df1[[variable]][!is.na(df1[[variable]])])$p.value      # Anderson-Darling test for normality
 ```
 
-## Normality, skewness and kurtosis
-```{r read-data, echo=FALSE}
-## Perform a Anderson-Darling test for normality
-norm1 <- ad.test(df1[[variable]][!is.na(df1[[variable]])])$p.value
-## Calculate skewness
-skew1 <- skewness(df1[[variable]], na.rm = TRUE)
-## Calculate kurtosis
-kurt1 <- kurtosis(df1[[variable]], na.rm = TRUE)
-
-# Create a data frame to neatly display the statistics
-stats_df <- data.frame(
-  Statistic = c("Mean", "Mode", "Median", "Standard Deviation", "Interquartile Range", "Minimum", "Maximum", "Skewnees", "Kurtosis", "Normality (p<)"),
-  Value = c(mean1, mode1, median1, sd1, iqr1, min1, max1, skew1, kurt1, norm1)
-)
-# print a table with knitr
-knitr::kable(stats_df, col.names = c("Statistic", "Value"), caption = "Summary Statistics")
-```
-
-## Nice summanry statistis table (with confidence intervals)
+## Nice summanry statistis table
 ```{r nice-table, echo=TRUE}
-## Use gtsummary
-summary_stats <- tbl_summary(
-  data = df1,
-  include = bmi,
-  statistic = list(all_continuous() ~
-             c("{min}",
-               "{max}",
-               "{mean}",
-               "{sd}",
-               "{median}",
-               "[{p25}, {p75}]", 
-               #"Skewness: {skew1}",
-               #"Kurtosis: {kurt1}"
-               "{n_missing}"
-              )),
-  digits = all_continuous() ~ 1,
-    type = list(bmi = "continuous2"),
-  missing = "no"
-) %>%
-  modify_header(label = "**Variable**") %>%
-  modify_caption("**Summary of BMI**")
+# Create a data frame to neatly display the statistics
+stats_df <- data.frame(
+  Statistic = c("Mean", "SD", "⠀⠀CI₉₅ low", "⠀⠀CI₉₅ high", "Mode", "Median", "⠀⠀Q1", "⠀⠀Q3", "⠀⠀IQR", "Minimum", "Maximum", "Skewness", "Kurtosis", "Normality test")
+  , Value = c(mean1, sd1, lower_meanci_1, upper_meanci_1, mode1, median1, q25_1, q75_1, IQR1, min1, max1, skew1, kurt1, norm1)
+  , סטטיסטי = c("ממוצע", "ס'ת", "⠀⠀רווח סמך", "⠀⠀רווח סמך", "שכיח", "חציון", "⠀⠀רבעון 1", "⠀⠀רבעון 3", "⠀⠀מרווח בין רבועני", "מינימום", "מקסימום", "צידוד", "גבנוניות", "נורמליות")
+)
 
-# Add skewness and kurtosis manually to the table body
-summary_stats$table_body <- summary_stats$table_body %>%
-  bind_rows(
-    tibble(
-      variable = "bmi",
-      label = "Skewness",
-      stat_0 = as.character(round(skew1, 1))
-    ),
-    tibble(
-      variable = "bmi",
-      label = "Kurtosis",
-      stat_0 = as.character(round(kurt1, 1))
-    ),
-    tibble(
-      variable = "bmi",
-      label = "Normality (p<)",
-      stat_0 = as.character(round(norm1, 3))
-    )
-  )  
+# Clean, simple table
+summary_stats <- stats_df %>% 
+  gt() %>%
+  tab_header(title = "Summary Statistics⠀⠀⠀⠀סטטיסטקה תאורית") %>%
+  fmt_number(columns = Value, decimals = 1)
 
-# Print the table
-summary_stats
+summary_stats              # Show the table
 ```
 
 
@@ -168,8 +114,8 @@ ggplot(df1, aes(x = "", fill = .data[[pie_var]])) +
 
 ## Histogram
 ```{r histogram, echo=TRUE}
-hist_var <- "age"   # Change this to the numerical variable
-ggplot(df1, aes(x = .data[[hist_var]])) +
+hist_var <- variable 
+ggplot(df1, aes(x = get(hist_var))) +
   geom_histogram(binwidth = 5, fill = "grey", color = "black") +
   theme_minimal() +
   labs(
@@ -182,9 +128,9 @@ ggplot(df1, aes(x = .data[[hist_var]])) +
 
 ## Boxplot
 ```{r boxplot, echo=TRUE}
-x_var <- "cough"  # Change this to the categorial variable
-y_var <- "temp"   # Change this to the numerical variable
-ggplot(df1, aes(x = .data[[x_var]], y = .data[[y_var]], fill = .data[[x_var]])) +
+x_var <- "cough"  # Change this to a categorial variable
+y_var <- "temp"   # Change this to a numerical variable
+ggplot(df1, aes(x = get(x_var), y = get(y_var), fill = get(x_var))) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter(width = 0.2, alpha = 0.25, size = 0.25, color = "grey") +
   theme_minimal() +

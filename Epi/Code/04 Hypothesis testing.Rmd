@@ -2,10 +2,10 @@
 ### name: דוד בורג
 ### ID  : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
-### lesson: סטטיסטיקה תאורית וניתות בסיסי 02-04   
+### lesson: בדיקת השערות 02-04   
 ### date  : 15/06/2025
 ###  
-###  נלמד לבצע ניתוח סטטיסטי פשוט
+###  נלמד לבצע מבחנים סטייטסיים בסיסיים
 ###
 ### source: https://www.emilyzabor.com/mmedr/tools-manipulate-dataframes.html
 
@@ -24,30 +24,22 @@ if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
   rio,          # File import
-  here,         # File locator
-  skimr,        # get overview of data
   tidyverse,    # data management + ggplot2 graphics, 
-  gtsummary,    # summary statistics and tests
-  rstatix,      # statistics
+  gt,           # Nice beuatiful tables
   nortest,      # Anderson-Darling test for normality
-  moments,      # skewness and kurtosis
-  corrr,        # correlation analayis for numeric variables
-  janitor,      # adding totals and percents to tables
-  flextable,    # converting tables to HTML
-  dplyr,        # For data manipulation
   ggplot2,      # For creating plots
   DescTools,    # For statistical functions like skewness and kurtosis
-  car,          # For Levene's test and ANOVA
-  vctrs         # For data type handling
+  janitor,      # adding totals and percents to tables
+  car           # For Levene's test and ANOVA
             )
 ```
 
 ## Access the data
 ```{r read-data, echo=FALSE}
 ## read the data in a file online
-# file <- "./EpiData/linelist_cleaned.rds"     # use this if the file is on your computer
+# file <- "./EpiData/breastcancer.csv"     # use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/zabore/mmedr/refs/heads/main/data/breastcancer.csv"
-df1 <- import(file, trust  = TRUE)
+df_bc <- import(file, trust  = TRUE)
 glimpse(df_bc)
 df_bc <- clean_names(df_bc)
 # Recode grade from I,II,III to 1,2,3
@@ -58,10 +50,10 @@ glimpse(df_bc)
 ## T test for independent samples
 ```{r t-test, echo=FALSE}
 # Test for variance homogeneity
-levene_result <- levene(ht_cm ~ gender, data = df1, var.equal = TRUE)
+levene_result <- levene(age_dx_yrs ~ rt, data = df_bc, var.equal = TRUE)
 (levene_result)
 
-t_test_result <- t.test(ht_cm ~ gender, data = df1, var.equal = FALSE)
+t_test_result <- t.test(age_dx_yrs ~ rt, data = df_bc, var.equal = FALSE)
 t_test_result
 ```
 
@@ -70,7 +62,7 @@ t_test_result
 # Perform Levene's Test for homogeneity of variances
 
 # Do the ANOVA
-anova_result <- aov(temp ~ cough * fever, data = df1)
+anova_result <- aov(age_dx_yrs ~ grade, data = df_bc)
 summary(anova_result)
 
 # Tukey HSD test
@@ -84,21 +76,26 @@ tukey_result
 levene_result <- levene(days_onset_hosp ~ outcome, data = df1, var.equal = TRUE)
 levene_result
 
-MW_test <- wilcox.test(days_onset_hosp ~ outcome, data = df1, na.action = na.exclude)
+MW_test <- wilcox.test(optimal_systemic_therapy ~ her2_pos, data = df_bc, na.action = na.exclude)
 MW_test
 ```
 
-## Chi-Square test 
+## Chi-Square and Fisher Exact tests
 ```{r chi-square, echo=FALSE}
 # Map character grades to integers
 contingency_table <- table(df_bc$grade, df_bc$rt)
 contingency_table
 
+# Chi-Square test
 chisq.test(x = df_bc$grade, y = df_bc$rt)
+
+# Chi-Fisher Exact test
+fisher.test(x = df_bc$grade, y = df_bc$rt)
 ```
 
 ## Spearman regression
 ```{r chi-square, echo=FALSE}
+# Spearman regrssion
 spearman <- cor.test(df_bc$tumor_size_cm , df_bc$grade, method = "spearman", use = "complete.obs")
 
 # Print the test result
@@ -111,9 +108,12 @@ spearman
 # Some data on depression Rx
 x <- c(1.83,  0.50,  1.62,  2.48, 1.68, 1.88, 1.55, 3.06, 1.30)     # pre
 y <- c(0.878, 0.647, 0.598, 2.05, 1.06, 1.29, 1.06, 3.14, 1.29)     # post
+
+# Do a paired T test
 paired_t_test_result <- t.test(x, y, paired = TRUE)
 paired_t_test_result
 
+# Do a paired Wilcoxon test
 wilcox.test(x, y, paired = TRUE)
 ```
 
