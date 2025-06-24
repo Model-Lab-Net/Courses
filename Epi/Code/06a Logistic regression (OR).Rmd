@@ -24,22 +24,18 @@ install.packages("pacman")
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
   rio,          # File import
-  here,         # File locator
-  skimr,        # get overview of data
   tidyverse,    # data management + ggplot2 graphics, 
-  gtsummary,    # summary statistics and tests
-  gt,          # for creating tables
-  rstatix,      # statistics
+  gt,           # Nice beuatiful tables
   nortest,      # Anderson-Darling test for normality
-  moments,      # skewness and kurtosis
-  corrr,        # correlation analayis for numeric variables
-  janitor,      # adding totals and percents to tables
-  flextable,    # converting tables to HTML
-  dplyr,        # For data manipulation
   ggplot2,      # For creating plots
   DescTools,    # For statistical functions like skewness and kurtosis
-  car,          # For Levene's test and ANOVA
-  vctrs,         # For data type handling
+  janitor,      # adding totals and percents to tables
+  car,           # For Levene's test and ANOVA
+  gtsummary,    # summary statistics and tests
+  corrr,        # correlation analayis for numeric variables
+  dplyr,        # For data manipulation
+  reshape2,     # For reshaping data
+  skimr,        # get overview of data
   performance  # For model performance metrics
             )
 ```
@@ -146,7 +142,7 @@ log_reg2_plot <- ggplot(df3, aes_string(x = x_var2, y = y_var2)) +
   geom_point() +
   geom_smooth(method = "glm", method.args = list(family = "binomial"), se = TRUE, color = "blue") +  # Adding the trend line with linear model
   labs(title = paste("Scatter Plot of", y_var2, "vs", x_var2),
-       x = x_var,
+       x = x_var2,
        y = y_var2) +
   theme_minimal()
 log_reg2_plot
@@ -187,7 +183,7 @@ log_reg1_OR <- tbl_regression(log_reg1, exponentiate = TRUE)
 
 log_combined_tbl <- tbl_merge(
   tbls = list(log_reg1_, log_reg1_OR),
-  tab_spanner = c("**Log Odds**", "**Odds Ratio**")
+  tab_spanner = c("**log Odds**", "**Odds Ratio**")
 )  %>% 
   as_gt() %>%
   tab_source_note(

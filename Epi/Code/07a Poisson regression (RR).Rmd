@@ -7,6 +7,8 @@
 ###  
 ###  counts רגרסיית פאוסון - ספירות
 ###
+### source:  https://bookdown.org/drki_musa/dataanalysis/poisson-regression.html
+###          https://github.com/drkamarul/multivar_data_analysis/tree/main/data
 
 
 ## Reset memory
@@ -23,23 +25,24 @@ if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
   rio,          # File import
-  here,         # File locator
-  skimr,        # get overview of data
   tidyverse,    # data management + ggplot2 graphics, 
-  gtsummary,    # summary statistics and tests
-  gt,          # for creating tables
-  rstatix,      # statistics
+  gt,           # Nice beuatiful tables
   nortest,      # Anderson-Darling test for normality
-  moments,      # skewness and kurtosis
-  corrr,        # correlation analayis for numeric variables
-  janitor,      # adding totals and percents to tables
-  flextable,    # converting tables to HTML
-  dplyr,        # For data manipulation
   ggplot2,      # For creating plots
   DescTools,    # For statistical functions like skewness and kurtosis
-  car,          # For Levene's test and ANOVA
-  vctrs,        # For data type handling
-  performance,  # For model performance metrics
+  janitor,      # adding totals and percents to tables
+  car,           # For Levene's test and ANOVA
+  gtsummary,    # summary statistics and tests
+  corrr,        # correlation analayis for numeric variables
+  dplyr,        # For data manipulation
+  reshape2,     # For reshaping data
+  skimr,        # get overview of data
+  performance,           # For model performance metrics
+  ResourceSelection,     # For goodness of fit tests
+  broom,                 # For tidying model outputs
+  pROC,                  # For ROC analysis
+  caret,
+  MASS          # For statistical functions (polr for ordinal regression)
   epiDisplay    # 
             )
 ```

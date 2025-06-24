@@ -6,14 +6,13 @@
 ### date  : 19/06/2025
 ###  
 ###  נכיר כאן פעולות בסיסיות
-###
 
 
-height  =172
+height = 172
 height 
-print(height)
 
 weight = 70
+weight
 bmi = 70/(height/100)^2
 bmi
 
@@ -23,29 +22,37 @@ bmi
 ### • Logical class (Boolean)
 
 ## ---= Numeric =---
-x1=23
+x1 <- 23
 class(x1)
 
-x2=x1/4.5
+x2 <- x 1/4.5
 x2
-x2 = round(x2,2)
+x2 <- round(x2,2)
 x2
-as.integer(x2)
+ס2 <- as.integer(x2)
 
 ## ---= Character =---
-c1 = "R workshop"
+c1 <- "R workshop"
 class(c1)
 c1
-c2=as.character(x2)
+c2 <- as.character(x2)
 c2
-x3=as.numeric(c1)      # This will return NA since "R workshop" cannot be converted to numeric
-x2=as.numeric(c2)
+x3 <- as.numeric(c1)      # This will return NA since "R workshop" cannot be converted to numeric
+x2 <- as.numeric(c2)
 x2
 
 ## ---= Logical =---
-l1 = (x1==23)            # The == operator checks if something is equal to something else
+x1
+l1 <- (x1==23)            # The == operator checks if something is equal to something else
 l1
 class(l1)
+
+l1 <- (x1==50)            # The == operator checks if something is equal to something else
+l1
+
+l1 <- (x1 < 50)            # The < operator checks if something is xmaller to something else
+l1
+
 
 ### ---= Factors (nominal variables) =---
 cities = c(1,2,5,4,2,4,3,4,3,5)          # c() is the combine function. 
@@ -118,11 +125,11 @@ df1$cities            # this also retrieves the "cities" column as a vector (sim
 df1 = cbind(df1,"population"=c(47242,117500,43818,82652,279591))
 df1
 
-##lists
-l1=list(v2,mat1,df1)    # create an output showing  vector v2,  matrix mat1, and dataframe df1
-l1
+## Lists
+list1=list(v2,mat1,df1)    # create an output showing  vector v2,  matrix mat1, and dataframe df1
+list1
 names(l1)=c("vector","matrix","dataframe")    # give each one a name in the ouptput
-l1
+list1
 
 # Retrive elements in a list of different classes
 l1[[3]]             # retrieves the third element in the list, which is the dataframe df1
@@ -130,7 +137,7 @@ l1[[3]][, 3]        # retrieves the 4th column in df1
 l1[[3]][4,]         # retrieves the 4th row in df1
 
 
-### ---= If statement (for logical loops) =---
+## ---= If statement (for logical loops) =---
 x <- 42
 y <- 50
 
@@ -138,7 +145,7 @@ if (y>x){           # check if y is greater than x
   print(TRUE)       # if true, print TRUE
 }
 
-## Ifelse statement (for vectorized logical loops)
+# Ifelse statement (for vectorized logical loops)
 v3 <- c(12,34,56,1,4,45)                    # create a vector v3
 condition <- ifelse(v3 > 10 ,'yes','no')    # ifelse function checks each element in v3, if it's greater than 10, it returns 'yes', otherwise 'no'
 condition
