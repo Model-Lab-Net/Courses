@@ -3,10 +3,11 @@
 ### ID  : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: שרידות 08   Survival
-### date  : 15/06/2025
+### date  : 25/06/2025
 ###  
 ###  נלמד לבצע ניתוח שרידות 
 ###
+### source:  https://bookdown.org/drki_musa/dataanalysis/survival-analysis-kaplan-meier-and-cox-proportional-hazard-ph-regression.html#kaplan-meier-survival-estimates
 
 
 ## Reset memory
@@ -14,7 +15,202 @@
 rm(list = ls(all.names = TRUE))
 lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
 gc()
+dev.off()
 ```
+
+## Load required packages
+```{r load-packages, include false}
+options("install.lock"=FALSE)
+if (!require("pacman")) install.packages("pacman")
+library(pacman)
+pacman::p_load(
+  rio,          # File import
+  tidyverse,    # data management + ggplot2 graphics, 
+  gt,           # Nice beuatiful tables
+  nortest,      # Anderson-Darling test for normality
+  ggplot2,      # For creating plots
+  DescTools,    # For statistical functions like skewness and kurtosis
+  janitor,      # adding totals and percents to tables
+  car,           # For Levene's test and ANOVA
+  gtsummary,    # summary statistics and tests
+  corrr,        # correlation analayis for numeric variables
+  dplyr,        # For data manipulation
+  reshape2,     # For reshaping data
+  skimr,        # get overview of data
+  performance,           # For model performance metrics
+  ResourceSelection,     # For goodness of fit tests
+  broom,                 # For tidying model outputs
+  pROC,                  # For ROC analysis
+  caret,
+  MASS,          # For statistical functions (polr for ordinal regression)
+  epiDisplay,    # 
+  survival,
+  survminer
+            )
+```
+
+## Access the data
+```{r read-data, echo=FALSE}
+## read the data in a file online
+# file <- "./EpiData/stroke_data.csv"     # use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/stroke_data.csv"
+df6 <- import(file, trust  = TRUE)
+summary(df6)
+glimpse(df6)
+```
+
+## Clean the data
+```{r read-data, echo=FALSE}
+# convert the variable doa and variable doa to a more valid format (date format)
+df6 <- 
+  df6 %>%
+  mutate(doa = dmy(doa),
+         dod = dmy(dod))
+```
+
+## Show the data
+```{r read-data, echo=FALSE}
+# in a nice table
+df6 %>%
+  tbl_summary(by = status) %>%
+  as_gt()
+
+df6 %>%
+  tbl_summary(by = stroke_type) %>%
+  as_gt()
+```
+
+## Do a Kaplan-Meyer survival analayis
+```{r read-data, echo=FALSE}
+# estimate the survival probabilities for all patients
+KM_all <- survfit(Surv(time = time2, 
+                   event = status == "dead" ) ~ 1, 
+              data = df6)
+summary(KM_All)
+
+# estimate the survival probabilities for stroke type
+KM_str_type <- survfit(Surv(time = time2, 
+                             event = status == "dead" ) ~ stroke_type, 
+                        data = df6)
+summary(KM_str_type)
+```
+
+## Kaplan-Meyer survival analayis plot
+```{r read-data, echo=FALSE}
+# estimate the survival probabilities for all patients
+KM_plot <- ggsurvplot(KM_str_type, 
+           data = df6, 
+           risk.table = TRUE, 
+           linetype = c(1,4),
+           tables.height = 0.3,
+           pval = TRUE)
+
+print(KM_plot)
+# *** You may need to zoom out ***
+```
+
+## Log-rank test
+```{r read-data, echo=FALSE}
+# Test if survival estimates are  different between levels/groups
+log_rank_stroke <- survdiff(Surv(time = time2, 
+              event = status == "dead") ~ stroke_type, 
+         data = df6,
+         rho = 0)
+
+log_rank_stroke
+
+# Test if survival estimates are  different between levels/groups
+log_rank_diabetes <- survdiff(Surv(time = time2, 
+              event = status == "dead") ~ dm, 
+         data = df6,
+         rho = 0)
+
+log_rank_diabetes
+```
+
+## Peto's log-rank test
+```{r read-data, echo=FALSE}
+# Test if survival estimates are  different between levels/groups
+log_rank_stroke <- survdiff(Surv(time = time2, 
+              event = status == "dead") ~ stroke_type, 
+         data = df6,
+         rho = 1)
+
+log_rank_stroke
+
+# Test if survival estimates are  different between levels/groups
+log_rank_diabetes <- survdiff(Surv(time = time2, 
+              event = status == "dead") ~ dm, 
+         data = df6,
+         rho = 1)
+
+log_rank_diabetes
+```
+
+## Life table
+```{r read-data, echo=FALSE}
+KM_str_type <- survfit(Surv(time = time2, event = status == "dead") ~ stroke_type, data = df6)
+KM_str_type
+```
+
+## Life table (with different time inveral, eg 30 days )
+```{r read-data, echo=FALSE}
+KM_str_type_cut <- summary(KM_str_type, times = seq(0, max(df6$time2), by = 30))
+KM_str_type_cut
+```
+
+## Display a nice table
+```{r read-data, echo=FALSE}
+# Create a df from values in the analysis
+life_df <- data.frame(
+  time      = KM_str_type_cut$time,
+  strata    = KM_str_type_cut$strata,
+  n_risk    = KM_str_type_cut$n.risk,
+  n_event   = KM_str_type_cut$n.event,
+  survival  = KM_str_type_cut$surv,
+  lower_ci  = KM_str_type_cut$lower,
+  upper_ci  = KM_str_type_cut$upper
+)
+
+# Dsiaply the table
+life_df %>%
+  mutate(
+    time = paste0(time, " days"),
+    survival = round(survival, 3),
+    lower_ci = round(lower_ci, 3),
+    upper_ci = round(upper_ci, 3)
+  ) %>%
+  gt() %>%
+  tab_header(
+    title = "Kaplan-Meier Life Table by Stroke Type",
+    subtitle = "Interval: every 30 days"
+  ) %>%
+  cols_label(
+    time = "Time",
+    strata = "Stroke Type",
+    n_risk = "At Risk",
+    n_event = "Events",
+    survival = "Survival",
+    lower_ci = "Lower CI",
+    upper_ci = "Upper CI"
+  ) %>%
+  fmt_missing(everything(), missing_text = "-")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ```{r setup, include=FALSE}
 data<-birth_survivalR
@@ -29,7 +225,6 @@ library(broom)
 library(survival)
 library(survminer)
 library(dplyr)
-
 
 
 ##question 2

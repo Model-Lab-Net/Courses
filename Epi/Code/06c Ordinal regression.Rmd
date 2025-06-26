@@ -15,6 +15,7 @@
 rm(list = ls(all.names = TRUE))
 lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
 gc()
+dev.off()
 ```
 
 ## Load required packages
@@ -40,7 +41,7 @@ pacman::p_load(
   ResourceSelection,     # For goodness of fit tests
   broom,                 # For tidying model outputs
   pROC,                  # For ROC analysis
-  caret
+  caret,
   MASS          # For statistical functions (polr for ordinal regression)
             )
 ```
@@ -58,24 +59,35 @@ glimpse(df4)
 ## Fix the data
 ```{r fix-data, echo=FALSE}
 # Make sure degree_perforation is an ordered factor
-df$degree_perforation <- factor(df$degree_perforation, 
+df4$degree_perforation <- factor(df4$degree_perforation, 
                                 levels = c("mild", "moderate", "severe"), 
                                 ordered = TRUE)
                                
 ```
 
 ## Perfrom an ordinal linear regression
-```{r rord-regression, echo=FALSE}
+```{r ord-regression, echo=FALSE}
 # Mutate DEATH_EVENT to factor
-df4 <- df %>%
+df4 <- df4 %>%
   mutate(degree_perforation = as.factor(degree_perforation))
 
 ## Ordinal Regression Model
 ord_lr <- polr(degree_perforation ~ PULP + hemoglobin + systolic , data = df4, Hess = TRUE)
 summary(ord_lr)
 
+ord_lr_summary <- tbl_regression(
+  ord_lr,
+  exponentiate = TRUE,  # Gives odds ratios instead of log-odds
+  vcov = vcov_matrix
+)
+
+ord_lr_summary
 
 
+coefs <- coef(summary(ord_lr))
+p_vals <- 2 * (1 - pnorm(abs(coefs[, "t value"])))
+coefs_with_p <- cbind(coefs, "p value" = p_vals)
+coefs_with_p
 
 
 # Get coefficients and standard errors
@@ -105,15 +117,7 @@ predict(model, newdata, type = "probs")
 
 
 
-odr_lr_summary <- tbl_regression(
-  ofr_lr,
-  intercept = TRUE,
-  estimate_fun = ~round(.x, 2)
-) %>%
-  add_glance_table(
-    include = c(r.squared, adj.r.squared, AIC, p.value)
-  )
-ofr_lr_summary
+
 ```
 
 

@@ -16,6 +16,7 @@
 rm(list = ls(all.names = TRUE))
 lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
 gc()
+dev.off()
 ```
 
 ## Load required packages
