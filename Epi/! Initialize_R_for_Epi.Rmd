@@ -2,7 +2,7 @@
 ### name: דוד בורג
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: 0   
-### date: 19/06/2025
+### date: 27/06/2025
 ###  
 ###  זה קוד שיוריד את כל החבילות והקבצים שנצטרך בקורס הזה
 
@@ -50,10 +50,6 @@ pacman::p_load(
   flextable,             # converting tables to HTML
   vctrs                 # For data type handling
             )
-
-
-
-
 
 
 # This will install the LogisticDx package from the archive
@@ -132,7 +128,7 @@ for (file in files)                     # Download the files in a loop
 ```{r download-data, include false}
 download.file("https://raw.githubusercontent.com/GTPB/PSLS20/master/data/fev.txt", destfile = "./EpiCode/HWdata_1.txt")
 download.file("https://raw.githubusercontent.com/ThecoderPinar/Diabetes_Health_Prediction_and_Analysis/refs/heads/main/raw/diabetes_data.csv", destfile = "./EpiCode/HWdata_2.csv")
-download.file("https://raw.githubusercontent.com/ThecoderPinar/Diabetes_Health_Prediction_and_Analysis/refs/heads/main/raw/diabetes_data.csv", destfile = "./EpiCode/HWdata_3.csv")
+download.file("https://raw.githubusercontent.com/vincentarelbundock/Rdatasets/refs/heads/master/csv/survival/cancer.csv", destfile = "./EpiCode/HWdata_3.csv")
 ```
 
 
