@@ -11,7 +11,7 @@
 
 
 ## Reset memory
-```{r setup-packages, include false}
+```{r setup-packages, include = FALSE}
 rm(list = ls(all.names = TRUE))
 lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
 gc()
@@ -19,7 +19,7 @@ dev.off()
 ```
 
 ## Load required packages
-```{r load-packages, include false}
+```{r load-packages, include = FALSE}
 options("install.lock"=FALSE)
 install.packages("pacman")
 if (!require("pacman")) install.packages("pacman")
@@ -34,25 +34,27 @@ pacman::p_load(
   car,           # For Levene's test and ANOVA
   gtsummary,    # summary statistics and tests
   corrr,        # correlation analayis for numeric variables
+  lmtest,
   dplyr,        # For data manipulation
   reshape2,     # For reshaping data
   skimr,        # get overview of data
   performance  # For model performance metrics
             )
+#library(LogisticDx)    # requires complex install             
 ```
 
 ## Access the data
-```{r read-data, echo=FALSE}
-## read the data in a file online
-# file <- "./EpiData/stroke.dta"     # use this if the file is on your computer
+```{r read-data, echo = TRUE}
+# file <- "./EpiData/stroke.dta"     # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/stroke.dta"
 df3 <- import(file, trust  = TRUE)
 summary(df3)
-skim(df3)  # get an overview of the data
+glimpse(df3)  # get an overview of the data
 ```
+
 ## Fix the data
-```{r fix-data, echo=FALSE}
-# Need to change status to be 1,0 
+```{r fix-data, echo = TRUE}
+# Need to change "status" to be 1,0 
 df3 <- df3 %>% 
   mutate(status = ifelse(status == 2, 0, 1))
 
@@ -61,59 +63,86 @@ df3 %>%
   as_gt()
 ```
 
-## 1st Logistic regression
-```{r logistic_regression, echo=FALSE}
-# Selet the categorical and numerical variables
-y_var1 <- "status"   # Change this to the numerical variable
-x_var1 <- "gcs"      # Change this to the categorial variable
-
+## Logistic regression
+```{r logistic-regression, echo = TRUE}
 # Perform logistic regression
-log_reg1 <- glm(status ~ gcs, data = df3, family = binomial(link = 'logit'))
+log_reg <- glm(status ~ gcs, data = df3, family = binomial(link = 'logit'))
+tidy(mlog_reg)
+```
 
+## Model performance measures
+```{r model-performance, echo = TRUE}
 # Get -2LL and AIC
-minus_2LL_log_reg1 <- -2 * as.numeric(logLik(log_reg1))
-AIC(log_reg1)
+minus_2LL_log_reg <- -2 * as.numeric(logLik(log_reg))
+AIC(log_reg)
 
 # Calculate Nagelkerke's R²
-r2_val1 <- as.numeric(r2_nagelkerke(log_reg1))
+r2_val <- as.numeric(r2_nagelkerke(log_reg))
 
 # Disiplay the summary of the logistic regression model
-summary(log_reg1)
-r2_val1
+summary(log_reg)
+r2_val
+```
 
-log_reg_summary1 <- tbl_regression(log_reg1, exponentiate = FALSE) %>%
+# Calculate log OR
+```{r calc-log_OR, echo = TRUE}
+log_reg_tbl <- tbl_regression(log_reg, exponentiate = FALSE)
+log_reg_tbl
+```
+
+# Calculate OR
+```{r calc-OR, include=FALSE}
+log_reg_OR <- tbl_regression(log_reg, exponentiate = TRUE)
+log_reg_OR
+```
+
+# Combine logOR and OR results with model performance 
+```{r log_reg_tbl, echo = TRUE}
+combined_tbl <- tbl_merge(
+  tbls = list(log_reg_tbl, log_reg_OR),
+  tab_spanner = c("**log Odds**", "**Odds Ratio**")  # Optional: Add spanning headers
+) %>%
   as_gt() %>%
   tab_source_note(
-    source_note = paste0("R² = ", round(r2_val1,3),
-                          ", -2LL = ", round(minus_2LL_log_reg1, 0), 
-                          ", AIC = ", round(AIC(log_reg1), 0)
+
+    source_note = paste0("R² = ", round(r2_val,3),
+                          ", -2LL = ", round(minus_2LL_log_reg, 0), 
+                          ", AIC = ", round(AIC(log_reg), 0)
                         )
   )
-log_reg_summary1
+
+# Display the combined table
+combined_tbl
 ```
 
-## 1st Logistic regression plot
-```{r slr-gtsummary, include=FALSE}
+## Logistic regression plot
+```{r log_reg-plt, echo = TRUE}
 # use ggplot to show the scatter plot with regression line with linear model and confidence interval
-log_reg1_plot <- ggplot(df3, aes_string(x = x_var1, y = y_var1)) +
+y_var <- "status"
+x_var <- "gcs"
+log_reg_plot <- ggplot(df3, aes_string(x = x_var, y = y_var)) +
   geom_point() +
   geom_smooth(method = "glm", method.args = list(family = "binomial"), se = TRUE, color = "blue") +  # Adding the trend line with linear model
-  labs(title = paste("Scatter Plot of", y_var1, "vs", x_var1),
-       x = x_var1,
-       y = y_var1) +
+  labs(title = paste("Scatter Plot of", y_var, "vs", x_var),
+       x = x_var,
+       y = y_var) +
   theme_minimal()
-log_reg1_plot
+log_reg_plot
 ```
 
-## 2nd Logistic regression
-```{r logistic_regression, echo=FALSE}
-# Selet the categorical and numerical variables
-y_var2 <- "status"       # Change this to the numerical variable
-x_var2 <- "age"  # Change this to the categorial variable
 
+
+
+
+## 2nd Logistic regression
+```{r logistic_regression,2 echo = TRUE}
 # Perform logistic regression
 log_reg2 <- glm(status ~ age, data = df3, family = binomial(link = 'logit'))
+tidy(mlog_reg2)
+```
 
+## 2nd Logistic regression performance measures
+```{r model-performance2, echo = TRUE}
 # Calculate Nagelkerke's R²
 r2_val2 <- as.numeric(r2_nagelkerke(log_reg2))
 
@@ -124,24 +153,47 @@ AIC(log_reg2)
 # Disiplay the summary of the logistic regression model
 summary(log_reg2)
 r2_val2
+```
 
-log_reg_summary2 <- tbl_regression(log_reg2, exponentiate = FALSE) %>%
+## Calculate log OR for 2nd Logistic regression
+```{r calc-log_OR2, echo = TRUE}
+log_reg_tbl2 <- tbl_regression(log_reg2, exponentiate = FALSE)
+log_reg_tbl2
+```
+
+## Calculate OR for 2nd Logistic regression
+```{r calc-OR2, echo = TRUE}
+log_reg_OR2 <- tbl_regression(log_reg2, exponentiate = TRUE)
+log_reg_OR2
+```
+
+## Combine 2nd Logistic regression logOR and OR results with model performance 
+```{r log_reg_tbl2, echo = TRUE}
+combined_tbl <- tbl_merge(
+  tbls = list(log_reg_tbl2, log_reg_OR2),
+  tab_spanner = c("**log Odds**", "**Odds Ratio**")  # Optional: Add spanning headers
+) %>%
   as_gt() %>%
   tab_source_note(
+
     source_note = paste0("R² = ", round(r2_val2,3),
                           ", -2LL = ", round(minus_2LL_log_reg2, 0), 
                           ", AIC = ", round(AIC(log_reg2), 0)
                         )
   )
-log_reg_summary2
+
+# Display the combined table
+combined_tbl2
 ```
 
 ## 2st Logistic regression plot
-```{r slr-gtsummary, include=FALSE}
+```{r log_reg-plot2, echo = TRUE}
 # use ggplot to show the scatter plot with regression line with linear model and confidence interval
+y_var2 <- "status"
+x_var2 <- "age"
 log_reg2_plot <- ggplot(df3, aes_string(x = x_var2, y = y_var2)) +
   geom_point() +
-  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = TRUE, color = "blue") +  # Adding the trend line with linear model
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = TRUE, color = "blue") +  # Adding the moddel line
   labs(title = paste("Scatter Plot of", y_var2, "vs", x_var2),
        x = x_var2,
        y = y_var2) +
@@ -149,50 +201,29 @@ log_reg2_plot <- ggplot(df3, aes_string(x = x_var2, y = y_var2)) +
 log_reg2_plot
 ```
 
-## Calculate Odds Ratio
-```{r OR, include=FALSE}
-# OR
-or1 <- exp(coef(log_reg1))
-or2 <- exp(coef(log_reg2))
- 
-# Calculate 95% Confidence Intervals (CI)
-ci1 <- exp(confint(log_reg1))
-ci2 <- exp(confint(log_reg2))
-  
-# Display Odds Ratios and Confidence Intervals
-or1
-ci1
-or2
-ci2
 
-# Recalculate logistic regression for OR
-log_reg1_OR <- tbl_regression(log_reg1, exponentiate = TRUE)
-log_reg2_OR <- tbl_regression(log_reg2, exponentiate = TRUE)
+### --------------------------------------
 
-OR_combined_tbl <- tbl_stack(
-  tbls = list(log_reg1_OR, log_reg2_OR)
-  #tab_spanner = c("**1st Model**", "**2nd Model**")
-)
-OR_combined_tbl
-```
 
-## Show log(OR) and OR in one table
-```{r OR, include=FALSE}
-# Recalculate logistic regression for OR
-log_reg1_ <- tbl_regression(log_reg1, exponentiate = FALSE)
-log_reg1_OR <- tbl_regression(log_reg1, exponentiate = TRUE)
-
-log_combined_tbl <- tbl_merge(
-  tbls = list(log_reg1_, log_reg1_OR),
-  tab_spanner = c("**log Odds**", "**Odds Ratio**")
-)  %>% 
+## Compare Odds Ratio between models
+```{r compare, echo = TRUE}
+stacked_tbl <- tbl_stack(
+  tbls = list(log_reg_OR, log_reg_OR2),
+  quiet = TRUE  # Suppress header difference warning
+) %>%
   as_gt() %>%
   tab_source_note(
-    source_note = paste0("R² = ", round(r2_val1,3),
-                          ", -2LL = ", round(minus_2LL_log_reg1, 0), 
-                          ", AIC = ", round(AIC(log_reg1), 0)
-                        )
+    source_note = html("<b>1st model: </b>",
+                       "R² = ", round(r2_val,2),
+                       ", -2LL = ", round(minus_2LL_log_reg, 0), 
+                       ", AIC = ", round(AIC(log_reg), 0),
+                       "<br>",
+                       "<b>2nd model: </b>",
+                       "R² = ", round(r2_val2,3),
+                       ", -2LL = ", round(minus_2LL_log_reg2, 0), 
+                       ", AIC = ", round(AIC(log_reg2), 0) 
+                      )
   )
 
-log_combined_tbl
+stacked_tbl
 ```

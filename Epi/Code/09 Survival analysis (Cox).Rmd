@@ -1,0 +1,176 @@
+###
+### name: דוד בורג
+### ID  : [מספר תעודת זהות]
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: 09 רגרסיית קוקס   Cox regression
+### date  : 15/06/2025
+###  
+###  Cox נלמד לבצע רגרסיית 
+###
+### source:  https://bookdown.org/drki_musa/dataanalysis/survival-analysis-kaplan-meier-and-cox-proportional-hazard-ph-regression.html#semi-parametric-models-in-survival-analysis
+
+
+## Reset memory
+```{r setup-packages, include = FALSE}
+rm(list = ls(all.names = TRUE))
+lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+gc()
+dev.off()
+```
+
+## Load required packages
+```{r load-packages, include = FALSE}
+options("install.lock"=FALSE)
+if (!require("pacman")) install.packages("pacman")
+library(pacman)
+pacman::p_load(
+  rio,          # File import
+  tidyverse,    # data management + ggplot2 graphics, 
+  gt,           # Nice beuatiful tables
+  nortest,      # Anderson-Darling test for normality
+  ggplot2,      # For creating plots
+  DescTools,    # For statistical functions like skewness and kurtosis
+  janitor,      # adding totals and percents to tables
+  car,           # For Levene's test and ANOVA
+  gtsummary,    # summary statistics and tests
+  corrr,        # correlation analayis for numeric variables
+  dplyr,        # For data manipulation
+  reshape2,     # For reshaping data
+  skimr,        # get overview of data
+  performance,           # For model performance metrics
+  ResourceSelection,     # For goodness of fit tests
+  broom,                 # For tidying model outputs
+  pROC,                  # For ROC analysis
+  caret,
+  MASS,          # For statistical functions (polr for ordinal regression)
+  ordinal,       # For statistical functions (ordinal regression)ordinal
+  ggeffects,
+  epiDisplay,    # 
+  survival,
+  survminer
+            )
+```
+
+## Access the data
+```{r read-data, echo = TRUE}
+# file <- "./EpiData/stroke_data.csv"     # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/stroke_data.csv"
+      ## read the data in a file online
+df7 <- import(file, trust  = TRUE)
+summary(df7)
+glimpse(df7)
+```
+## Clean the data
+```{r read-data, echo = TRUE}
+# convert the variable doa and variable doa to a more valid format (date format)
+df7 <- 
+  df7 %>%
+  mutate(doa = dmy(doa),
+         dod = dmy(dod))
+
+df7 <- df7 %>%
+  mutate(status = fct_relevel(status, "alive"))
+```
+
+## Do a simple Cox regession
+```{r cox-reg, echo = TRUE}
+# Cox regression
+cox_reg <- 
+  coxph(Surv(time = time2, 
+             event = status == 'dead') ~ stroke_type,
+                     data = df7)
+```
+
+## Calculate Hazard ratios and display
+```{r hz, echo = TRUE}
+# Calculate log Hazard using gtsummary
+log_hz <- cox_reg %>%
+  tbl_regression(exp = FALSE)  # exp = FALSE shows log hazard ratios
+
+# Calculate Crude Hazard using gtsummary
+crude_hz <- cox_reg %>%
+  tbl_regression(exp = TRUE)  # exp = TRUE shows hazard ratios
+
+# Display results
+hz_combined_tbl <- tbl_merge(
+  tbls = list(log_hz, crude_hz),
+  tab_spanner = c("**log Hazard**", "**Crude Hazrad**")
+)  
+
+#%>% 
+#  as_gt() %>%
+#  tab_source_note(
+#    source_note = paste0("R² = ", round(r2_valm,3),
+#                         ",  -2LL = ", round(minus_2LL_mlog_reg, 0), 
+#                         ",  AIC = ", round(AIC(mlog_reg), 0)
+#                        )
+#  )
+
+hz_combined_tbl
+```
+
+
+
+### -----------------------------------------
+### Cox multi-regression
+
+## Do a multi-variate Cox regression
+```{r read-data, echo = TRUE}
+# Perform the Cos regression on multple variables
+cox_mreg <-
+  coxph(Surv(time = time2, 
+             event = status == 'dead') ~ stroke_type +  gcs + referral_from, 
+        data = df7)
+
+# get results for Crude Hazard
+cox_cr_table <- tbl_regression(cox_mreg)
+
+# get for Hazard Ration (HR)
+cox_hr_tbl <- tbl_regression(cox_mreg, exponentiate = TRUE)
+# Combine them side by side
+combined_tbl <- tbl_merge(
+  tbls = list(cox_cr_table, cox_hr_tbl),
+  tab_spanner = c("**Log Hazard**", "**Hazard Ratio**")
+)  
+combined_tbl
+```
+
+## Test with respect to stroke_type and refereal_form
+```{r read-data, echo = TRUE}
+# Perform the Cos regression on multple variables
+cox_mreg_test <-
+  coxph(Surv(time = time2, 
+             event = status == 'dead') ~ stroke_type + referral_from , 
+        data = df7)
+
+# Do ANOVA
+anova(cox_mreg_test, cox_mreg, test = 'Chisq')
+```
+
+### Model Perforamnce
+```{r read-data, echo = TRUE}
+# -2LL
+minus_2LL_cox <- -2 * as.numeric(logLik(cox_mreg))
+# AIC
+AIC_cox <- extractAIC(cox_mreg)
+
+
+# Assumpotions - Schoenfeld_test
+#              - test Ho: constant regression coefficients
+#              - p>0.05 = risks are proportional over time
+schoenfeld_test <- cox.zph(cox_mreg)
+schoenfeld_test
+
+plot(schoenfeld_test)
+```
+
+## Do a multi-variate Cox regression with interaction term
+```{r read-data, echo = TRUE}
+### -----------------------------------------
+# Perform the Cos regression on multple variables
+cox_mreg_ia <-
+  coxph(Surv(time = time2, 
+             event = status == 'dead') ~ stroke_type + gcs + stroke_type:gcs , 
+        data = df7)
+
+cox_mreg_ia_tbl <- tbl_regression(cox_mreg_ia)

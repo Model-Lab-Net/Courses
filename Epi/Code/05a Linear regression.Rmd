@@ -12,7 +12,7 @@
 
 
 ## Reset memory
-```{r setup-packages, include false}
+```{r setup-packages, include = FALSE}
 rm(list = ls(all.names = TRUE))
 lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
 gc()
@@ -20,7 +20,7 @@ dev.off()
 ```
 
 ## Load required packages
-```{r load-packages, include false}
+```{r load-packages, include = FALSE}
 options("install.lock"=FALSE)
 install.packages("pacman")
 if (!require("pacman")) install.packages("pacman")
@@ -34,14 +34,14 @@ pacman::p_load(
   janitor,      # adding totals and percents to tables
   car,           # For Levene's test and ANOVA
   gtsummary,    # summary statistics and tests
-  corrr        # correlation analayis for numeric variables
+  corrr,        # correlation analayis for numeric variables
+  lmtest
             )
 ```
 
 ## Access the data
-```{r read-data, echo=FALSE}
-## read the data in a file online
-# file <- "./EpiData/coronary.dta"     # use this if the file is on your computer
+```{r read-data, echo = TRUE}
+# file <- "./EpiData/coronary.dta" # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/coronary.dta"
 df2 <- import(file, trust  = TRUE)
 summary(df2)
@@ -49,7 +49,7 @@ glimpse(df2)
 ```
 
 ## Change categorial variables to factors
-```{r read-data, echo=FALSE}
+```{r cat-to-factor, echo = TRUE}
 # Mutate id to factor
 df2 <- df2 %>%
   mutate(id = as.factor(id))
@@ -79,7 +79,7 @@ glimpse(df2)
 ```
 
 # Summary statistics for numerical variables
-```{r sort_data, include false}
+```{r summary-stats, echo = TRUE}
 # Show median and IQR for all numerical variables (5)
 df2_summary_stats <- df2 %>%
 select(where(is.numeric), race) %>%  # Select all numeric columns and gender
@@ -103,21 +103,21 @@ df2_summary_stats
 ```
 
 ## Choose variables
-```{r pearson, include=FALSE}
+```{r choose-vars, echo = TRUE}
 ###pearson
 x_var <- "chol"  # Change this to the categorial variable
 y_var <- "sbp"   # Change this to the numerical variable
 ```
 
 ## Calculate pearson correlation coefficient
-```{r pearson, include=FALSE}
-###pearson
+```{r pearson, echo = TRUE}
+# Calcukate the pearson coefficient
 pearson_result <- cor.test(df2[[x_var]], df2[[y_var]], method = "pearson", use = "complete.obs")
 pearson_result
 ```
 
 ## Linear regression
-```{r slr, include=FALSE}
+```{r slr, echo = TRUE}
 # Perform a Simple Linear Regression
 slr <- lm(df2[[y_var]] ~ df2[[x_var]], data = df2)
 
@@ -126,7 +126,7 @@ summary(slr)
 ```
 
 ## Linear regression with nice output
-```{r slr-gtsummary, include=FALSE}
+```{r slr-summary, echo = TRUE}
 # use gtsummary to create a nice table
 slr_summary <-
   lm(df2[[y_var]] ~ df2[[x_var]]) %>% 
@@ -144,7 +144,7 @@ slr_summary
 ```
 
 ## Show the scatter plot with regression line
-```{r slr-gtsummary, include=FALSE}
+```{r polt-regression, echo = TRUE}
 # use ggplot to show the scatter plot with regression line with linear model and confidence interval
 ggplot(df2, aes_string(x = x_var, y = y_var)) +
   geom_point() +
@@ -155,8 +155,54 @@ ggplot(df2, aes_string(x = x_var, y = y_var)) +
   theme_minimal()
 ```
 
+## Test for normal distribution of residuals
+```{r residuals, echo = TRUE}
+# Get nmodel residuals
+residuals_slr <- residuals(slr)
+
+# Plot the residuals
+hist(residuals_slr, breaks = 20, main = "Histogram of Residuals", 
+     xlab = "Residuals", col = "darkgrey")
+
+# Q-Q plot
+qqnorm(residuals_slr)
+qqline(residuals_slr, col = "red")
+
+# Kolmogorov-Smirnov test  (Ho: residuals are normal)
+ks_test_result <- ks.test(residuals_slr, "pnorm", mean = mean(residuals_slr), sd = sd(residuals_slr))
+ks_test_result
+```
+
+## Test for homoscedacity
+```{r homoscedacity, echo = TRUE}
+# Run Breusch-Pagan test  (Ho: no heteroscedacity)
+bp_test <- bptest(slr)
+bp_test
+
+# Plot Residuals vs. Fitted Values Plot
+#(homoscedacity = scattered randomly around the horizontal line)
+#(heteroscedacity = Patterns like a funnel shape (wider spread at higher/lower fitted values), curves, or systematic trends)
+plot(slr$fitted.values, residuals(slr),
+     main = "Residuals vs. Fitted Values",
+     xlab = "Fitted Values",
+     ylab = "Residuals")
+abline(h = 0, col = "red", lty = 2)  # Add horizontal line at y = 0
+```
+
+## Test for autocorrelation 
+```{r autocorrelation , echo = TRUE}
+# Run Durbin-Watson test  (Ho: no autocorelation)
+dw_result <- dwtest(slr)
+dw_result
+
+# Plot ACF residuals
+acf(residuals(slr), main = "ACF of Residuals")
+```
+
+
 
 ### ------------------------------------
+
 
 
 ## Question 2

@@ -44,6 +44,8 @@ pacman::p_load(
   pROC,                  # For ROC analysis
   caret,
   MASS          # For statistical functions (polr for ordinal regression)
+  ordinal,       # For statistical functions (ordinal regression)ordinal
+  ggeffects,
   epiDisplay    # 
             )
 ```
@@ -53,36 +55,35 @@ pacman::p_load(
 ## read the data in a file online
 # file <- "./EpiData/asthma.csv"     # use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/asthma.csv"
-df5 <- import(file, trust  = TRUE)
-summary(df5)
-glimpse(df5)  # get an overview of the data
+df6 <- import(file, trust  = TRUE)
+summary(df6)
+glimpse(df6)  # get an overview of the data
 ```
 
 ## Do summary stats
 ```{r read-data, echo=FALSE}
 ## read the data in a file online
-epiDisplay::codebook(df5)
+epiDisplay::codebook(df6)
 ```
 
 ## A simple Poisson regression univariate analysis
 ```{r read-data, echo=FALSE}
 ## read the data in a file online
-spr1 <- glm(attack ~ gender, data = df5, family = "quasipoisson")
+spr1 <- glm(attack ~ gender, data = df6, family = "quasipoisson")
 summary(spr1)
 
-spr2 <- glm(attack ~ res_inf, data = df5, family = "quasipoisson")
+spr2 <- glm(attack ~ res_inf, data = df6, family = "quasipoisson")
 summary(spr2)
 
-spr3 <- glm(attack ~ ghq12, data = df5, family = "quasipoisson")
+spr3 <- glm(attack ~ ghq12, data = df6, family = "quasipoisson")
 summary(spr3)
 ```
 
 
 
 
-
-###question 1
-
+### question 1
+```{r read-data, echo=FALSE}
 # Create 2x2 table
 
 df <- na.omit(data[, c("DisObes", "stroke")])
@@ -120,14 +121,11 @@ RR
 ci_lower
 ci_upper
 p_value
-
-
-
 ```
 
 
 
-###question 2
+### question 2
 ```{r setup, include=FALSE}
 death_freq <- table(data$Death)
 death_percent <- prop.table(death_freq) * 100
@@ -170,11 +168,10 @@ RR <- exp(coef(model2))
 
 OR
 RR
-
-
-
 ```
-####question 3
+
+
+#### question 3
 ```{r setup, include=FALSE}
 # Load required packages
 install.packages("sandwich")

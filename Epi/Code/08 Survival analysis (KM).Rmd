@@ -1,0 +1,533 @@
+###
+### name: דוד בורג
+### ID  : [מספר תעודת זהות]
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: שרידות 08   Survival
+### date  : 25/06/2025
+###  
+###  נלמד לבצע ניתוח שרידות 
+###
+### source:  https://bookdown.org/drki_musa/dataanalysis/survival-analysis-kaplan-meier-and-cox-proportional-hazard-ph-regression.html#kaplan-meier-survival-estimates
+
+
+## Reset memory
+```{r setup-packages, include = FALSE}
+rm(list = ls(all.names = TRUE))
+lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+gc()
+dev.off()
+```
+
+## Load required packages
+```{r load-packages, include = FALSE}
+options("install.lock"=FALSE)
+if (!require("pacman")) install.packages("pacman")
+library(pacman)
+pacman::p_load(
+  rio,          # File import
+  tidyverse,    # data management + ggplot2 graphics, 
+  gt,           # Nice beuatiful tables
+  nortest,      # Anderson-Darling test for normality
+  ggplot2,      # For creating plots
+  DescTools,    # For statistical functions like skewness and kurtosis
+  janitor,      # adding totals and percents to tables
+  car,           # For Levene's test and ANOVA
+  gtsummary,    # summary statistics and tests
+  corrr,        # correlation analayis for numeric variables
+  dplyr,        # For data manipulation
+  reshape2,     # For reshaping data
+  skimr,        # get overview of data
+  performance,           # For model performance metrics
+  ResourceSelection,     # For goodness of fit tests
+  broom,                 # For tidying model outputs
+  pROC,                  # For ROC analysis
+  caret,
+  MASS,          # For statistical functions (polr for ordinal regression)
+  epiDisplay,    # 
+  survival,
+  survminer
+            )
+```
+
+## Access the data
+```{r read-data, echo = TRUE}
+## read the data in a file online
+# file <- "./EpiData/stroke_data.csv"     # use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/stroke_data.csv"
+df7 <- import(file, trust  = TRUE)
+summary(df7)
+glimpse(df7)
+```
+
+## Clean the data
+```{r read-data, echo = TRUE}
+# convert the variable doa and variable doa to a more valid format (date format)
+df7 <- 
+  df7 %>%
+  mutate(doa = dmy(doa),
+         dod = dmy(dod)
+        )
+```
+
+## Show the data
+```{r read-data, echo = TRUE}
+# in a nice table
+df7 %>%
+  tbl_summary(
+    by = status,
+    include = -c(doa, dod)  # exclude these two date variables
+  ) %>%
+  as_gt()
+
+
+df7 %>%
+  tbl_summary(
+    by = stroke_type,
+    include = -c(doa, dod)  # exclude these two date variables
+  ) %>%
+  as_gt()
+```
+
+
+## Survival time statistics
+```{r surv-stats, echo = TRUE}
+# Survival time
+mean_survival_time <- mean(df7$time2, na.rm = TRUE)
+sd_survival_time <- sd(df7$time2, na.rm = TRUE)
+CI1 <- MeanCI(df7$time2, na.rm = TRUE)
+  lower_meanci_1 <- as.numeric((CI1["lwr.ci"]))
+  upper_meanci_1 <- as.numeric((CI1["upr.ci"]))
+median_survival_time <- median(df7$time2, na.rm = TRUE)
+IQR_survival_time <- IQR(df7$time2, na.rm = TRUE)
+q25_survival_time <- as.numeric(Quantile(df7$time2, probs = 0.25, na.rm = TRUE))
+q75_survival_time <- as.numeric(Quantile(df7$time2, probs = 0.75, na.rm = TRUE))
+min_survival_time <- min(df7$time2, na.rm = TRUE)
+max_survival_time <- max(df7$time2, na.rm = TRUE)
+
+# Create a data frame to neatly display the statistics
+stats_df <- data.frame(
+    Statistic = c("Mean", "SD", "⠀⠀CI₉₅ low", "⠀⠀CI₉₅ high", "Median", "⠀⠀Q1", "⠀⠀Q3", "⠀⠀IQR", "Minimum", "Maximum")
+  , Value = c(mean_survival_time, sd_survival_time, lower_meanci_1, upper_meanci_1, median_survival_time, q25_survival_time, q75_survival_time, IQR_survival_time, min_survival_time, max_survival_time)
+  , סטטיסטי = c("ממוצע", "ס'ת", "⠀⠀רווח סמך", "⠀⠀רווח סמך", "חציון", "⠀⠀רבעון 1", "⠀⠀רבעון 3", "⠀⠀מרווח בין רבועני", "מינימום", "מקסימום")
+)
+
+# Clean, simple table
+summary_stats <- stats_df %>% 
+  gt() %>%
+  tab_header(title = "Survival Statistics⠀⠀⠀⠀זמן הישרדות") %>%
+  fmt_number(columns = Value, decimals = 1)
+summary_stats              # Show the table
+```
+
+
+## Do a Kaplan-Meyer survival analayis
+```{r km-surv, echo = TRUE}
+# estimate the survival probabilities for all patients
+KM_all <- survfit(Surv(time = time2, 
+                       event = status == "dead" ) ~ 1, 
+                       data = df7)
+summary(KM_all)
+```
+
+
+## Life table
+```{r life-table, echo = TRUE}
+# Convert status to int
+df7 <- df7 %>%
+  mutate(event = ifelse(status == "dead", 1, 0))
+
+# Fit Kaplan-Meier model stratified by stroke_type (example)
+km_fit <- survfit(Surv(time2, event) ~ 1, data = df7)
+
+# Extract survival summary at intervals of 10 units
+km_summary <- summary(km_fit, times = seq(0, max(df7$time2), by = 10))
+
+# Convert to data frame
+km_df <- data.frame(
+  time = km_summary$time,
+  #strata = km_summary$strata,
+  n_risk = km_summary$n.risk,
+  n_event = km_summary$n.event,
+  surv = km_summary$surv,
+  std_err = km_summary$std.err,
+  lower_ci = km_summary$lower,
+  upper_ci = km_summary$upper
+)
+
+# Display with gt
+km_df %>%
+  gt() %>%
+  tab_header(title = "Survival analysis") %>%
+    cols_label(
+    time      = "Time",
+    n_risk    = "At Risk",
+    n_event   = "Deaths",
+    surv      = "Survival %",
+    std_err   = "Std. Error",
+    lower_ci  = "Lower CI",
+    upper_ci  = "Upper CI"
+  ) %>%
+  fmt_percent(columns = c(surv, lower_ci, upper_ci), decimals = 1) %>%
+  fmt_number(columns = std_err, decimals = 3) 
+  
+```
+
+## Kaplan-Meyer survival analayis plot
+```{r read-data, echo = TRUE}
+# estimate the survival probabilities for all patients
+KM_all_plot <- ggsurvplot(KM_all, 
+           data = df7, 
+           risk.table = TRUE, 
+           linetype = c(1,4),
+           tables.height = 0.3,
+           pval = TRUE)
+
+KM_all_plot
+# *** You may need to zoom out ***
+```
+
+
+
+
+
+### ----------------------------------------------------------
+
+
+
+
+
+## Do a Kaplan-Meyer survival analayis - stratified
+```{r km-surv-strat, echo = TRUE}
+# estimate the survival probabilities for stroke type
+KM_str_type <- survfit(Surv(time = time2, 
+                             event = status == "dead" ) ~ stroke_type, 
+                        data = df7)
+summary(KM_str_type)
+```
+
+## Survival curve
+```{r read-data, echo = TRUE}
+# estimate the survival probabilities for all patients
+KM_str_plot <- ggsurvplot(KM_str_type, 
+           data = df7, 
+           risk.table = TRUE, 
+           linetype = c(1,4),
+           tables.height = 0.3,
+           pval = TRUE)
+
+KM_str_plot
+# *** You may need to zoom out ***
+```
+
+## Life table
+```{r life-table, echo = TRUE}
+# Convert status to int
+# Fit Kaplan-Meier model stratified by stroke_type (example)
+km_fit_strat <- survfit(Surv(time2, event) ~ stroke_type, data = df7)
+
+# Extract survival summary at intervals of 10 units
+km_summary_strat <- summary(km_fit_strat, times = seq(0, max(df7$time2), by = 10))
+
+# Convert to data frame
+km_df <- data.frame(
+  time = km_summary_strat$time,
+  strata = km_summary_strat$strata,
+  n_risk = km_summary_strat$n.risk,
+  n_event = km_summary_strat$n.event,
+  surv = km_summary_strat$surv,
+  std_err = km_summary_strat$std.err,
+  lower_ci = km_summary_strat$lower,
+  upper_ci = km_summary_strat$upper
+)
+
+# Display with gt
+km_df %>%
+  gt() %>%
+  tab_header(title = "Survival analysis") %>%
+    cols_label(
+    time      = "Time",
+    strata    = "Group",
+    n_risk    = "At Risk",
+    n_event   = "Deaths",
+    surv      = "Survival %",
+    std_err   = "Std. Error",
+    lower_ci  = "Lower CI",
+    upper_ci  = "Upper CI"
+  ) %>%
+  fmt_percent(columns = c(surv, lower_ci, upper_ci), decimals = 1) %>%
+  fmt_number(columns = std_err, decimals = 3) 
+```
+
+
+### ----------------------------------
+### Compare strata
+
+## Log-rank test
+```{r read-data, echo = TRUE}
+# Test if survival estimates are  different between levels/groups
+log_rank_stroke <- survdiff(Surv(time = time2, 
+              event = status == "dead") ~ stroke_type, 
+         data = df7,
+         rho = 0)
+
+log_rank_stroke
+
+# Test if survival estimates are  different between levels/groups
+log_rank_diabetes <- survdiff(Surv(time = time2, 
+              event = status == "dead") ~ dm, 
+         data = df7,
+         rho = 0)
+
+log_rank_diabetes
+```
+
+## Peto's log-rank test
+```{r read-data, echo = TRUE}
+# Test if survival estimates are  different between levels/groups
+log_rank_stroke <- survdiff(Surv(time = time2, 
+              event = status == "dead") ~ stroke_type, 
+         data = df7,
+         rho = 1)
+
+log_rank_stroke
+
+# Test if survival estimates are  different between levels/groups
+log_rank_dm <- survdiff(Surv(time = time2, 
+              event = status == "dead") ~ dm, 
+         data = df7,
+         rho = 1)
+
+log_rank_dm
+```
+
+
+
+
+
+
+
+
+
+## Q1
+```{r setup, include=FALSE}
+data<-birth_survivalR
+```
+
+## Q1
+```{r until 15, echo=FALSE}
+install.packages("survival")
+install.packages("survminer")
+install.packages("broom")
+
+library(broom)
+library(survival)
+library(survminer)
+library(dplyr)
+```
+
+## Q2
+```{r until 15, echo=FALSE}
+##question 2
+# Creating the Surv object
+surv_obj_1 <- Surv(time = data$time_to_anemia, event = data$anemia1)
+
+# survival model
+fit1<- survfit(surv_obj_1 ~ 1)
+
+# Extract summary from the fit for intervals up to 15 days
+fit_summary1 <- summary(fit1, times = seq(0, 15, by = 1))
+
+# Create  life table
+life_table <- data.frame(
+  time = fit_summary1$time,
+  n_risk = fit_summary1$n.risk,
+  n_event = fit_summary1$n.event,
+  n_censor = fit_summary1$n.censor
+)
+
+
+
+# Calculate the number exposed to risk accounting for half the censored individuals
+life_table <- life_table %>%
+  mutate(exposed_to_risk = n_risk - 0.5 * n_censor)
+
+# Calculate the survival proportion at each interval
+life_table <- life_table %>%
+  mutate(survival_proportion = 1 - (n_event / exposed_to_risk))
+
+# Calculate the cumulative survival proportion
+life_table <- life_table %>%
+  mutate(cumulative_survival = cumprod(survival_proportion))
+
+# Print the life table
+print(life_table)
+```
+
+```{r cars}
+###question 3
+
+
+#  Surv object
+surv_obj <- Surv(time = data$time_to_anemia, event = data$anemia1)
+
+# Fit the survival model
+fit <- survfit(surv_obj ~ 1)
+#for maximum time
+fit_summary <- summary(fit, times = seq(0, max(data$time_to_anemia, na.rm = TRUE), by = 1))
+
+# Create the life table
+life_table <- data.frame(
+  time = fit_summary$time,
+  n_risk = fit_summary$n.risk,
+  n_event = fit_summary$n.event,
+  n_censor = fit_summary$n.censor
+)
+
+# Calculate the number exposed to risk accounting for half the censored individuals
+life_table <- life_table %>%
+  mutate(exposed_to_risk = n_risk - 0.5 * n_censor)
+
+# Calculate the survival proportion at each interval
+life_table <- life_table %>%
+  mutate(survival_proportion = 1 - (n_event / exposed_to_risk))
+
+# Calculate the cumulative survival proportion
+life_table <- life_table %>%
+  mutate(cumulative_survival = cumprod(survival_proportion))
+
+# Print the life table
+print(life_table)
+
+
+# Create the survival plot
+ggsurvplot(fit, data = data, conf.int = TRUE,
+           ggtheme = theme_minimal(),
+           risk.table = FALSE, # Add risk table
+           pval = FALSE)       # Add p-value of the log-rank test
+
+
+```
+
+## Q4
+```{r cars}
+##question 4
+
+surv_obj <- Surv(time = data$time_to_anemia, event = data$anemia1)
+
+# Fit the survival model
+
+
+# Fit the survival model stratified by race
+fit <- survfit(surv_obj ~ race, data = data)
+
+# Extract the summary from the fit with intervals of one unit for each race group
+fit_summary <- summary(fit, times = seq(0, max(data$time_to_anemia, na.rm = TRUE), by = 1))
+
+# Initialize an empty data frame for the life table
+life_table <- data.frame()
+
+# Loop through each race group to create life tables
+for (i in seq_along(fit$strata)) {
+  race_group <- names(fit$strata)[i]
+  race_summary <- summary(fit[i], times = seq(0, max(data$time_to_anemia, na.rm = TRUE), by = 1))
+  
+  race_life_table <- data.frame(
+    race = race_group,
+    time = race_summary$time,
+    n_risk = race_summary$n.risk,
+    n_event = race_summary$n.event,
+    n_censor = race_summary$n.censor
+  )
+  
+  # Calculate the number exposed to risk accounting for half the censored individuals
+  race_life_table <- race_life_table %>%
+    mutate(exposed_to_risk = n_risk - 0.5 * n_censor)
+  
+  # Calculate the survival proportion at each interval
+  race_life_table <- race_life_table %>%
+    mutate(survival_proportion = 1 - (n_event / exposed_to_risk))
+  
+  # Calculate the cumulative survival proportion
+  race_life_table <- race_life_table %>%
+    mutate(cumulative_survival = cumprod(survival_proportion))
+  
+  # Append to the main life table data frame
+  life_table <- rbind(life_table, race_life_table)
+}
+
+
+# Print the life table
+print(life_table)
+```
+
+```{r cars}
+
+#KM
+
+
+# Plot Kaplan-Meier survival curves
+ggsurvplot(
+  fit,
+  data = data,
+  conf.int = TRUE,
+  pval = TRUE,
+  risk.table = FALSE,
+  ggtheme = theme_minimal(),
+  title = "Kaplan-Meier Survival Curves by Race Group",
+  xlab = "Time to Anemia",
+  ylab = "Survival Probability"
+)
+
+
+
+ print(fit,print.rmean = T)
+
+ 
+ 
+ # Perform the log-rank test not mandatory 
+log_rank_test <- survdiff(surv_obj ~ race, data = data)
+
+# Print the results of the log-rank test
+print(log_rank_test)
+
+# Calculate the p-value
+p_value <- 1 - pchisq(log_rank_test$chisq, length(log_rank_test$n) - 1)
+p_value
+
+
+
+
+
+
+
+###KAPLAN survival table
+
+
+km_table <- data.frame()
+
+for (i in seq_along(fit$strata)) {
+  race_group <- names(fit$strata)[i]
+  # TRUE KM: No "times = ..." so we get real event time points
+  km_summary <- summary(fit[i])
+
+  stratum_df <- data.frame(
+    race = race_group,
+    time = km_summary$time,
+    n_risk = km_summary$n.risk,
+    n_event = km_summary$n.event,
+    n_censor = km_summary$n.censor,
+    survival = km_summary$surv,
+    std_err = km_summary$std.err,
+    lower_CI = km_summary$lower,
+    upper_CI = km_summary$upper
+  )
+
+  km_table <- rbind(km_table, stratum_df)
+}
+
+print(km_table)
+
+
+```
+
+

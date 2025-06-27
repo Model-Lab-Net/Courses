@@ -7,11 +7,11 @@
 ###  
 ###  נלמד לעשות רגסיה מרובה
 ###
-### souorce: https://bookdown.org/drki_musa/dataanalysis/
+### source: https://bookdown.org/drki_musa/dataanalysis/
 
 
 ## Reset memory
-```{r setup-packages, include false}
+```{r setup-packages, include = FALSE}
 rm(list = ls(all.names = TRUE))
 lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
 gc()
@@ -19,7 +19,7 @@ dev.off()
 ```
 
 ## Load required packages
-```{r load-packages, include false}  
+```{r setup-packages, include = FALSE}
 options("install.lock"=FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
@@ -34,18 +34,15 @@ pacman::p_load(
   car,           # For Levene's test and ANOVA
   gtsummary,    # summary statistics and tests
   corrr,        # correlation analayis for numeric variables
+  lmtest,
   dplyr,        # For data manipulation
   reshape2     # For reshaping data
             )
 ```
 
-  rstatix,      # statistics
-
-
 ## Access the data
-```{r read-data, echo=FALSE}
-## read the data in a file online
-# file <- "./EpiData/coronary.dta"     # use this if the file is on your computer
+```{r read-data, echo = TRUE}
+# file <- "./EpiData/coronary.dta"     # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/coronary.dta"
 df2 <- import(file, trust  = TRUE)
 summary(df2)
@@ -53,7 +50,7 @@ glimpse(df2)
 ```
 
 ## Change categorial variables to factors
-```{r read-data, echo=FALSE}
+```{r cat-to-factor, echo = TRUE}
 # Mutate id to factor
 df2 <- df2 %>%
   mutate(id = as.factor(id))
@@ -83,14 +80,14 @@ glimpse(df2)
 ```
 
 # Multi-variable regression with lm
-```{r num-to-cat, include false}
+```{r nmulti-regression, echo = TRUE}
 # Do a simple linear regression (SLR) with chol as the dependent variable 
 mlr <- lm(chol ~ sbp + dbp + bmi + age + race, data = df2)
 summary(mlr)
 ```
 
 ## Correlation matrix
-```{r pearson, include=FALSE}
+```{r corr-matrix, iecho = TRUE}
 # Select numeric variables
 numeric_vars <- df2 %>%
   select(where(is.numeric))
@@ -119,8 +116,8 @@ ggplot(corr_melted, aes(x = Var1, y = Var2, fill = value)) +
 ```
 
 ## Perform a simpler multiple linear regression
-```{r pearson, include=FALSE}
-### Colinearity test
+```{r simple-multi-regression, echo = TRUE}
+# Colinearity test
 mlr <- lm(chol ~ dbp + bmi + age, data = df2)
 
 # Show results
@@ -137,15 +134,59 @@ mlr_summary <- tbl_regression(
 mlr_summary
 ```
 
+## Test for normal distribution of residuals
+```{r residuals, echo = TRUE}
+# Get nmodel residuals
+residuals_mlr <- residuals(mlr)
+
+# Plot the residuals
+hist(residuals_mlr, breaks = 20, main = "Histogram of Residuals", 
+     xlab = "Residuals", col = "darkgrey")
+
+# Q-Q plot
+qqnorm(residuals_mlr)
+qqline(residuals_mlr, col = "red")
+
+# Kolmogorov-Smirnov test  (Ho: residuals are normal)
+ks_test_result <- ks.test(residuals_mlr, "pnorm", mean = mean(residuals_mlr), sd = sd(residuals_mlr))
+ks_test_result
+```
+
+## Test for homoscedacity
+```{r homoscedacity, echo = TRUE}
+# Run Breusch-Pagan test  (Ho: no heteroscedacity)
+bp_test <- bptest(mlr)
+bp_test
+
+# Plot Residuals vs. Fitted Values Plot
+#    (homoscedacity = scattered randomly around the horizontal line)
+#    (heteroscedacity = Patterns like a funnel shape (wider spread at higher/lower fitted values), curves, or systematic trends)
+plot(mlr$fitted.values, residuals(mlr),
+     main = "Residuals vs. Fitted Values",
+     xlab = "Fitted Values",
+     ylab = "Residuals")
+abline(h = 0, col = "red", lty = 2)  # Add horizontal line at y = 0
+```
+
+## Test for autocorrelation 
+```{r autocorrelation , echo = TRUE}
+# Run Durbin-Watson test  (Ho: no autocorelation)
+dw_result <- dwtest(mlr)
+dw_result
+
+# Plot ACF residuals
+acf(residuals(mlr), main = "ACF of Residuals")
+```
+
 ## Test for multicolinearity
-```{r pearson, include=FALSE}
-### Run VIF colinearity test
+```{r VIF, include=FALSE}
+# Run VIF colinearity test  (no multicolinearity == VIF ≈ 1)
 mlr_vif <- vif(mlr)
 mlr_vif
 ```
 
 ## Show multiple linear regression summary table
-```{r pearson, include=FALSE}
+```{r mlr-summary, echo = TRUE}
 mlr_summary <- tbl_regression(mlr,
                              #label = list(dbp = "Diastolic Blood Pressure"),
                              conf.int = TRUE,

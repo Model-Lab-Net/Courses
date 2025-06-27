@@ -11,7 +11,7 @@
 
 
 ## Reset memory
-```{r setup-packages, include false}
+```{r setup-packages, include = FALSE}
 rm(list = ls(all.names = TRUE))
 lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
 gc()
@@ -19,7 +19,7 @@ dev.off()
 ```
 
 ## Load required packages
-```{r load-packages, include false}  
+```{r load-packages, include = FALSE}  
 options("install.lock"=FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
@@ -36,10 +36,10 @@ pacman::p_load(
 ```
 
 ## Access the data
-```{r read-data, echo=FALSE}
-## read the data in a file online
-# file <- "./EpiData/breastcancer.csv"     # use this if the file is on your computer
+```{r read-data, echo = TRUE}
+# file <- "./EpiData/breastcancer.csv"     # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/zabore/mmedr/refs/heads/main/data/breastcancer.csv"
+       # read the data in a file online
 df_bc <- import(file, trust  = TRUE)
 glimpse(df_bc)
 df_bc <- clean_names(df_bc)
@@ -48,18 +48,30 @@ df_bc$grade <- as.integer(factor(df_bc$grade, levels = c("I", "II", "III"), labe
 glimpse(df_bc)
 ```
 
+## Clean up data
+```{r tclean-data, echo = TRUE}
+# Convert integer 0/1 columns to factor
+df_bc <- df_bc %>%
+  mutate(across(
+    .cols = where(~is.integer(.x) && all(.x %in% c(0, 1), na.rm = TRUE)),
+    .fns = ~factor(.x, levels = c(0, 1))
+  ))
+# Check the updated dataset structure
+glimpse(df_bc)
+```
+
 ## T test for independent samples
-```{r t-test, echo=FALSE}
+```{r t-test, echo = TRUE}
 # Test for variance homogeneity
-levene_result <- levene(age_dx_yrs ~ rt, data = df_bc, var.equal = TRUE)
+levene_result <- leveneTest(grade  ~ rt, data = df_bc, var.equal = TRUE)
 (levene_result)
 
-t_test_result <- t.test(age_dx_yrs ~ rt, data = df_bc, var.equal = FALSE)
+t_test_result <- t.test(grade ~ rt, data = df_bc, var.equal = FALSE)
 t_test_result
 ```
 
 ## Two-way ANOVA
-```{r ANOVA, echo=FALSE}
+```{r ANOVA, echo = TRUE}
 # Perform Levene's Test for homogeneity of variances
 
 # Do the ANOVA
@@ -72,17 +84,17 @@ tukey_result
 ```
 
 ## Mann-Whitney test
-```{r t-test, echo=FALSE}
+```{r M_U-test, echo = TRUE}
 # Test for variance homogeneity
-levene_result <- levene(days_onset_hosp ~ outcome, data = df1, var.equal = TRUE)
+levene_result <- leveneTest(nodal_ratio ~ optimal_systemic_therapy, data = df1, var.equal = TRUE)
 levene_result
 
-MW_test <- wilcox.test(optimal_systemic_therapy ~ her2_pos, data = df_bc, na.action = na.exclude)
+MW_test <- wilcox.test(nodal_ratio  ~ optimal_systemic_therapy, data = df_bc, na.action = na.exclude)
 MW_test
 ```
 
 ## Chi-Square and Fisher Exact tests
-```{r chi-square, echo=FALSE}
+```{r chi-square, echo = TRUE}
 # Map character grades to integers
 contingency_table <- table(df_bc$grade, df_bc$rt)
 contingency_table
@@ -95,9 +107,9 @@ fisher.test(x = df_bc$grade, y = df_bc$rt)
 ```
 
 ## Spearman regression
-```{r chi-square, echo=FALSE}
+```{r cspearman, echo = TRUE}
 # Spearman regrssion
-spearman <- cor.test(df_bc$tumor_size_cm , df_bc$grade, method = "spearman", use = "complete.obs")
+spearman <- cor.test(df_bc$tumor_size_cm , df_bc$er_or_pr_pos, method = "spearman", use = "complete.obs")
 
 # Print the test result
 spearman
@@ -105,7 +117,7 @@ spearman
 
 
 # Paired T test / Wilcoxon ranked sum
-```{r paired-t-test, echo=FALSE}
+```{r paired-t-test, echo = TRUE}
 # Some data on depression Rx
 x <- c(1.83,  0.50,  1.62,  2.48, 1.68, 1.88, 1.55, 3.06, 1.30)     # pre
 y <- c(0.878, 0.647, 0.598, 2.05, 1.06, 1.29, 1.06, 3.14, 1.29)     # post
@@ -154,7 +166,7 @@ spearman_test_result <- cor.test(data$weight0, data$height0, method = "spearman"
 print(spearman_test_result)
 ```
 ##chi square
-```{r pressure, echo=FALSE}
+```{r pressure, echo = TRUE}
 
  
 data$pacifier_dich <- factor(data$pacifier_dich, levels = c(0, 1), labels = c("no", "yes"))

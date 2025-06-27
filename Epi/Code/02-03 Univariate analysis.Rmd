@@ -11,7 +11,7 @@
 
 
 ## Reset memory
-```{r setup-packages, include false}
+```{r setup-packages, include = FALSE}
 rm(list = ls(all.names = TRUE))
 lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
 gc()
@@ -19,7 +19,7 @@ dev.off()
 ```
 
 ## Load required packages
-```{r load-packages, include false}  
+```{r load-packages, include = FALSE}  
 options("install.lock"=FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
@@ -29,14 +29,13 @@ pacman::p_load(
   gt,           # Nice beuatiful tables
   nortest,      # Anderson-Darling test for normality
   ggplot2,      # For creating plots
-  DescTools    # For statistical functions like skewness and kurtosis
+  DescTools     # For statistical functions like skewness and kurtosis
             )
 ```
 
 ## Access the data
-```{r read-data, echo=FALSE}
-## read the data in a file online
-# file <- "./EpiData/linelist_cleaned.rds"     # use this if the file is on your computer
+```{r read-data, echo = FALSE}
+# file <- "./EpiData/linelist_cleaned.rds"     # 👈 use this if the file is on your computer
 file <- "https://github.com/appliedepi/epirhandbook_eng/raw/master/data/case_linelists/linelist_cleaned.rds"
 df1 <- import(file, trust  = TRUE)
 summary(df1)
@@ -44,21 +43,21 @@ glimpse(df1)
 ```
 
 ## Replace bmi with calculation
-```{r read-data, echo=FALSE}
+```{r read-data, echo = FALSE}
 ## read the data in a file online
-df1 <- df1 %<%
+df1 <- df1 %>%
   mutate(bmi = wt_kg / (ht_cm / 100)^2)
 summary(df1)
 glimpse(df1)
 ```
 
 ## Select numerical variable for analysis
-```{r descriptives, echo=TRUE}
+```{r descriptives, echo = TRUE}
 variable <- "age"
 ```
 
 ## Desctiptive statistics for a numeric variable
-```{r descriptives, echo=TRUE}
+```{r descriptives, echo = TRUE}
 
 # Summary statistics with Desctools
 desc_result <- Desc(df1[variable], plotit = TRUE)
@@ -82,7 +81,7 @@ norm1 <- ad.test(df1[[variable]][!is.na(df1[[variable]])])$p.value      # Anders
 ```
 
 ## Nice summanry statistis table
-```{r nice-table, echo=TRUE}
+```{r nice-table, echo = TRUE}
 # Create a data frame to neatly display the statistics
 stats_df <- data.frame(
   Statistic = c("Mean", "SD", "⠀⠀CI₉₅ low", "⠀⠀CI₉₅ high", "Mode", "Median", "⠀⠀Q1", "⠀⠀Q3", "⠀⠀IQR", "Minimum", "Maximum", "Skewness", "Kurtosis", "Normality test")
@@ -101,7 +100,7 @@ summary_stats              # Show the table
 
 
 ## Pie Chart 
-```{r pie, echo=TRUE}
+```{r pie, echo = TRUE}
 pie_var <- "age_cat"  # Change this to the categorial variable
 ggplot(df1, aes(x = "", fill = .data[[pie_var]])) +
   geom_bar(width = 1, stat = "count") +
@@ -114,7 +113,7 @@ ggplot(df1, aes(x = "", fill = .data[[pie_var]])) +
 ```
 
 ## Histogram
-```{r histogram, echo=TRUE}
+```{r histogram, echo = TRUE}
 hist_var <- variable 
 ggplot(df1, aes(x = get(hist_var))) +
   geom_histogram(binwidth = 5, fill = "grey", color = "black") +
@@ -128,7 +127,7 @@ ggplot(df1, aes(x = get(hist_var))) +
 
 
 ## Boxplot
-```{r boxplot, echo=TRUE}
+```{r boxplot, echo = TRUE}
 x_var <- "cough"  # Change this to a categorial variable
 y_var <- "temp"   # Change this to a numerical variable
 ggplot(df1, aes(x = get(x_var), y = get(y_var), fill = get(x_var))) +

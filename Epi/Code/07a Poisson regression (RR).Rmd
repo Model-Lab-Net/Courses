@@ -12,7 +12,7 @@
 
 
 ## Reset memory
-```{r setup-packages, include false}
+```{r setup-packages, include = FALSE}
 rm(list = ls(all.names = TRUE))
 lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
 gc()
@@ -20,7 +20,7 @@ dev.off()
 ```
 
 ## Load required packages
-```{r load-packages, include false}
+```{r load-packages, include = FALSE}
 options("install.lock"=FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
@@ -43,94 +43,102 @@ pacman::p_load(
   broom,                 # For tidying model outputs
   pROC,                  # For ROC analysis
   caret,
-  MASS          # For statistical functions (polr for ordinal regression)
-  epiDisplay    # 
+  MASS,          # For statistical functions (polr for ordinal regression)
+  ordinal,       # For statistical functions (ordinal regression)ordinal
+  ggeffects,
+   epiDisplay    # 
             )
 ```
 
 ## Access the data
-```{r read-data, echo=FALSE}
+```{r read-data, echo = TRUE}
 ## read the data in a file online
 # file <- "./EpiData/asthma.csv"     # use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/asthma.csv"
-df5 <- import(file, trust  = TRUE)
-summary(df5)
-glimpse(df5)  # get an overview of the data
+df6 <- import(file, trust  = TRUE)
+summary(df6)
+glimpse(df6)  # get an overview of the data
 ```
 
 ## Do summary stats
-```{r read-data, echo=FALSE}
-## read the data in a file online
-epiDisplay::codebook(df5)
+```{r summary-stats, echo = TRUE}
+# read the data in a file online
+epiDisplay::codebook(df6)
 ```
 
 ## A simple Poisson regression univariate analysis
-```{r read-data, echo=FALSE}
-## read the data in a file online
-spr1 <- glm(attack ~ gender, data = df5, family = "poisson")
+```{r simple-poisson-reg, echo = TRUE}
+# Do a univrariate Poisson regression - attack vs gender
+spr1 <- glm(attack ~ gender, data = df6, family = "poisson")
 summary(spr1)
 
-spr2 <- glm(attack ~ res_inf, data = df5, family = "poisson")
+# Do a univrariate Poisson regression - attack vs res_inf
+spr2 <- glm(attack ~ res_inf, data = df6, family = "poisson")
 summary(spr2)
 
-spr3 <- glm(attack ~ ghq12, data = df5, family = "poisson")
+# Do a univrariate Poisson regression - attack vs ghq12
+spr3 <- glm(attack ~ ghq12, data = df6, family = "poisson")
 summary(spr3)
 ```
 
-
-## Multiple Poisson regression multivariate analysis
-```{r read-data, echo=FALSE}
-## read the data in a file online
-mpr_all = glm(attack ~ ., data = df5, family = "poisson")    # the "." uses all the other variables
+## Poisson regression multivariate analysis
+```{r poisson-multi-reg, echo = TRUE}
+# Do a multivariate Poisson regression - attack vs everything
+mpr_all = glm(attack ~ ., data = df6, family = "poisson")    # the "." uses all the other variables
 summary(mpr_all)
 
-# minus gender
-mpr = glm(attack ~ res_inf + ghq12, data = df5, family = "poisson")
+# Do a multivariate Poisson regression - res_inf + ghq12 (not gender)
+mpr = glm(attack ~ res_inf + ghq12, data = df6, family = "poisson")
 summary(mpr)
 ```
 
 ## Multiple Poisson regression with interaction
-```{r read-data, echo=FALSE}
-## read the data in a file online
-mpr_ia = glm(attack ~ res_inf * ghq12, data = df5, family = "poisson")
+```{r poisson-multi-reg-ia, echo = TRUE}
+# Do a multivariate Poisson regression /w interaction term
+mpr_ia = glm(attack ~ res_inf * ghq12, data = df6, family = "poisson")
 summary(mpr_ia)
 ```
 
 ## Model fit and perfoarmance
-```{r read-data, echo=FALSE}
-#Scaled Pearson chi-square statistic
+```{r rmodel-performance, echo = TRUE}
+# Scaled Pearson chi-square statistic
 
 # Chi-square goodness-of-fit
 epiDisplay::poisgof(mpr)
+
 # AIC
 AIC(mpr)
 ```
 
 ## Show summary
-```{r read-data, echo=FALSE}
+```{r read-data, echo = TRUE}
+# summary of Poisson model
 tbl_regression(mpr, exponentiate = TRUE)
 round(summary(mpr)$coefficients, 2)
 ```
 
 ## Prediction
-```{r read-data, echo=FALSE}
+```{r read-data, echo = TRUE}
 # expected number of asthmatic attacks per year for a patient with recurrent respiratory infection and GHQ-12 score of 8
 pred <- predict(mpr_ia, list(res_inf = "yes", ghq12 = 8), 
                type = "response")
 round(pred, 1)
 
 # attacks per year for those with and without recurrent respiratory infection for each 12-mark increase in GHQ-12 score
-new_data = data.frame(res_inf = rep(c("yes", "no"), each = 4),
+pred_values = data.frame(res_inf = rep(c("yes", "no"), each = 4),
                       ghq12 = rep(c(0, 12, 24, 36), 2))
-new_data$attack_pred = round(predict(mpr_ia, new_data, 
+pred_values$attack_pred = round(predict(mpr_ia, new_data, 
                                      type = "response"), 1)
-new_data
+pred_values
 ```
 
 
 
-###question 1
 
+
+
+### question 1
+```{r read-data, echo = TRUE}
 # Create 2x2 table
 
 df <- na.omit(data[, c("DisObes", "stroke")])
@@ -175,7 +183,7 @@ p_value
 
 
 
-###question 2
+### question 2
 ```{r setup, include=FALSE}
 death_freq <- table(data$Death)
 death_percent <- prop.table(death_freq) * 100
@@ -222,7 +230,8 @@ RR
 
 
 ```
-####question 3
+
+#### question 3
 ```{r setup, include=FALSE}
 # Load required packages
 install.packages("sandwich")
@@ -261,7 +270,7 @@ cat("Pearson Chi-square =", pearson, "on", df_resid, "df\n")
 
 
 
-###id deviance/df>1.5 than:
+### id deviance/df>1.5 than:
 # Fit quasi-Poisson model
 ```{r setup, include=FALSE}
 
