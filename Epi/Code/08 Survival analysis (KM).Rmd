@@ -119,7 +119,6 @@ summary_stats <- stats_df %>%
 summary_stats              # Show the table
 ```
 
-
 ## Do a Kaplan-Meyer survival analayis
 ```{r km-surv, echo = TRUE}
 # estimate the survival probabilities for all patients
@@ -237,7 +236,8 @@ km_df <- data.frame(
   surv = km_summary_strat$surv,
   std_err = km_summary_strat$std.err,
   lower_ci = km_summary_strat$lower,
-  upper_ci = km_summary_strat$upper
+  upper_ci = km_summary_strat$upper,
+  n_censor = km_summary$n.censor
 )
 
 # Display with gt
@@ -252,7 +252,8 @@ km_df %>%
     surv      = "Survival %",
     std_err   = "Std. Error",
     lower_ci  = "Lower CI",
-    upper_ci  = "Upper CI"
+    upper_ci  = "Upper CI",
+    n_censor  = "Censoerd"
   ) %>%
   fmt_percent(columns = c(surv, lower_ci, upper_ci), decimals = 1) %>%
   fmt_number(columns = std_err, decimals = 3) 

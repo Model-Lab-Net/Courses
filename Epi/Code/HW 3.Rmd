@@ -1,0 +1,176 @@
+###
+### name   : [ שם משפחה + שם פרטי]
+### ID     : [ מספר תעודת זהות ]
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: שיעורי בית 3
+### date  : [ תאריך ]
+###   
+###  שרידות
+###
+### source: https://quantdev.ssri.psu.edu/sites/qdev/files/12_SurvivalAnalysis_2020_0408.html
+
+# Reset memory
+```{r setup-packages, include false}
+rm(list = ls(all.names = TRUE))
+lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+gc()
+```
+
+# Load required packages
+```{r setup-packages, include false}
+install.packages("pacman")
+library(pacman)
+pacman::p_load(
+  rio,          # File import
+  tidyverse,    # data management + ggplot2 graphics, 
+  gt,           # Nice beuatiful tables
+  nortest,      # Anderson-Darling test for normality
+  ggplot2,      # For creating plots
+  DescTools,    # For statistical functions like skewness and kurtosis
+  janitor,      # adding totals and percents to tables
+  car,           # For Levene's test and ANOVA
+  gtsummary,    # summary statistics and tests
+  corrr,        # correlation analayis for numeric variables
+  dplyr,        # For data manipulation
+  reshape2,     # For reshaping data
+  skimr,        # get overview of data
+  performance,           # For model performance metrics
+  ResourceSelection,     # For goodness of fit tests
+  broom,                 # For tidying model outputs
+  pROC,                  # For ROC analysis
+  caret,
+  MASS,          # For statistical functions (polr for ordinal regression)
+  epiDisplay,    # 
+  survival,
+  survminer
+            )
+```
+
+# Get data
+```{r load data, include false}
+#file <- "HWdata_3.csv"     # use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/vincentarelbundock/Rdatasets/refs/heads/master/csv/survival/cancer.csv"
+df7 <- import(file, trust  = TRUE)
+summary(df7)
+glimpse(df7)
+```
+
+## Survival time statistics
+```{r surv-stats, echo = TRUE}
+# Survival time
+mean_survival_time <- mean(df7$time, na.rm = TRUE)
+sd_survival_time <- sd(df7$time, na.rm = TRUE)
+CI1 <- MeanCI(df7$time, na.rm = TRUE)
+  lower_meanci_1 <- as.numeric((CI1["lwr.ci"]))
+  upper_meanci_1 <- as.numeric((CI1["upr.ci"]))
+median_survival_time <- median(df7$time, na.rm = TRUE)
+IQR_survival_time <- IQR(df7$time, na.rm = TRUE)
+q25_survival_time <- as.numeric(Quantile(df7$time, probs = 0.25, na.rm = TRUE))
+q75_survival_time <- as.numeric(Quantile(df7$time, probs = 0.75, na.rm = TRUE))
+min_survival_time <- min(df7$time, na.rm = TRUE)
+max_survival_time <- max(df7$time, na.rm = TRUE)
+
+# Create a data frame to neatly display the statistics
+stats_df <- data.frame(
+    Statistic = c("Mean", "SD", "⠀⠀CI₉₅ low", "⠀⠀CI₉₅ high", "Median", "⠀⠀Q1", "⠀⠀Q3", "⠀⠀IQR", "Minimum", "Maximum")
+  , Value = c(mean_survival_time, sd_survival_time, lower_meanci_1, upper_meanci_1, median_survival_time, q25_survival_time, q75_survival_time, IQR_survival_time, min_survival_time, max_survival_time)
+  , סטטיסטי = c("ממוצע", "ס'ת", "⠀⠀רווח סמך", "⠀⠀רווח סמך", "חציון", "⠀⠀רבעון 1", "⠀⠀רבעון 3", "⠀⠀מרווח בין רבועני", "מינימום", "מקסימום")
+)
+
+# Clean, simple table
+summary_stats <- stats_df %>% 
+  gt() %>%
+  tab_header(title = "Survival Statistics⠀⠀⠀⠀זמן הישרדות") %>%
+  fmt_number(columns = Value, decimals = 1)
+summary_stats              # Show the table
+```
+
+## Do a Kaplan-Meyer survival analayis
+```{r km-surv, echo = TRUE}
+# estimate the survival probabilities for all patients
+KM_all <- survfit(Surv(time = time, 
+                       event = status == "2" ) ~ 1, 
+                       data = df7)
+summary(KM_all)
+```
+
+
+## Life table
+```{r life-table, echo = TRUE}
+# Convert status to int
+df7 <- df7 %>%
+  mutate(event = ifelse(status == "2", 1, 0))
+
+# Fit Kaplan-Meier model stratified by stroke_type (example)
+km_fit <- survfit(Surv(time, event) ~ 1, data = df7)
+
+# Extract survival summary at intervals of 10 units
+km_summary <- summary(km_fit, times = seq(0, max(df7$time), by = 100))
+
+# Convert to data frame
+km_df <- data.frame(
+  time = km_summary$time,
+  #strata = km_summary$strata,
+  n_risk = km_summary$n.risk,
+  n_event = km_summary$n.event,
+  surv = km_summary$surv,
+  std_err = km_summary$std.err,
+  lower_ci = km_summary$lower,
+  upper_ci = km_summary$upper,
+  n_censor = km_summary$n.censor
+)
+
+# Display with gt
+km_df %>%
+  gt() %>%
+  tab_header(title = "Survival analysis") %>%
+    cols_label(
+    time      = "Time",
+    n_risk    = "At Risk",
+    n_event   = "Deaths",
+    surv      = "Survival %",
+    std_err   = "Std. Error",
+    lower_ci  = "Lower CI",
+    upper_ci  = "Upper CI",
+    n_censor  = "Censoerd"
+  ) %>%
+  fmt_percent(columns = c(surv, lower_ci, upper_ci), decimals = 1) %>%
+  fmt_number(columns = std_err, decimals = 3) 
+```
+
+## Kaplan-Meyer survival analayis plot
+```{r read-data, echo = TRUE}
+# estimate the survival probabilities for all patients
+KM_all_plot <- ggsurvplot(KM_all, 
+           data = df7, 
+           risk.table = TRUE, 
+           linetype = c(1,4),
+           tables.height = 0.3,
+           pval = TRUE)
+
+KM_all_plot
+# *** You may need to zoom out ***
+```
+
+
+
+
+
+# Calculate the number exposed to risk accounting for half the censored individuals
+race_life_table <- race_life_table %>%
+mutate(exposed_to_risk = n_risk - 0.5 * n_censor)
+  
+# Calculate the survival proportion at each interval
+race_life_table <- race_life_table %>%
+mutate(survival_proportion = 1 - (n_event / exposed_to_risk))
+  
+# Calculate the cumulative survival proportion
+race_life_table <- race_life_table %>%
+mutate(cumulative_survival = cumprod(survival_proportion))
+ 
+# Append to the main life table data frame
+life_table <- rbind(life_table, race_life_table)
+
+
+
+
