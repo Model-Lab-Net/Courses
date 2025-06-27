@@ -154,22 +154,25 @@ KM_all_plot
 
 
 
-
-
+## Calculate survivial probablities and append the life table
+```{r surv-prob, echo = TRUE}
+# estimate the survival probabilities for all patients
 # Calculate the number exposed to risk accounting for half the censored individuals
-race_life_table <- race_life_table %>%
-mutate(exposed_to_risk = n_risk - 0.5 * n_censor)
+km_df <- km_df %>%
+    mutate(exposed_to_risk = n_risk - 0.5 * n_censor)
   
 # Calculate the survival proportion at each interval
-race_life_table <- race_life_table %>%
-mutate(survival_proportion = 1 - (n_event / exposed_to_risk))
+km_df <- km_df %>%
+    mutate(survival_proportion = 1 - (n_event / exposed_to_risk))
   
 # Calculate the cumulative survival proportion
-race_life_table <- race_life_table %>%
-mutate(cumulative_survival = cumprod(survival_proportion))
- 
-# Append to the main life table data frame
-life_table <- rbind(life_table, race_life_table)
+km_df <- km_df %>%
+    mutate(cumulative_survival = cumprod(survival_proportion))
+
+km_df
+```
+
+
 
 
 
