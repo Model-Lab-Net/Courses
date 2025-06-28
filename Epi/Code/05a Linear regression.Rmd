@@ -27,6 +27,8 @@ if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
   rio,          # File import
   tidyverse,    # data management + ggplot2 graphics, 
+  broom,        # For tidying model outputs
+  dplyr,        # For data manipulation
   gt,           # Nice beuatiful tables
   nortest,      # Anderson-Darling test for normality
   ggplot2,      # For creating plots
