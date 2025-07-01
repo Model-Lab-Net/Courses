@@ -2,7 +2,7 @@
 ### name: דוד בורג
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: 0   
-### date: 27/06/2025
+### date: 01/07/2025
 ###  
 ###  זה קוד שיוריד את כל החבילות והקבצים שנצטרך בקורס הזה
 
@@ -24,6 +24,8 @@ options("install.lock"=FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
+  rmarkdown,
+  remotes,
   rio,          # File import
   Here,         # File locator
   tidyverse,    # data management + ggplot2 graphics, 
@@ -45,7 +47,6 @@ pacman::p_load(
   caret,
   MASS                   # For statistical functions (polr for ordinal regression)
   epiDisplay             # For data type handling
-
   rstatix,               # statistics
   flextable,             # converting tables to HTML
   vctrs                 # For data type handling
@@ -60,6 +61,11 @@ install.packages(
   "https://cran.r-project.org/src/contrib/Archive/LogisticDx/LogisticDx_0.3.tar.gz",
 dependencies = TRUE
 )
+
+install.packages('httpgd', repos = c('https://community.r-multiverse.org', 'https://cloud.r-project.org'))
+install.packages("vscDebugger", repos = "https://manuelhentschel.r-universe.dev")
+
+
 ```
 
 
@@ -107,7 +113,7 @@ files <- gh("GET /repos/:owner/:repo/contents/:path",
 # sapply(files, function(x) x$name)         # Extract file names
 
 # Download the files
-target_dir <- "./EpiData1"              # Define the target folder
+target_dir <- "./EpiData"              # Define the target folder
 
 if (!dir.exists(target_dir)) {          # Create folder if it doesn't exist
     dir.create(target_dir)}
