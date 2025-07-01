@@ -2,12 +2,12 @@
 :: Title -- Code to install R, RStudio and R in VSCode
 :: Author -- David Burg
 :: For -- R course
-:: Date -- 12/05/2025
+:: Date -- 01/07/2025
 
 ::----------------------Get everything ready-------------------------------
 set R_VERSION=4.5.1
-set RSTUDIO_VERSION=2025.05.1-513
-set VSCODE_VERSION=18e3a1ec544e6907be1e944a94c496e302073435/VSCode-win32-x64-1.101.1.zip
+set RSTUDIO_VERSION=2025.05.0-496
+set VSCODE_VERSION=2901c5ac6db8a986a5666c3af51ff804d05af0d4/VSCode-win32-x64-1.101.2.zip
 set RLANGSERVER_VERSION=0.3.16
 set CURL_VERSION=8.14.1_2
 
@@ -16,11 +16,11 @@ md c:\temp
 cd c:\temp
 if not exist curl.zip powershell Invoke-WebRequest -Uri 'https://curl.se/windows/dl-%CURL_VERSION%/curl-%CURL_VERSION%-win64-mingw.zip' -OutFile 'c:\temp\curl.zip'
 powershell Expand-Archive -Path "C:\temp\curl.zip" -DestinationPath "C:\Temp" 
-move c:\temp\curl-8.13.0_3-win64-mingw\bin\*.* c:\temp
+move c:\temp\curl-%CURL_VERSION%-win64-mingw\bin\*.* c:\temp
 
 
 
-echo ------------------------Download R and RStudio installers---------------------------
+echo -------------------- Download R and RStudio installers ---------------------
 :R_RStudio_Installers
 ::curl -o r.exe https://cran.r-project.org/bin/windows/base/R-%R_VERSION%-win.exe  
 ::curl -o rstudio.exe https://download1.rstudio.org/electron/windows/RStudio-%RSTUDIO_VERSION%.exe  
@@ -28,37 +28,36 @@ echo ------------------------Download R and RStudio installers------------------
 ::goto exit
 
 
-
 echo --------------------------     Download R     ---------------------------
 :Install_R
-c:\temp\curl.exe -s -o c:\temp\r.exe https://cran.r-project.org/bin/windows/base/R-%R_VERSION%-win.exe
 ::powershell Invoke-WebRequest -Uri 'https://cran.r-project.org/bin/windows/base/R-%R_VERSION%-win.exe' -OutFile 'c:\temp\r.exe'
+c:\temp\curl.exe --progress-bar -o  c:\temp\r.exe https://cran.r-project.org/bin/windows/base/R-%R_VERSION%-win.exe
 start /wait r.exe /VERYSILENT /NORESTART /SP-
 copy /Y "%programfiles%\R\R-%R_VERSION%\bin\x64\Rblas.dll"      "%programfiles%\R\R-%R_VERSION%\library\stats\libs\x64"
 copy /Y "%programfiles%\R\R-%R_VERSION%\bin\x64\Rlapack.dll"    "%programfiles%\R\R-%R_VERSION%\library\stats\libs\x64"
 
 
 
-echo --------------------Download VSCode  ---  ZIP for portable---------------------
+echo ----------------- Download VSCode  ---  ZIP for portable ------------------
 :IInstallVSCode
 ::if not exist c:\RVSCode md c:\RVSCode
 ::cd c:\RVSCode
-if not exist rvscode.zip c:\temp\curl.exe -s -o rvscode.zip https://vscode.download.prss.microsoft.com/dbazure/download/stable/%VSCODE_VERSION%.zip
-powershell Expand-Archive -Path "C:\temp\rvscode.zip" -DestinationPath "C:\RVSCode" 
+::if not exist c:\Temp\rvscode.zip powershell Invoke-WebRequest -Uri 'https://vscode.download.prss.microsoft.com/dbazure/download/stable/%VSCODE_VERSION%' -OutFile 'c:\Temp\rvscode.zip'
+if not exist C:\Temp\rvscode.zip c:\temp\curl.exe --progress-bar -o rvscode.zip https://vscode.download.prss.microsoft.com/dbazure/download/stable/%VSCODE_VERSION%.zip
+if not exist C:\RVSCode\code.eve powershell Expand-Archive -Path "C:\temp\rvscode.zip" -DestinationPath "C:\RVSCode" 
 
-
-md c:\RVSCode\data\user-data\User\
-md c:\RVSCode\R
 
 ::Make folders for main course files
-md c:\RVSCode\data\Course\Code
-md c:\RVSCode\data\Course\Data
+md c:\RVSCode\data\user-data\User\
+md c:\RVSCode\R
+md c:\RVSCode\data\Course\EpiCode
+md c:\RVSCode\data\Course\EpiData
 
 ::copy R to VSCode main folder
 robocopy "%programfiles%\R" "c:\RVSCode\R" /S
 
 ::install R languaugeserver package
-c:\temp\curl.exe -s -o c:\Temp\languageserver.zip https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_0.3.16.zip
+c:\temp\curl.exe --progress-bar -o c:\Temp\languageserver.zip https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_%RLANGSERVER_VERSION%.zip
 ::powershell Invoke-WebRequest -Uri 'https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_%RLANGSERVER_VERSION%.zip' -OutFile 'c:\Temp\languageserver.zip'
 c:\RVSCode\R\R-%R_VERSION%\bin\R.exe CMD INSTALL c:\Temp\languageserver.zip
 
@@ -95,20 +94,20 @@ call C:\RVSCode\bin\code.cmd --install-extension reditorsupport.r
 call C:\RVSCode\bin\code.cmd --install-extension rdebugger.r-debugger
 
 ::Download first script to initialize for course
-::powershell Invoke-WebRequest -Uri 'https://github.com/Model-Lab-Net/Courses/blob/main/Epi/Initialize_R.Rmd' -OutFile 'c:\RVSCode\Course\Initialize_R.Rmd'
-curl -o c:\RVSCode\Course\Initialize_R.Rmd https://github.com/Model-Lab-Net/Courses/blob/main/Epi/Initialize_R.Rmd
+curl -o c:\RVSCode\Course\Initialize_R_for_Epi.Rmd https://github.com/Model-Lab-Net/Courses/blob/main/Epi/Initialize_R_for_Epi.Rmd
+::powershell Invoke-WebRequest -Uri 'https://github.com/Model-Lab-Net/Courses/blob/main/Epi/Initialize_R_for_Epi.Rmd' -OutFile 'c:\RVSCode\Course\Initialize_R.Rmd'
 
 ::Create shortcut link to Desktop
 powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%ALLUSERSPROFILE%\Desktop\RVSCode.lnk');$s.TargetPath='C:\RVSCode\code.exe';$s.IconLocation='C:\RVSCode\code.exe,0';$s.Save()"
 
 
-echo -----------------------Download RStudio  ---  ZIP for portable-----------------------------------
+echo ---------------- Download RStudio  ---  ZIP for portable --------------------
 :Install_Rstudio
 ::c:
 ::md c:\RStudio
 ::cd c:\RStudio
-if not exist rstudio.zip c:\temp\curl.exe -s -o rstudio.zip https://download1.rstudio.org/electron/windows/RStudio-%RSTUDIO_VERSION%.zip
-powershell Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\Rstudio" 
+if not exist rstudio.zip c:\temp\curl.exe --progress-bar -o rstudio.zip https://download1.rstudio.org/electron/windows/RStudio-%RSTUDIO_VERSION%.zip
+if not exist C:\Rstudio powershell Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\Rstudio" 
 ::tar -xf rstudio.zip
 
 
@@ -172,14 +171,26 @@ echo }
 
 ::Make folder for main course files
 md c:\RStudio\R
-md c:\RStudio\course
+md c:\RStudio\Course
 
 
 ::copy R to RStudio main folder
 robocopy "%programfiles%\R" "c:\RStudio\R" /S
 
+
+::Create cmd to launch R
+(
+echo @echo off
+echo SET RSTUDIO_WHICH_R=.\R\R-%R_VERSION%\bin\x64\R.exe
+echo SET RSTUDIO_CONFIG_HOME=.\
+echo SET RSTUDIO_DATA_HOME=.\
+echo rstudio
+
+) > c:\RStudio\!Start_R.cmd
+
+
 ::Create shortcut link on Desktop
-powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%ALLUSERSPROFILE%\Desktop\RStudio.lnk');$s.TargetPath='C:\RStudio\rstudio.exe';$s.IconLocation='C:\RStudio\rstudio.exe,0';$s.WorkingDirectory='C:\RStudio';$s.Save()"
+powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%ALLUSERSPROFILE%\Desktop\RStudio.lnk');$s.TargetPath='C:\RStudio\!Start_R.cmd';$s.IconLocation='C:\RStudio\rstudio.exe,0';$s.WorkingDirectory='C:\RStudio';$s.Save()"
 
 
 
