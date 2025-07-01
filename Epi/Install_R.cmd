@@ -30,8 +30,8 @@ echo -------------------- Download R and RStudio installers --------------------
 
 echo --------------------------     Download R     ---------------------------
 :Install_R
-::powershell Invoke-WebRequest -Uri 'https://cran.r-project.org/bin/windows/base/R-%R_VERSION%-win.exe' -OutFile 'c:\temp\r.exe'
 c:\temp\curl.exe --progress-bar -o  c:\temp\r.exe https://cran.r-project.org/bin/windows/base/R-%R_VERSION%-win.exe
+::powershell Invoke-WebRequest -Uri 'https://cran.r-project.org/bin/windows/base/R-%R_VERSION%-win.exe' -OutFile 'c:\temp\r.exe'
 start /wait r.exe /VERYSILENT /NORESTART /SP-
 copy /Y "%programfiles%\R\R-%R_VERSION%\bin\x64\Rblas.dll"      "%programfiles%\R\R-%R_VERSION%\library\stats\libs\x64"
 copy /Y "%programfiles%\R\R-%R_VERSION%\bin\x64\Rlapack.dll"    "%programfiles%\R\R-%R_VERSION%\library\stats\libs\x64"
@@ -42,9 +42,9 @@ echo ----------------- Download VSCode  ---  ZIP for portable ------------------
 :IInstallVSCode
 ::if not exist c:\RVSCode md c:\RVSCode
 ::cd c:\RVSCode
-::if not exist c:\Temp\rvscode.zip powershell Invoke-WebRequest -Uri 'https://vscode.download.prss.microsoft.com/dbazure/download/stable/%VSCODE_VERSION%' -OutFile 'c:\Temp\rvscode.zip'
-if not exist C:\Temp\rvscode.zip c:\temp\curl.exe --progress-bar -o rvscode.zip https://vscode.download.prss.microsoft.com/dbazure/download/stable/%VSCODE_VERSION%.zip
-if not exist C:\RVSCode\code.eve powershell Expand-Archive -Path "C:\temp\rvscode.zip" -DestinationPath "C:\RVSCode" 
+::if not exist rvscode.zip c:\temp\curl.exe --progress-bar -o rvscode.zip https://vscode.download.prss.microsoft.com/dbazure/download/stable/%VSCODE_VERSION%.zip
+powershell Invoke-WebRequest -Uri 'https://vscode.download.prss.microsoft.com/dbazure/download/stable/%VSCODE_VERSION%' -OutFile 'c:\Temp\rvscode.zip'
+powershell Expand-Archive -Path "C:\temp\rvscode.zip" -DestinationPath "C:\RVSCode" 
 
 
 ::Make folders for main course files
@@ -107,7 +107,7 @@ echo ---------------- Download RStudio  ---  ZIP for portable ------------------
 ::md c:\RStudio
 ::cd c:\RStudio
 if not exist rstudio.zip c:\temp\curl.exe --progress-bar -o rstudio.zip https://download1.rstudio.org/electron/windows/RStudio-%RSTUDIO_VERSION%.zip
-if not exist C:\Rstudio powershell Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\Rstudio" 
+powershell Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\Rstudio" 
 ::tar -xf rstudio.zip
 
 
@@ -177,20 +177,8 @@ md c:\RStudio\Course
 ::copy R to RStudio main folder
 robocopy "%programfiles%\R" "c:\RStudio\R" /S
 
-
-::Create cmd to launch R
-(
-echo @echo off
-echo SET RSTUDIO_WHICH_R=.\R\R-%R_VERSION%\bin\x64\R.exe
-echo SET RSTUDIO_CONFIG_HOME=.\
-echo SET RSTUDIO_DATA_HOME=.\
-echo rstudio
-
-) > c:\RStudio\!Start_R.cmd
-
-
 ::Create shortcut link on Desktop
-powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%ALLUSERSPROFILE%\Desktop\RStudio.lnk');$s.TargetPath='C:\RStudio\!Start_R.cmd';$s.IconLocation='C:\RStudio\rstudio.exe,0';$s.WorkingDirectory='C:\RStudio';$s.Save()"
+powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%ALLUSERSPROFILE%\Desktop\RStudio.lnk');$s.TargetPath='C:\RStudio\rstudio.exe';$s.IconLocation='C:\RStudio\rstudio.exe,0';$s.WorkingDirectory='C:\RStudio';$s.Save()"
 
 
 
