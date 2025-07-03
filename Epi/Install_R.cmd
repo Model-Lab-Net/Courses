@@ -59,7 +59,10 @@ robocopy "%programfiles%\R" "c:\RVSCode\R" /S
 ::install R languaugeserver package
 c:\temp\curl.exe --progress-bar -o c:\Temp\languageserver.zip https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_%RLANGSERVER_VERSION%.zip
 ::powershell Invoke-WebRequest -Uri 'https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_%RLANGSERVER_VERSION%.zip' -OutFile 'c:\Temp\languageserver.zip'
+
 c:\RVSCode\R\R-%R_VERSION%\bin\R.exe CMD INSTALL c:\Temp\languageserver.zip
+c:\RVSCode\R\R-%R_VERSION%\bin\R.exe CMD INSTALL c:\Temp\languageserver.zip
+
 
 ::Set settings.json for R in VSCode
 (
@@ -73,6 +76,8 @@ echo         "--no-restore"
 echo     ],
 echo     "r.rterm.windows": "C:\\RVSCode\\R\\R-%R_VERSION%\\bin\\R.exe",
 echo     "r.bracketedPaste": true,
+echo     "r.sessionWatcher": true,
+echo     "editor.wordSeparators": "`~!@#%$^&*()-=+[{]}\\|;:'\",<>/?",
 echo     "r.plot.useHttpgd": true,
 echo     "terminal.integrated.profiles.windows": {
 echo         "R": {
