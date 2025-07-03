@@ -3,7 +3,7 @@
 ### ID  : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה אורדינלית 06   
-### date  : 19/06/2025
+### date  : 03/07/2025
 ###  
 ###  נלמד לעשות רגרסיה לוגיסטי מרובה על משתנים אורדינליים
 ### 
@@ -13,40 +13,44 @@
 ## Reset memory
 ```{r setup-packages, include = FALSE}
 rm(list = ls(all.names = TRUE))
-lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
 gc()
 dev.off()
 ```
 
 ## Load required packages
 ```{r load-packages, include = FALSE}  
-options("install.lock"=FALSE)
+options("install.lock" = FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
-  rio,          # File import
-  tidyverse,    # data management + ggplot2 graphics, 
-  broom,        # For tidying model outputs
-  dplyr,        # For data manipulation
-  gt,           # Nice beuatiful tables
-  nortest,      # Anderson-Darling test for normality
-  ggplot2,      # For creating plots
-  DescTools,    # For statistical functions like skewness and kurtosis
-  janitor,      # adding totals and percents to tables
-  car,           # For Levene's test and ANOVA
-  gtsummary,    # summary statistics and tests
-  corrr,        # correlation analayis for numeric variables
-  reshape2,     # For reshaping data
-  skimr,        # get overview of data
-  performance,           # For model performance metrics
-  ResourceSelection,     # For goodness of fit tests
-  broom,                 # For tidying model outputs
-  pROC,                  # For ROC analysis
-  caret,
-  MASS,          # For statistical functions (polr for ordinal regression)ordinal
-  ordinal,          # For statistical functions (ordinal regression)ordinal
-  ggeffects
-            )
+  rio,                    # File import
+  tidyverse,              # data management + ggplot2 graphics,
+  broom,                  # For tidying model outputs
+  dplyr,                  # For data manipulation
+  gt,                     # Nice beuatiful tables
+  nortest,                # Anderson-Darling test for normality
+  ggplot2,                # For creating plots
+  DescTools,              # For statistical functions like skewness and kurtosis
+  psych,                  # to get a table of all summary statistics
+  janitor,                # adding totals and percents to tables
+  car,                    # For Levene's test and ANOVA
+  gtsummary,              # summary statistics and tests
+  corrr,                  # correlation
+  lmtest,                 # linear regression tets
+  parameters,             # calculate standardized parameters/coefficients
+  GGally,                 # to make a correlation matrix
+  skimr,                  # get overview of data
+  pROC,                   # For ROC analysis
+  performance,            # For model performance metrics
+  caret,                  # For confusion matrix and classification metrics
+  ggeffects,              # To display the confusion matrix
+  ResourceSelection,       # For Hosmer-Lemeshow test for goodness of fit 
+  MASS,                   # For statistical functions (polr for ordinal regression)ordinal
+  ordinal                 # For ordinal regression statistical functions 
+              )
+# Install/load flexplot
+if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
 ```
 
 ## Access the data
@@ -54,25 +58,33 @@ pacman::p_load(
 ## read the data in a file online
 # file <- "./EpiData/peptic_ulcer.xlsx"     # use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/peptic_ulcer.xlsx"
-df5 <- import(file, trust  = TRUE)
+df5 <- import(file, trust = TRUE)
 summary(df5)
 glimpse(df5)
 ```
 
 ## Fix the data
-```{r fix-data, echo = TRUE}}
+```{r fix-data, echo = TRUE}
+# clean up variable names
+df5 <- clean_names(df5)
+names(df5) <- gsub("_", ".", names(df5))
+
+# Swap all char variables to fct
+df5 <- mutate_if(df5, is.character, as.factor)
+
 # Make sure degree_perforation is an ordered factor
 df5 <- df5 %>%
-  mutate(degree_perforation = factor(degree_perforation, 
-                                   levels = c("small", "moderate", "large"),
-                                   ordered = TRUE))
+  mutate(degree.perforation = factor(degree.perforation,
+    levels = c("small", "moderate", "large"),
+    ordered = TRUE
+  ))
 ```
 
 ## Perfrom an ordinal linear regression
-```{r ord-logisitc-reg, echo = TRUE}}
+```{r ord-logisitc-reg, echo = TRUE}
 # Ordinal regression model
-#ord_lr <- polr(degree_perforation ~ PULP + hemoglobin + systolic , data = df5, Hess = TRUE)
-ord_lr <- clm(degree_perforation ~ PULP + hemoglobin + systolic, data = df5, link = "logit")
+# ord_lr <- polr(degree.perforation ~ puplp + hemoglobin + systolic , data = df5, Hess = TRUE)
+ord_lr <- clm(degree.perforation ~ pulp + hemoglobin + systolic, data = df5, link = "logit")
 summary(ord_lr)
 
 # Variance-covariance matraix
@@ -80,8 +92,8 @@ vcov_matrix <- vcov(ord_lr)
 ```
 
 ## Model performance
-```{r ord-logisitc-reg, echo = TRUE}}
-ord_lr_perf <- polr(degree_perforation ~ PULP + hemoglobin + systolic , data = df5, Hess = TRUE)
+```{r ord-logisitc-reg, echo = TRUE}
+ord_lr_perf <- polr(degree.perforation ~ pulp + hemoglobin + systolic, data = df5, Hess = TRUE)
 # Get -2LL and AIC
 minus_2LL_val <- -2 * as.numeric(logLik(ord_lr_perf))
 AIC_val <- AIC(ord_lr_perf)
@@ -91,97 +103,142 @@ Nagelkerke <- PseudoR2(ord_lr_perf, which = "Nagelkerke")
 r2_val <- as.numeric(Nagelkerke)
 
 # Disiplay the summary of the logistic regression model
-paste("R2= ",r2_val)
+paste("R2= ", r2_val)
 ```
 
 # Display regression results
-```{r ord-logisitc-reg, echo = TRUE}}
+```{r ord-logisitc-reg, echo = TRUE}
 ord_lr_summary <- tbl_regression(
   ord_lr,
-  exponentiate = TRUE  # Gives odds ratios instead of log-odds
-)%>%
- as_gt() %>%
+  exponentiate = TRUE # Gives odds ratios instead of log-odds
+) %>%
+  as_gt() %>%
   tab_source_note(
-
-    source_note = paste0("R² = ", round(r2_val,3),
-                          ", -2LL = ", round(minus_2LL_val, 0), 
-                          ", AIC = ", round(AIC_val, 0)
-                        )
+    source_note = paste0(
+      "R² = ", round(r2_val, 3),
+      ", -2LL = ", round(minus_2LL_val, 0),
+      ", AIC = ", round(AIC_val, 0)
+    )
   )
 ord_lr_summary
 ```
 
-## Create prediction
-```{r predict, echo = TRUE}}
-# Create values to make prediction on
-pred_values <- data.frame(
-  PULP = c(50, 60, 70),
-  hemoglobin = c(12, 14, 13.5),
-  systolic = c(120, 130, 140)
+## Classification table
+```{r predict, echo = TRUE}
+# Create predicted values on df
+df5$predict_prob <- predict(ord_lr_perf, type = "class")
+
+## Classification table
+```{r , echo=FALSE}
+# Use caret package to get classification table
+confusion_matrix <- caret::confusionMatrix(data = df5$predict_prob, reference = df5$degree.perforation)
+confusion_matrix
+
+# Extract the confusion matrix table
+cm_table <- as.data.frame(confusion_matrix$table)
+colnames(cm_table) <- c("Predicted", "True", "Count")
+cm_table <- cm_table %>%
+  mutate(Percent = round(Count / sum(Count) * 100, 1))
+
+# Plot confusion matrix as a heatmap
+ggplot(data = cm_table, aes(x = Predicted, y = True, fill = Percent)) +
+  geom_tile() +
+  geom_text(aes(label = Percent), vjust = 0.5, color = "black") +
+  scale_fill_gradient(low = "white", high = "blue") +
+  theme_minimal() +
+  labs(title = "Confusion Matrix", x = "Predicted", y = "True") +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+
+# Get cm metrics
+cm_metrics_df <- data.frame(
+  Metric = c("Accuracy", "PPV", "NPV", "Sensitivity", "Specificity", "Precision", "F1 Score"),
+  Value = round(c(
+    confusion_matrix$overall["Accuracy"],
+    confusion_matrix$byClass["Pos Pred Value"],
+    confusion_matrix$byClass["Neg Pred Value"],
+    confusion_matrix$byClass["Sensitivity"],
+    confusion_matrix$byClass["Specificity"],
+    confusion_matrix$byClass["Precision"],
+    confusion_matrix$byClass["F1"]
+  ), 2)
 )
+cm_metrics_df
 
-# Calculate prediction probablilities for the values above
-pred_probs <- predict(ord_lr,
-                      newdata = pred_values,
-                      type = "prob",
-                      interval = "confidence"
-                      )$fit
-
-# Combine values and predictions
-predict_df <- do.call(rbind, lapply(pred_prob, as.data.frame))
-predict_result <- cbind(pred_values, pred_probs)
-
-# Create table
-predict_result_tbl <- predict_result %>% 
-  gt() %>%
-  tab_header(title = "Prediction result ") %>%
-  fmt_number(columns = everything(),  # Apply to all numeric columns
-             decimals = 2
-            )
-predict_result_tbl              # Show the table
+cm_metrics_df %>%
+  gt()
 ```
 
-## Create plots
+## Hosmer-Lemeshow test for GOF
+```{r , echo=FALSE}
+# Use ResourceSelection to get the Hosmer–Lemeshow test result
+hl_test <- hoslem.test(df5$degree.perforation, df5$predicted_prob, g = 10)
+hl_test
+```
+
+## Create distribution plots
 ```{r predict, echo = TRUE}}
 # Distribution of degree_perforation
-ggplot(df5, aes(x = degree_perforation)) +
-  geom_bar(fill = "steelblue") +
-  labs(title = "Distribution of Degree of Perforation", x = "Degree", y = "Count") +
-  theme_minimal()
+flexplot(degree.perforation ~  pulp | hemoglobin + systolic, data = df5, alpha = 0.6, method = "lm")
+
+flexplot(degree.perforation ~ 1, data = df5, alpha = 0.6)
 
 # Distribution of hemoglobin vs degree_perforation
-ggplot(df5, aes(x = degree_perforation, y = hemoglobin)) +
-  geom_boxplot(fill = "tomato") +
-  labs(title = "Hemoglobin by Degree of Perforation", x = "Degree", y = "Hemoglobin") +
-  theme_minimal()
+flexplot(hemoglobin ~ degree.perforation, data = df5, alpha = 0.6)
 
 # Distribution of systolic vs degree_perforation
-ggplot(df5, aes(x = degree_perforation, y = systolic)) +
-  geom_boxplot(fill = "darkseagreen") +
-  labs(title = "Systolic by Degree of Perforation", x = "Degree", y = "Systolic") +
-  theme_minimal()
+flexplot(systolic ~ degree.perforation, data = df5, alpha = 0.6)
 
 # # Distribution of PULP vs degree_perforation (assuming numeric)
-ggplot(df5, aes(x = degree_perforation, y = PULP)) +
-  geom_boxplot(fill = "goldenrod") +
-  labs(title = "PULP Score by Degree of Perforation", x = "Degree", y = "PULP") +
+p <- flexplot(pulp ~ degree.perforation, data = df5, alpha = 0.6)
+p <- p + ggtitle("PULP Score by Degree of Perforation")
+p
+```
+
+### Create prediction plots
+```{r predict, echo = TRUE}
+# Predicted probabilities for pulp
+preds_pulp <- ggpredict(ord_lr_perf, terms = "pulp")
+# Build the plot with ggplot2 directly
+ggplot(preds_pulp, aes(x = x, y = predicted, color = response.level)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = response.level), alpha = 0.2, color = NA) +
+  labs(
+    title = "Predicted Probability of Degree of Perforation by pulp",
+    x = "pulp",
+    y = "Predicted Probability",
+    color = "Outcome",
+    fill = "Outcome"
+  ) +
+  theme_minimal()
+
+# Predicted probabilities for hemoglobin
+preds_hemoglobin <- ggpredict(ord_lr_perf, terms = "hemoglobin")
+# Build the plot with ggplot2 directly
+ggplot(preds_hemoglobin, aes(x = x, y = predicted, color = response.level)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = response.level), alpha = 0.2, color = NA) +
+  labs(
+    title = "Predicted Probability of Degree of Perforation by hemoglobin",
+    x = "pulp",
+    y = "Predicted Probability",
+    color = "Outcome",
+    fill = "Outcome"
+  ) +
   theme_minimal()
 
 
-### Prediction plots
-# Predicted probabilities for hemoglobin
-pred_hemoglobin <- ggpredict(ord_lr, terms = "hemoglobin")
-
-plot(pred_hemoglobin) +
-  labs(title = "Predicted Probabilities by Hemoglobin",
-       x = "Hemoglobin", y = "Probability")
-
-# PULP
-plot(ggpredict(ord_lr, terms = "PULP")) +
-  labs(title = "Predicted Probabilities by PULP", x = "PULP", y = "Probability")
-
-# Systolic
-plot(ggpredict(ord_lr, terms = "systolic")) +
-  labs(title = "Predicted Probabilities by Systolic", x = "Systolic", y = "Probability")
-
+# Predicted probabilities for systolic
+preds_systolic <- ggpredict(ord_lr_perf, terms = "systolic")
+# Build the plot with ggplot2 directly
+ggplot(preds_systolic, aes(x = x, y = predicted, color = response.level)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = response.level), alpha = 0.2, color = NA) +
+  labs(
+    title = "Predicted Probability of Degree of Perforation by systolic bp",
+    x = "pulp",
+    y = "Predicted Probability",
+    color = "Outcome",
+    fill = "Outcome"
+  ) +
+  theme_minimal()
 ```

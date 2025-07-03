@@ -3,7 +3,7 @@
 ### ID  : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: בדיקת השערות 02-04   
-### date  : 15/06/2025
+### date  : 03/07/2025
 ###  
 ###  נלמד לבצע מבחנים סטייטסיים בסיסיים
 ###
@@ -13,122 +13,172 @@
 ## Reset memory
 ```{r setup-packages, include = FALSE}
 rm(list = ls(all.names = TRUE))
-lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
 gc()
 dev.off()
 ```
 
 ## Load required packages
 ```{r load-packages, include = FALSE}  
-options("install.lock"=FALSE)
+options("install.lock" = FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
-  rio,          # File import
-  tidyverse,    # data management + ggplot2 graphics, 
-  broom,        # For tidying model outputs
-  gt,           # Nice beuatiful tables
-  nortest,      # Anderson-Darling test for normality
-  ggplot2,      # For creating plots
-  DescTools,    # For statistical functions like skewness and kurtosis
-  janitor,      # adding totals and percents to tables
-  car           # For Levene's test and ANOVA
-            )
+  rio,                    # File import
+  tidyverse,              # data management + ggplot2 graphics,
+  broom,                  # For tidying model outputs
+  dplyr,                  # For data manipulation
+  gt,                     # Nice beuatiful tables
+  nortest,                # Anderson-Darling test for normality
+  ggplot2,                # For creating plots
+  ggpubr,                 #
+  DescTools,              # For statistical functions like skewness and kurtosis
+  psych,                  # to get a table of all summary statistics
+  janitor,                # adding totals and percents to tables
+  car                     # For Levene's test and ANOVA
+              )
+# Install flexplot
+if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
 ```
 
 ## Access the data
 ```{r read-data, echo = TRUE}
 # file <- "./EpiData/breastcancer.csv"     # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/zabore/mmedr/refs/heads/main/data/breastcancer.csv"
-       # read the data in a file online
-df_bc <- import(file, trust  = TRUE)
-glimpse(df_bc)
-df_bc <- clean_names(df_bc)
-# Recode grade from I,II,III to 1,2,3
-df_bc$grade <- as.integer(factor(df_bc$grade, levels = c("I", "II", "III"), labels = c(1, 2, 3)))
+# read the data in a file online
+df_bc <- import(file, trust = TRUE)
 glimpse(df_bc)
 ```
 
-## Clean up data
-```{r tclean-data, echo = TRUE}
-# Convert integer 0/1 columns to factor
+## Clean data
+```{r cleam-data, echo = TRUE}
+# clean up variable names
+df_bc <- clean_names(df_bc)
+names(df_bc) <- gsub("_", ".", names(df_bc))
+
+# Recode grade from I,II,III to 1,2,3
 df_bc <- df_bc %>%
-  mutate(across(
-    .cols = where(~is.integer(.x) && all(.x %in% c(0, 1), na.rm = TRUE)),
-    .fns = ~factor(.x, levels = c(0, 1))
+  mutate(grade = case_when(
+    grade == "I" ~ 1L,
+    grade == "II" ~ 2L,
+    grade == "III" ~ 3L,
+    TRUE ~ as.integer(NA)  # Convert unexpected values to NA
   ))
+df_bc$grade <- as.factor(df_bc$grade)
+
+# rename variables - new_name = old_name
+df_bc <- rename(df_bc,
+                recurrence = event
+               )
+
+# Convert recurrence to a factor for Levene's test
+df_bc$recurrence <- as.factor(df_bc$recurrence)
+
 # Check the updated dataset structure
 glimpse(df_bc)
 ```
 
 ## T test for independent samples
 ```{r t-test, echo = TRUE}
-# Test for variance homogeneity
-levene_result <- leveneTest(grade  ~ rt, data = df_bc, var.equal = TRUE)
-(levene_result)
+# Plot the data
+flexplot(age.dx.yrs ~ recurrence, data = df_bc)
 
-t_test_result <- t.test(grade ~ rt, data = df_bc, var.equal = FALSE)
+# Test for variance homogeneity
+levene_test <- leveneTest(age.dx.yrs ~ recurrence, data = df_bc, center = median)
+levene_test
+
+# Do the independent samples T test
+t_test_result <- t.test(age.dx.yrs ~ recurrence, data = df_bc, var.equal = FALSE)
 t_test_result
 ```
 
 ## Two-way ANOVA
 ```{r ANOVA, echo = TRUE}
-# Perform Levene's Test for homogeneity of variances
+# Plot the data
+flexplot(tumor.size.cm  ~ grade, data = df_bc)
+
+# Test for variance homogeneity of variances
+levene_test <- leveneTest(tumor.size.cm ~ grade, data = df_bc, center = median)
+levene_test
 
 # Do the ANOVA
-anova_result <- aov(age_dx_yrs ~ grade, data = df_bc)
-summary(anova_result)
+anova_test <- aov(tumor.size.cm ~ grade, data = df_bc)
+summary(anova_test)
 
-# Tukey HSD test
-tukey_result <- TukeyHSD(anova_result)
+# Tukey HSD post-hoc test
+tukey_result <- TukeyHSD(anova_test)
 tukey_result
 ```
 
-## Mann-Whitney test
+## Mann-Whitney test (a nonparametric "T test")
 ```{r M_U-test, echo = TRUE}
 # Test for variance homogeneity
-levene_result <- leveneTest(nodal_ratio ~ optimal_systemic_therapy, data = df1, var.equal = TRUE)
+levene_result <- leveneTest(nodal.ratio ~ optimal.systemic.therapy, data = df_bc, var.equal = TRUE)
 levene_result
 
-MW_test <- wilcox.test(nodal_ratio  ~ optimal_systemic_therapy, data = df_bc, na.action = na.exclude)
+MW_test <- wilcox.test(nodal.ratio ~ optimal.systemic.therapy, data = df_bc, na.action = na.exclude)
 MW_test
 ```
 
 ## Chi-Square and Fisher Exact tests
 ```{r chi-square, echo = TRUE}
+
 # Map character grades to integers
 contingency_table <- table(df_bc$grade, df_bc$rt)
 contingency_table
+
+# Convert to probabilities
+percent_table <- prop.table(contingency_table)
+percent_table
+
+percent_table <- round(prop.table(contingency_table), 3)
+percent_table
 
 # Chi-Square test
 chisq.test(x = df_bc$grade, y = df_bc$rt)
 
 # Chi-Fisher Exact test
 fisher.test(x = df_bc$grade, y = df_bc$rt)
+
+# Lets plot this
+flexplot(rt ~ grade , data = df_bc)
 ```
 
 ## Spearman regression
 ```{r cspearman, echo = TRUE}
-# Spearman regrssion
-spearman <- cor.test(df_bc$tumor_size_cm , df_bc$er_or_pr_pos, method = "spearman", use = "complete.obs")
+# Lets look at the data
+flexplot(tumor.size.cm ~ grade, data = df_bc)
 
-# Print the test result
+# Spearmen needs the x axis valuses to be numeric
+df_bc$grade <- as.integer(df_bc$grade)
+
+# Spearman regrssion (better not to use it....)
+spearman <- cor.test(df_bc$tumor.size.cm, df_bc$grade, method = "spearman", use = "complete.obs")
 spearman
 ```
 
-
 # Paired T test / Wilcoxon ranked sum
 ```{r paired-t-test, echo = TRUE}
-# Some data on depression Rx
-x <- c(1.83,  0.50,  1.62,  2.48, 1.68, 1.88, 1.55, 3.06, 1.30)     # pre
-y <- c(0.878, 0.647, 0.598, 2.05, 1.06, 1.29, 1.06, 3.14, 1.29)     # post
+# Some data on depression Rx, pre and post
+x <- c(1.83, 0.50, 1.62, 2.48, 1.68, 1.88, 1.55, 3.06, 1.30) # pre
+y <- c(0.878, 0.647, 0.598, 2.05, 1.06, 1.29, 1.06, 3.14, 1.29) # post
+
+df_depr <- data.frame(
+  pre = x,
+  post = y
+)
+
+# Plot the data
+ggpaired(df_depr, cond1 = "pre", cond2 = "post",
+         y = "value", x = "variable", fill = "condition",
+         palette = "jco", line.color = "gray", line.size = 0.4)
 
 # Do a paired T test
 paired_t_test_result <- t.test(x, y, paired = TRUE)
 paired_t_test_result
 
 # Do a paired Wilcoxon test
-wilcox.test(x, y, paired = TRUE)
+wilcox.test(x, y, paired = TRUE)   
 ```
 
 
@@ -141,26 +191,27 @@ wilcox.test(x, y, paired = TRUE)
 
 ## Q1
 ```{r question1}
-
 library(ggplot2)
 
 
 ggplot(data, aes(x = height0, y = weight0)) +
   geom_point() +
-  geom_smooth(method = "lm", se = FALSE) +  # Adding the trend line with linear model
-  labs(title = "Scatter Plot of Weight vs Height",
-       x = " Height (cm)",
-       y = "Weight (kg)")
+  geom_smooth(method = "lm", se = FALSE) + # Adding the trend line with linear model
+  labs(
+    title = "Scatter Plot of Weight vs Height",
+    x = " Height (cm)",
+    y = "Weight (kg)"
+  )
 
 
 
-##pearson
+## pearson
 test_result <- cor.test(data$weight0, data$height0, method = "pearson", use = "complete.obs")
 print(test_result)
 
 
 
-#spearman
+# spearman
 spearman_test_result <- cor.test(data$weight0, data$height0, method = "spearman", use = "complete.obs")
 
 # Print the test result
@@ -168,8 +219,6 @@ print(spearman_test_result)
 ```
 ##chi square
 ```{r pressure, echo = TRUE}
-
- 
 data$pacifier_dich <- factor(data$pacifier_dich, levels = c(0, 1), labels = c("no", "yes"))
 data$newborn_gender <- factor(data$newborn_gender, levels = c(0, 1), labels = c("male", "female"))
 # Create a contingency table
@@ -177,10 +226,10 @@ table_data <- table(data$pacifier_dich, data$newborn_gender)
 table_data
 
 # Calculate and print the percentage table
-percent_table <- prop.table(table_data, margin = 1) * 100  # Row percentages
+percent_table <- prop.table(table_data, margin = 1) * 100 # Row percentages
 print(percent_table)
 print(column_percentages)
-column_percentages <- prop.table(table_data, margin = 2) * 100 #column percentages
+column_percentages <- prop.table(table_data, margin = 2) * 100 # column percentages
 print(column_percentages)
 
 # Perform the chi-square test
@@ -202,7 +251,6 @@ cat("Percentage of expected counts less than 5:", percentage_violations, "%\n")
 if (percentage_violations > 20) {
   cat("Warning: More than 20% of expected counts are less than 5, which violates chi-square test assumptions.\n")
 }
-
 ```
 
 
@@ -212,7 +260,7 @@ install.packages("epitools")
 library(epitools)
 
 # Create a contingency table
-contingency_table <- table(data$newborn_gender ,data$pacifier_dich)
+contingency_table <- table(data$newborn_gender, data$pacifier_dich)
 
 # Compute Odds Ratio (OR) and Relative Risk (RR)
 OR_result <- epitab(contingency_table, method = "oddsratio")

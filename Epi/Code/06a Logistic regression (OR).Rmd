@@ -3,9 +3,9 @@
 ### ID  : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה לוגיסטית 06   
-### date  : 15/06/2025
+### date  : 03/07/2025
 ###  
-###  מלמד לעשות רגסיה לוגיסטית
+###  נלמד לעשות רגסיה לוגיסטית
 ###
 ### source: https://bookdown.org/drki_musa/dataanalysis/binary-logistic-regression.html
 ###         https://github.com/drkamarul/multivar_data_analysis/tree/main/data
@@ -14,49 +14,56 @@
 ## Reset memory
 ```{r setup-packages, include = FALSE}
 rm(list = ls(all.names = TRUE))
-lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
 gc()
 dev.off()
 ```
 
 ## Load required packages
 ```{r load-packages, include = FALSE}
-options("install.lock"=FALSE)
+options("install.lock" = FALSE)
 install.packages("pacman")
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
-  rio,          # File import
-  tidyverse,    # data management + ggplot2 graphics, 
-  broom,        # For tidying model outputs
-  dplyr,        # For data manipulation
-  gt,           # Nice beuatiful tables
-  nortest,      # Anderson-Darling test for normality
-  ggplot2,      # For creating plots
-  DescTools,    # For statistical functions like skewness and kurtosis
-  janitor,      # adding totals and percents to tables
-  car,           # For Levene's test and ANOVA
-  gtsummary,    # summary statistics and tests
-  corrr,        # correlation analayis for numeric variables
-  lmtest,
-  reshape2,     # For reshaping data
-  skimr,        # get overview of data
-  pROC,         # For ROC analysis
-  performance   # For model performance metrics
-            )
-#library(LogisticDx)    # requires complex install             
+  rio,                    # File import
+  tidyverse,              # data management + ggplot2 graphics,
+  broom,                  # For tidying model outputs
+  dplyr,                  # For data manipulation
+  gt,                     # Nice beuatiful tables
+  nortest,                # Anderson-Darling test for normality
+  ggplot2,                # For creating plots
+  DescTools,              # For statistical functions like skewness and kurtosis
+  psych,                  # to get a table of all summary statistics
+  janitor,                # adding totals and percents to tables
+  car,                    # For Levene's test and ANOVA
+  gtsummary,              # summary statistics and tests
+  corrr,                  # correlation
+  lmtest,                 # linear regression tets
+  parameters,             # calculate standardized parameters/coefficients
+  GGally,                 # to make a correlation matrix
+  skimr,                  # get overview of data
+  pROC,                   # For ROC analysis
+  caret,                  # For confusion matrix and classification metrics
+  ggeffects,              # To display the confusion matrix
+  performance,             # For model performance metrics
+  ResourceSelection       # For Hosmer-Lemeshow test for goodness of fit 
+
+              )
+# Install/load flexplot
+if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
 ```
 
 ## Access the data
 ```{r read-data, echo = TRUE}
 # file <- "./EpiData/stroke.dta"     # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/stroke.dta"
-df3 <- import(file, trust  = TRUE)
+df3 <- import(file, trust = TRUE)
 summary(df3)
-glimpse(df3)  # get an overview of the data
+glimpse(df3) # get an overview of the data
 ```
 
-## Fix the data
-```{r fix-data, echo = TRUE}
+## Clean the data
+```{r clean-data, echo = TRUE}
 # Convert status to integer (2 -> 0, 1 -> 1)
 df3 <- df3 %>%
   mutate(across(c(sex, status, dm, stroke_type), as.integer))
@@ -75,8 +82,14 @@ df3 %>%
 ## Logistic regression
 ```{r logistic-reg, echo = TRUE}
 # Perform logistic regression
-log_reg <- glm(status ~ gcs, data = df3, family = binomial(link = 'logit'))
+log_reg <- glm(status ~ gcs, data = df3, family = binomial(link = "logit"))
 tidy(log_reg, conf.int = TRUE)
+```
+
+## Plot data and model
+```{r flexplot, echo = TRUE}
+# use flexplot
+flexplot(status ~ gcs, data = df3, method = "logistic", se = TRUE, jitter = c(0.1, 0.1))
 ```
 
 ## Model performance measures
@@ -86,17 +99,17 @@ minus_2LL_log_reg <- -2 * as.numeric(logLik(log_reg))
 AIC_val <- AIC(log_reg)
 
 # Calculate Nagelkerke's R²
-r2_val <- PseudoR2(log_reg, which ="Nagelkerke")
+r2_val <- PseudoR2(log_reg, which = "Nagelkerke")
 
 # Chi-square statistic for the omnibus test
-null_model <- glm(status ~ 1, data = df3, family = binomial(link = 'logit')) # null model (intercept-only model)
-      model_perf <- anova(null_model, log_reg, test = "Chisq")
-      chi_sq <- model_perf$Deviance[2]     # Chi-square statistic
-      p_val <- model_perf$`Pr(>Chi)`[2]    # p-value
+null_model <- glm(status ~ 1, data = df3, family = binomial(link = "logit")) # null model (intercept-only model)
+model_perf <- anova(null_model, log_reg, test = "Chisq")
+chi_sq <- model_perf$Deviance[2] # Chi-square statistic
+p_val <- model_perf$`Pr(>Chi)`[2] # p-value
 
 # Disiplay the summary of the logistic regression model
 summary(log_reg)
-paste("R²= ",r2_val)
+paste("R²= ", r2_val)
 ```
 
 # Calculate log OR
@@ -115,54 +128,80 @@ log_reg_OR
 ```{r log_reg_tbl, echo = TRUE}
 combined_tbl <- tbl_merge(
   tbls = list(log_reg_tbl, log_reg_OR),
-  tab_spanner = c("**log Odds**", "**Odds Ratio**")  # Optional: Add spanning headers
+  tab_spanner = c("**log Odds**", "**Odds Ratio**") # Optional: Add spanning headers
 ) %>%
   as_gt() %>%
   tab_source_note(
-
-    source_note = paste0("R² = ", round(r2_val,3),
-                          ", -2LL = ", round(minus_2LL_log_reg, 0), 
-                         ",  AIC = ", round(AIC_val, 0),
-                         ",  χ² = ", round(chi_sq, 0),
-                         ",  p = ", round(p_val, 3)
-                        )
+    source_note = paste0(
+      "R² = ", round(r2_val, 3),
+      ", -2LL = ", round(minus_2LL_log_reg, 0),
+      ",  AIC = ", round(AIC_val, 0),
+      ",  χ² = ", round(chi_sq, 0),
+      ",  p = ", round(p_val, 5)
+    )
   )
 
 # Display the combined table
 combined_tbl
 ```
 
-## Logistic regression plot
-```{r log_reg-plt, echo = TRUE}
-# use ggplot to show the scatter plot with regression line with linear model and confidence interval
-y_var <- "status"
-x_var <- "gcs"
-log_reg_plot <- ggplot(df3, aes_string(x = x_var, y = y_var)) +
-  geom_point() +
-  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = TRUE, color = "blue") +  # Adding the trend line with linear model
-  labs(title = paste("Scatter Plot of", y_var, "vs", x_var),
-       x = x_var,
-       y = y_var) +
-  theme_minimal()
-log_reg_plot
+## Get better estimates
+```{r log_reg-est, echo = TRUE}
+estimates(log_reg)
 ```
 
-## Logistic regression prediction
-```{r log_reg-plt, echo = TRUE}
-# Create a new data frame for prediction
-predict_values <- data.frame(df3 = c(0, 1))
+## Evalute model prediction
+```{r log_reg-eval, echo = TRUE}
+# Calculate predicted probabilities and append to th df
+df3$predict_prob <- predict(log_reg, type = "response")
 
-# Calculate predicted probabilities
-predicted_probs <- predict(log_reg, type = "response")
-df3$predicted_prob <- predict(log_reg, type = "response")
+# Calculate the "confusion_matrix"
+confusion_matrix <- caret::confusionMatrix(data = as.factor(round(df3$predict_prob, 2)), reference = as.factor(df3$status))
+confusion_matrix
 
-predict_prob
+# Extract the confusion matrix table
+cm_table <- as.data.frame(confusion_matrix$table)
+colnames(cm_table) <- c("Predicted", "True", "Count")
+cm_table <- cm_table %>%
+  mutate(Percent = round(Count / sum(Count) * 100, 1))
 
-df3$predicted_prob <- predict(log_reg, type = "response")
+# Plot confusion matrix as a heatmap
+ggplot(data = cm_table, aes(x = Predicted, y = True, fill = Percent)) +
+  geom_tile() +
+  geom_text(aes(label = Percent), vjust = 0.5, color = "black") +
+  scale_fill_gradient(low = "white", high = "blue") +
+  theme_minimal() +
+  labs(title = "Confusion Matrix", x = "Predicted", y = "True") +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+
+# Displayt model/cm metrics
+cm_metrics_df <- data.frame(
+  Metric = c("Accuracy", "PPV", "NPV", "Sensitivity", "Specificity", "Precision", "F1 Score"),
+  Value = round(c(
+    confusion_matrix$overall["Accuracy"],
+    confusion_matrix$byClass["Pos Pred Value"],
+    confusion_matrix$byClass["Neg Pred Value"],
+    confusion_matrix$byClass["Sensitivity"],
+    confusion_matrix$byClass["Specificity"],
+    confusion_matrix$byClass["Precision"],
+    confusion_matrix$byClass["F1"]
+  ), 2)
+)
+cm_metrics_df
+
+cm_metrics_df %>%
+  gt() 
 ```
 
-## ROC curve and AUC (area under curve)
+## Hosmer-Lemeshow test for GOF
+```{r , echo=FALSE}
+# Use generalhoslem to get the Hosmer–Lemeshow test result
+hl_test <- hoslem.test(df3$status, df3$predicted_prob, g = 10)
+hl_test
+
+## ROC curve and AUC
 ```{r logistic_regression,2 echo = TRUE}
+#C alculaete the ROC curve
 roc_obj <- roc(df3$status, df3$predicted_prob)
 
 # Plot ROC curve
@@ -171,4 +210,6 @@ plot(roc_obj, col = "blue", main = "ROC Curve")
 # Print AUC (AUC > 0.7)
 auc(roc_obj)
 ```
+
+
 

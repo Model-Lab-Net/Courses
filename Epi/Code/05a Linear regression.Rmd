@@ -3,145 +3,156 @@
 ### ID  : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה לינארית 05   
-### date  : 15/06/2025
+### date  : 03/07/2025
 ###  
 ### נלמד לעשות רגרסיה לינארית פשוטה
 ###
-### source:  https://bookdown.org/drki_musa/dataanalysis/
-###          https://github.com/drkamarul/multivar_data_analysis/tree/main/data
+### source: https://bookdown.org/drki_musa/dataanalysis/linear-regression.html
+###         https://github.com/drkamarul/multivar_data_analysis/tree/main/data
 
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
 rm(list = ls(all.names = TRUE))
-lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
 gc()
 dev.off()
 ```
 
 ## Load required packages
 ```{r load-packages, include = FALSE}
-options("install.lock"=FALSE)
+options("install.lock" = FALSE)
 install.packages("pacman")
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
-  rio,          # File import
-  tidyverse,    # data management + ggplot2 graphics, 
-  broom,        # For tidying model outputs
-  dplyr,        # For data manipulation
-  gt,           # Nice beuatiful tables
-  nortest,      # Anderson-Darling test for normality
-  ggplot2,      # For creating plots
-  DescTools,    # For statistical functions like skewness and kurtosis
-  janitor,      # adding totals and percents to tables
-  car,           # For Levene's test and ANOVA
-  gtsummary,    # summary statistics and tests
-  corrr,        # correlation analayis for numeric variables
-  lmtest
-            )
+  rio,                    # File import
+  tidyverse,              # data management + ggplot2 graphics,
+  broom,                  # For tidying model outputs
+  dplyr,                  # For data manipulation
+  gt,                     # Nice beuatiful tables
+  nortest,                # Anderson-Darling test for normality
+  ggplot2,                # For creating plots
+  DescTools,              # For statistical functions like skewness and kurtosis
+  psych,                  # to get a table of all summary statistics
+  janitor,                # adding totals and percents to tables
+  car,                    # For Levene's test and ANOVA
+  gtsummary,              # summary statistics and tests
+  corrr,                  # correlation matrix
+  lmtest,                 # do linear regression tests
+  parameters              # get standardized parameters/coefficients
+              )
+# Install/load flexplot
+if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
 ```
 
 ## Access the data
 ```{r read-data, echo = TRUE}
 # file <- "./EpiData/coronary.dta" # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/coronary.dta"
-df2 <- import(file, trust  = TRUE)
+df2 <- import(file, trust = TRUE)
 summary(df2)
 glimpse(df2)
 ```
 
-## Change categorial variables to factors
-```{r cat-to-factor, echo = TRUE}
-# Mutate id to factor
+## Clean data
+```{r clean-data, echo = TRUE}
+# Change id to factor
 df2 <- df2 %>%
   mutate(id = as.factor(id))
 
-# Mutate cad to factor
+# Change cad to factor
 df2 <- df2 %>%
   mutate(cad = as.factor(cad))
 
-# Mutate gender column from 1, 2 to "F", "M"
+# Change gender column from 1, 2 to "F", "M"
 df2 <- df2 %>%
   mutate(gender = case_when(
     gender == 1 ~ "F",
     gender == 2 ~ "M",
-    TRUE ~ as.character(gender)  # Preserve other values (e.g., NA)
+    TRUE ~ as.factor(gender) # Preserve other values (e.g., NA)
   ))
 
-# Mutate race column from 1, 2, 3  to "W", "B", "J"
+# Change race column from 1, 2, 3  to "W", "B", "J"
 df2 <- df2 %>%
   mutate(race = case_when(
     race == 1 ~ "W",
     race == 2 ~ "B",
     race == 3 ~ "J",
-    TRUE ~ as.character(gender)  # Preserve other values (e.g., NA)
+    TRUE ~ as.factor(race) # Preserve other values (e.g., NA)
   ))
 
+df <- mutate_if(df2, is.character, as.factor)
+
+# Look at the variables list
 glimpse(df2)
 ```
 
 # Summary statistics for numerical variables
 ```{r summary-stats, echo = TRUE}
-# Show median and IQR for all numerical variables (5)
+# Create summary statistics for all numerical variables grouped by "race"
 df2_summary_stats <- df2 %>%
-select(where(is.numeric), race) %>%  # Select all numeric columns and gender
+  select(where(is.numeric), gender) %>%                # Select all numeric columns and gender
   tbl_summary(
-    by = race,                        # Stratify by gender
+    by = gender,                                       # Stratify by gender
     statistic = list(
-      all_continuous() ~ "{mean} ({sd})",  # Mean (SD) for continuous variables
-      all_continuous2() ~ "{median} ({p25}, {p75})"  # Median (Q1, Q3) for non-normal
+      all_continuous() ~ "{mean} ({sd})",              # Mean (SD) for continuous variables
+      all_continuous2() ~ "{median} ({p25}, {p75})"    # Median (Q1, Q3) for non-normal
     ),
-    digits = list(all_continuous() ~ 2),  # Round to 2 decimal places
-    #missing = "ifany",                    # Show missing values if any
-    label = list(                         # Optional: Customize variable labels
+    digits = list(all_continuous() ~ 2),               # Round to 2 decimal places
+    # missing = "ifany",                               # Show missing values if any
+    label = list(                                      # Optional: Customize variable labels
       # Example: age ~ "Age (years)"
     )
   ) %>%
-  #add_p() %>%                           # Add p-values for comparisons
-  add_overall() %>%                     # Add overall column
-  modify_header(label = "**Variable**") # Customize header
+  # add_p() %>%                                        # Add p-values for comparisons
+  add_overall() %>%                                    # Add overall column
+  modify_header(label = "**Variable**")                # Customize header
 
+# Display the summary statistics table
 df2_summary_stats
 ```
 
 ## Choose variables
 ```{r choose-vars, echo = TRUE}
-###pearson
-x_var <- "chol"  # Change this to the categorial variable
-y_var <- "sbp"   # Change this to the numerical variable
-```
-
-## Calculate pearson correlation coefficient
-```{r pearson, echo = TRUE}
-# Calcukate the pearson coefficient
-pearson_result <- cor.test(df2[[x_var]], df2[[y_var]], method = "pearson", use = "complete.obs")
-pearson_result
+x_var <- "chol"   # Change this to the categorial variable
+y_var <- "sbp"    # Change this to the numerical variable
+f <- as.formula(paste(y_var, "~", x_var))     # This just helps further down....
 ```
 
 ## Linear regression
 ```{r slr, echo = TRUE}
 # Perform a Simple Linear Regression
 slr <- lm(df2[[y_var]] ~ df2[[x_var]], data = df2)
+slr <- lm(f, data = df2)                            # useful for later down.....
 
 # print the summary of the simple linear regression
 summary(slr)
+tidy(slr)
+```
+
+## Calculate pearson correlation coefficient
+```{r pearson, echo = TRUE}
+# Calculate the pearson coefficient
+pearson_result <- cor.test(df2[[x_var]], df2[[y_var]], method = "pearson", use = "complete.obs")
+pearson_result
 ```
 
 ## Linear regression with nice output
 ```{r slr-summary, echo = TRUE}
 # use gtsummary to create a nice table
-slr_summary <-
-  lm(df2[[y_var]] ~ df2[[x_var]]) %>% 
-  tbl_regression() %>%
-  add_glance_table(include = c(nobs,
-                               r.squared,
-                               statistic,
-                               logLik,
-                               AIC,
-                               sigma,
-                               p.value))
+slr_summary <- slr %>%
+  tbl_regression(intercept = TRUE) %>%
+  add_glance_table(include = c(
+    nobs,
+    r.squared,
+    adj.r.squared,
+    statistic,
+    sigma,
+    logLik,
+    AIC
+  ))
 
-# Show the table
+# Show the model results table
 slr_summary
 ```
 
@@ -150,11 +161,25 @@ slr_summary
 # use ggplot to show the scatter plot with regression line with linear model and confidence interval
 ggplot(df2, aes_string(x = x_var, y = y_var)) +
   geom_point() +
-  geom_smooth(method = "lm", se = TRUE, color = "blue") +  # Adding the trend line with linear model
-  labs(title = paste("Scatter Plot of", y_var, "vs", x_var),
-       x = x_var,
-       y = y_var) +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") + # Adding the trend line with linear model
+  labs(
+    title = paste("Scatter Plot of", y_var, "vs", x_var),
+    x = x_var,
+    y = y_var
+  ) +
   theme_minimal()
+```
+
+## Flexplot scatter plot
+```{r polt-regression, echo = TRUE}
+# Plot the regression
+flexplot(f, data = df2, method = "lm", se = TRUE, ghost.line = "red")
+
+# Analyze the residuals
+visualize(slr)
+
+# Get the model parameter values
+estimates(slr)
 ```
 
 ## Test for normal distribution of residuals
@@ -163,8 +188,10 @@ ggplot(df2, aes_string(x = x_var, y = y_var)) +
 residuals_slr <- residuals(slr)
 
 # Plot the residuals
-hist(residuals_slr, breaks = 20, main = "Histogram of Residuals", 
-     xlab = "Residuals", col = "darkgrey")
+hist(residuals_slr,
+  breaks = 20, main = "Histogram of Residuals",
+  xlab = "Residuals", col = "darkgrey"
+)
 
 # Q-Q plot
 qqnorm(residuals_slr)
@@ -182,13 +209,14 @@ bp_test <- bptest(slr)
 bp_test
 
 # Plot Residuals vs. Fitted Values Plot
-#(homoscedacity = scattered randomly around the horizontal line)
-#(heteroscedacity = Patterns like a funnel shape (wider spread at higher/lower fitted values), curves, or systematic trends)
+# (homoscedacity = scattered randomly around the horizontal line)
+# (heteroscedacity = Patterns like a funnel shape (wider spread at higher/lower fitted values), curves, or systematic trends)
 plot(slr$fitted.values, residuals(slr),
-     main = "Residuals vs. Fitted Values",
-     xlab = "Fitted Values",
-     ylab = "Residuals")
-abline(h = 0, col = "red", lty = 2)  # Add horizontal line at y = 0
+  main = "Residuals vs. Fitted Values",
+  xlab = "Fitted Values",
+  ylab = "Residuals"
+)
+abline(h = 0, col = "red", lty = 2) # Add horizontal line at y = 0
 ```
 
 ## Test for autocorrelation 
@@ -201,9 +229,16 @@ dw_result
 acf(residuals(slr), main = "ACF of Residuals")
 ```
 
+## Calculate the standaradized parameters
+```{r autocorrelation , echo = TRUE}
+model_parameters(slr, standardize = "refit")
+```
+
+
 
 
 ### ------------------------------------
+
 
 
 
@@ -221,10 +256,10 @@ summary_model2
 install.packages("lm.beta")
 library(lm.beta)
 
-###colinearity test
-test2 <- cor.test(data$height4,  data$newborn_gender , method = "spearman", use = "complete.obs")
-test3 <- cor.test(data$height4,  data$mother_weight , method = "spearman", use = "complete.obs")
-test4 <- cor.test(data$mother_weight,  data$newborn_gender , method = "spearman", use = "complete.obs")
+### Pearson coefficient
+test2 <- cor.test(data$height4, data$newborn_gender, method = "spearman", use = "complete.obs")
+test3 <- cor.test(data$height4, data$mother_weight, method = "spearman", use = "complete.obs")
+test4 <- cor.test(data$mother_weight, data$newborn_gender, method = "spearman", use = "complete.obs")
 test2
 test3
 test4

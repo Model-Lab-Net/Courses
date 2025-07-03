@@ -2,8 +2,8 @@
 ### name: דוד בורג
 ### ID  : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
-### lesson: שרידות 08   Survival
-### date  : 25/06/2025
+### lesson: הישרדות 08   Survival
+### date  : 03/07/2025
 ###  
 ###  נלמד לבצע ניתוח שרידות 
 ###
@@ -24,46 +24,54 @@ options("install.lock"=FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
-  rio,          # File import
-  tidyverse,    # data management + ggplot2 graphics, 
-  broom,        # For tidying model outputs
-  dplyr,        # For data manipulation
-  gt,           # Nice beuatiful tables
-  nortest,      # Anderson-Darling test for normality
-  ggplot2,      # For creating plots
-  DescTools,    # For statistical functions like skewness and kurtosis
-  janitor,      # adding totals and percents to tables
-  car,           # For Levene's test and ANOVA
-  gtsummary,    # summary statistics and tests
-  corrr,        # correlation analayis for numeric variables
-  reshape2,     # For reshaping data
-  skimr,        # get overview of data
-  performance,           # For model performance metrics
-  ResourceSelection,     # For goodness of fit tests
-  pROC,                  # For ROC analysis
-  caret,
-  MASS,          # For statistical functions (polr for ordinal regression)
-  epiDisplay,    # 
-  survival,
-  survminer
-            )
+  rio,                    # File import
+  tidyverse,              # data management + ggplot2 graphics,
+  broom,                  # For tidying model outputs
+  dplyr,                  # For data manipulation
+  gt,                     # Nice beuatiful tables
+  nortest,                # Anderson-Darling test for normality
+  ggplot2,                # For creating plots
+  DescTools,              # For statistical functions like skewness and kurtosis
+  psych,                  # to get a table of all summary statistics
+  janitor,                # adding totals and percents to tables
+  car,                    # For Levene's test and ANOVA
+  gtsummary,              # summary statistics and tests
+  corrr,                  # correlation
+  lmtest,                 # linear regression tets
+  parameters,             # calculate standardized parameters/coefficients
+  GGally,                 # to make a correlation matrix
+  skimr,                  # get overview of data
+  pROC,                   # For ROC analysis
+  performance,            # For model performance metrics
+  MASS,                   # For statistical functions (polr for ordinal regression)ordinal
+  caret,                  # For confusion matrix and classification metrics
+  ggeffects,              # To display the confusion matrix
+  ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit 
+  ordinal,                # For ordinal regression statistical functions 
+  VGAM,                   # for multinomial logistic regression
+  epiDisplay,             # For epi data type handling    
+  survival,               # For survival analysis
+  survminer               # For survival analysis and visualization
+           )
+# Install/load flexplot
+if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
 ```
 
 ## Access the data
 ```{r read-data, echo = TRUE}
 ## read the data in a file online
-# file <- "./EpiData/stroke_data.csv"     # use this if the file is on your computer
+# file <- "./EpiData/stroke_data.csv"     # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/stroke_data.csv"
-df7 <- import(file, trust  = TRUE)
-summary(df7)
-glimpse(df7)
+df8 <- import(file, trust  = TRUE)
+summary(df8)
+glimpse(df8)
 ```
 
 ## Clean the data
-```{r read-data, echo = TRUE}
+```{r clean-data, echo = TRUE}
 # convert the variable doa and variable doa to a more valid format (date format)
-df7 <- 
-  df7 %>%
+df8 <- 
+  df8 %>%
   mutate(doa = dmy(doa),
          dod = dmy(dod)
         )
@@ -72,7 +80,7 @@ df7 <-
 ## Show the data
 ```{r read-data, echo = TRUE}
 # in a nice table
-df7 %>%
+df8 %>%
   tbl_summary(
     by = status,
     include = -c(doa, dod)  # exclude these two date variables
@@ -80,7 +88,7 @@ df7 %>%
   as_gt()
 
 
-df7 %>%
+df8 %>%
   tbl_summary(
     by = stroke_type,
     include = -c(doa, dod)  # exclude these two date variables
@@ -92,17 +100,17 @@ df7 %>%
 ## Survival time statistics
 ```{r surv-stats, echo = TRUE}
 # Survival time
-mean_survival_time <- mean(df7$time2, na.rm = TRUE)
-sd_survival_time <- sd(df7$time2, na.rm = TRUE)
-CI1 <- MeanCI(df7$time2, na.rm = TRUE)
+mean_survival_time <- mean(df8$time2, na.rm = TRUE)
+sd_survival_time <- sd(df8$time2, na.rm = TRUE)
+CI1 <- MeanCI(df8$time2, na.rm = TRUE)
   lower_meanci_1 <- as.numeric((CI1["lwr.ci"]))
   upper_meanci_1 <- as.numeric((CI1["upr.ci"]))
-median_survival_time <- median(df7$time2, na.rm = TRUE)
-IQR_survival_time <- IQR(df7$time2, na.rm = TRUE)
-q25_survival_time <- as.numeric(Quantile(df7$time2, probs = 0.25, na.rm = TRUE))
-q75_survival_time <- as.numeric(Quantile(df7$time2, probs = 0.75, na.rm = TRUE))
-min_survival_time <- min(df7$time2, na.rm = TRUE)
-max_survival_time <- max(df7$time2, na.rm = TRUE)
+median_survival_time <- median(df8$time2, na.rm = TRUE)
+IQR_survival_time <- IQR(df8$time2, na.rm = TRUE)
+q25_survival_time <- as.numeric(Quantile(df8$time2, probs = 0.25, na.rm = TRUE))
+q75_survival_time <- as.numeric(Quantile(df8$time2, probs = 0.75, na.rm = TRUE))
+min_survival_time <- min(df8$time2, na.rm = TRUE)
+max_survival_time <- max(df8$time2, na.rm = TRUE)
 
 # Create a data frame to neatly display the statistics
 stats_df <- data.frame(
@@ -124,7 +132,7 @@ summary_stats              # Show the table
 # estimate the survival probabilities for all patients
 KM_all <- survfit(Surv(time = time2, 
                        event = status == "dead" ) ~ 1, 
-                       data = df7)
+                       data = df8)
 summary(KM_all)
 ```
 
@@ -132,14 +140,14 @@ summary(KM_all)
 ## Life table
 ```{r life-table, echo = TRUE}
 # Convert status to int
-df7 <- df7 %>%
+df8 <- df8 %>%
   mutate(event = ifelse(status == "dead", 1, 0))
 
 # Fit Kaplan-Meier model stratified by stroke_type (example)
-km_fit <- survfit(Surv(time2, event) ~ 1, data = df7)
+km_fit <- survfit(Surv(time2, event) ~ 1, data = df8)
 
 # Extract survival summary at intervals of 10 units
-km_summary <- summary(km_fit, times = seq(0, max(df7$time2), by = 10))
+km_summary <- summary(km_fit, times = seq(0, max(df8$time2), by = 10))
 
 # Convert to data frame
 km_df <- data.frame(
@@ -175,7 +183,7 @@ km_df %>%
 ```{r read-data, echo = TRUE}
 # estimate the survival probabilities for all patients
 KM_all_plot <- ggsurvplot(KM_all, 
-           data = df7, 
+           data = df8, 
            risk.table = TRUE, 
            linetype = c(1,4),
            tables.height = 0.3,
@@ -200,7 +208,7 @@ KM_all_plot
 # estimate the survival probabilities for stroke type
 KM_str_type <- survfit(Surv(time = time2, 
                              event = status == "dead" ) ~ stroke_type, 
-                        data = df7)
+                        data = df8)
 summary(KM_str_type)
 ```
 
@@ -208,7 +216,7 @@ summary(KM_str_type)
 ```{r read-data, echo = TRUE}
 # estimate the survival probabilities for all patients
 KM_str_plot <- ggsurvplot(KM_str_type, 
-           data = df7, 
+           data = df8, 
            risk.table = TRUE, 
            linetype = c(1,4),
            tables.height = 0.3,
@@ -222,10 +230,10 @@ KM_str_plot
 ```{r life-table, echo = TRUE}
 # Convert status to int
 # Fit Kaplan-Meier model stratified by stroke_type (example)
-km_fit_strat <- survfit(Surv(time2, event) ~ stroke_type, data = df7)
+km_fit_strat <- survfit(Surv(time2, event) ~ stroke_type, data = df8)
 
 # Extract survival summary at intervals of 10 units
-km_summary_strat <- summary(km_fit_strat, times = seq(0, max(df7$time2), by = 10))
+km_summary_strat <- summary(km_fit_strat, times = seq(0, max(df8$time2), by = 10))
 
 # Convert to data frame
 km_df <- data.frame(
@@ -268,7 +276,7 @@ km_df %>%
 # Test if survival estimates are  different between levels/groups
 log_rank_stroke <- survdiff(Surv(time = time2, 
               event = status == "dead") ~ stroke_type, 
-         data = df7,
+         data = df8,
          rho = 0)
 
 log_rank_stroke
@@ -276,7 +284,7 @@ log_rank_stroke
 # Test if survival estimates are  different between levels/groups
 log_rank_diabetes <- survdiff(Surv(time = time2, 
               event = status == "dead") ~ dm, 
-         data = df7,
+         data = df8,
          rho = 0)
 
 log_rank_diabetes
@@ -284,18 +292,18 @@ log_rank_diabetes
 
 ## Peto's log-rank test
 ```{r read-data, echo = TRUE}
-# Test if survival estimates are  different between levels/groups
+# Test if survival estimates are different between levels/groups
 log_rank_stroke <- survdiff(Surv(time = time2, 
               event = status == "dead") ~ stroke_type, 
-         data = df7,
+         data = df8,
          rho = 1)
 
 log_rank_stroke
 
-# Test if survival estimates are  different between levels/groups
+# Test if survival estimates are different between levels/groups
 log_rank_dm <- survdiff(Surv(time = time2, 
               event = status == "dead") ~ dm, 
-         data = df7,
+         data = df8,
          rho = 1)
 
 log_rank_dm
@@ -304,7 +312,7 @@ log_rank_dm
 
 
 
-
+### -------------------------------------------
 
 
 

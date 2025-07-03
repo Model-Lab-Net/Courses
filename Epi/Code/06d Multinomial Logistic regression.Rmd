@@ -3,11 +3,11 @@
 ### ID  : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה לוגיסטית 06   
-### date  : 15/06/2025
+### date  : 03/07/2025
 ###  
 ###  נלמד לעשות רגסיה לוגיסטית עם יותר משתי רמות
 ###
-### source: https://bookdown.org/drki_musa/dataanalysis/binary-logistic-regression.html
+### source: https://bookdown.org/drki_musa/dataanalysis/multinomial-logistic-regression.html
 ###         https://github.com/drkamarul/multivar_data_analysis/tree/main/data
 
 ## Reset memory
@@ -24,30 +24,34 @@ options("install.lock"=FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
-  rio,          # File import
-  tidyverse,    # data management + ggplot2 graphics, 
-  broom,        # For tidying model outputs
-  dplyr,        # For data manipulation
-  gt,           # Nice beuatiful tables
-  nortest,      # Anderson-Darling test for normality
-  ggplot2,      # For creating plots
-  DescTools,    # For statistical functions like skewness and kurtosis
-  janitor,      # adding totals and percents to tables
-  car,           # For Levene's test and ANOVA
-  gtsummary,    # summary statistics and tests
-  corrr,        # correlation analayis for numeric variables
-  reshape2,     # For reshaping data
-  skimr,        # get overview of data
-  performance,           # For model performance metrics
-  ResourceSelection,     # For goodness of fit tests
-  broom,                 # For tidying model outputs
-  pROC,                  # For ROC analysis
-  caret,
-  MASS,          # For statistical functions (polr for ordinal regression)ordinal
-  ordinal,       # For statistical functions (ordinal regression)ordinal
-  ggeffects,
-  VGAM
-            )
+  rio,                    # File import
+  tidyverse,              # data management + ggplot2 graphics,
+  broom,                  # For tidying model outputs
+  dplyr,                  # For data manipulation
+  gt,                     # Nice beuatiful tables
+  nortest,                # Anderson-Darling test for normality
+  ggplot2,                # For creating plots
+  DescTools,              # For statistical functions like skewness and kurtosis
+  psych,                  # to get a table of all summary statistics
+  janitor,                # adding totals and percents to tables
+  car,                    # For Levene's test and ANOVA
+  gtsummary,              # summary statistics and tests
+  corrr,                  # correlation
+  lmtest,                 # linear regression tets
+  parameters,             # calculate standardized parameters/coefficients
+  GGally,                 # to make a correlation matrix
+  skimr,                  # get overview of data
+  pROC,                   # For ROC analysis
+  performance,            # For model performance metrics
+  MASS,                   # For statistical functions (polr for ordinal regression)ordinal
+  ordinal,                # For ordinal regression statistical functions 
+  caret,                  # For confusion matrix and classification metrics
+  ggeffects,              # To display the confusion matrix
+  ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit 
+  VGAM                    # for multinomial logistic regression
+              )
+# Install/load flexplot
+if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
 ```
 
 ## Access the data
@@ -212,43 +216,52 @@ combined_tbl_mlog_reg_ia <- tbl_merge(
 combined_tbl_mlog_reg_ia
 ```
 
-## Logistic multi-regression prediction
+## Classification table
 ```{r log_reg-pred, echo = TRUE}
-
-predict_probs <- predict(mlog_reg_ia, newdata = df4, type = "response")  # Get probabilities
-predict_classes <- predict(mlog_reg_ia, newdata = df4, type = "response")  # Get predicted classes
-
-# If levels don't match, ensure they do
-levels(predict_classes) <- levels(df4$cat_fbs)
-
-confusion_matrix <- caret::confusionMatrix(data = as.factor(round(df4$predict_classes,0)), reference = as.factor(df4$cat_fbs))
-
-
-# Extract confusion matrix table for plotting
-cm_table <- as.data.frame(confusion_matrix$table)
-colnames(cm_table) <- c("Predicted", "True", "Count")
-
-# Plot confusion matrix as a heatmap
-ggplot(data = cm_table, aes(x = Predicted, y = True, fill = Count)) +
-  geom_tile() +
-  geom_text(aes(label = Count), vjust = 0.5, color = "black") +
-  scale_fill_gradient(low = "white", high = "blue") +
-  theme_minimal() +
-  labs(title = "Confusion Matrix for Multinomial Logistic Regression", 
-       x = "Predicted Label", y = "True Label") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
-
-
-# Create a new data frame for prediction
-predict_values <- data.frame(df4 = c(0, 1))
-
 # Calculate predicted probabilities
 predicted_probs <- predict(mlog_reg, type = "response")
 df4$predicted_prob_multi <- predict(mlog_reg_ia, type = "response")
-predict_prob
-df4$predicted_prob_multi <- predict(mlog_reg_ia, type = "response")
 
-glimpse(df4)
+# Use caret package to get classification table
+confusion_matrix <- caret::confusionMatrix(data = as.factor(round(df4$predicted_prob_multi, 0)), reference = as.factor(df4$cat_fbs))
+confusion_matrix
+
+# Extract the confusion matrix table
+cm_table <- as.data.frame(confusion_matrix$table)
+colnames(cm_table) <- c("Predicted", "True", "Count")
+cm_table <- cm_table %>%
+  mutate(Percent = round(Count / sum(Count) * 100, 1))
+
+# Plot confusion matrix as a heatmap
+ggplot(data = cm_table, aes(x = Predicted, y = True, fill = Percent)) +
+  geom_tile() +
+  geom_text(aes(label = Percent), vjust = 0.5, color = "black") +
+  scale_fill_gradient(low = "white", high = "blue") +
+  theme_minimal() +
+  labs(title = "Confusion Matrix", x = "Predicted", y = "True") +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+
+# Get cm metrics
+cm_metrics_df <- data.frame(
+  Metric = c("Accuracy", "PPV", "NPV", "Sensitivity", "Specificity", "Precision", "F1 Score"),
+  Value = round(c(
+    confusion_matrix$overall["Accuracy"],
+    confusion_matrix$byClass["Pos Pred Value"],
+    confusion_matrix$byClass["Neg Pred Value"],
+    confusion_matrix$byClass["Sensitivity"],
+    confusion_matrix$byClass["Specificity"],
+    confusion_matrix$byClass["Precision"],
+    confusion_matrix$byClass["F1"]
+  ), 2)
+)
+
+cm_metrics_df %>%
+  gt()
+```
+
+## Hosmer-Lemeshow test for GOF
+```{r , echo=FALSE}
+# Use ResourceSelection to get the Hosmer–Lemeshow test result
+hl_test <- hoslem.test(df4$cat_fbs, df4$predicted_prob_multi, g = 10)
+hl_test
 ```

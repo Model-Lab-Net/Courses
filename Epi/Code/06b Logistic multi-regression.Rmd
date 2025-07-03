@@ -3,64 +3,67 @@
 ### ID  : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה לוגיסטית 06   
-### date  : 15/06/2025
+### date  : 03/07/2025
 ###  
 ###  נלמד לעשות רגסיה לוגיסטית מרובה משתנים
 ###
-### source: https://github.com/drkamarul/multivar_data_analysis/tree/main/data
+### source: https://bookdown.org/drki_musa/dataanalysis/binary-logistic-regression.html#multiple-binary-logistic-regression
+###         https://github.com/drkamarul/multivar_data_analysis/tree/main/data
 
 
 ## Reset memory
 ```{r setup-packages, include false}
 rm(list = ls(all.names = TRUE))
-lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
 gc()
 dev.off()
 ```
 
 ## Load required packages
 ```{r load-packages, include false}
-options("install.lock"=FALSE)
+options("install.lock" = FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
-  rio,          # File import
-  tidyverse,    # data management + ggplot2 graphics, 
-  broom,        # For tidying model outputs
-  dplyr,        # For data manipulation
-  gt,           # Nice beuatiful tables
-  dplyr,        # For data manipulation
-  nortest,      # Anderson-Darling test for normality
-  ggplot2,      # For creating plots
-  DescTools,    # For statistical functions like skewness and kurtosis
-  janitor,      # adding totals and percents to tables
-  car,           # For Levene's test and ANOVA
-  gtsummary,    # summary statistics and tests
-  corrr,        # correlation analayis for numeric variables
-  reshape2,     # For reshaping data
-  skimr,        # get overview of data
-  performance,           # For model performance metrics
-  ResourceSelection,     # For goodness of fit tests
-  pROC,                  # For ROC analysis
+  rio,                    # File import
+  tidyverse,              # data management + ggplot2 graphics,
+  broom,                  # For tidying model outputs
+  dplyr,                  # For data manipulation
+  gt,                     # Nice beuatiful tables
+  nortest,                # Anderson-Darling test for normality
+  ggplot2,                # For creating plots
+  DescTools,              # For statistical functions like skewness and kurtosis
+  janitor,                # adding totals and percents to tables
+  psych,                  # to get a table of all summary statistics
+  car,                    # For Levene's test and ANOVA
+  gtsummary,              # summary statistics and tests
+  corrr,                  # correlation
+  lmtest,                 # linear regression tets
+  parameters,             # calculate standardized parameters/coefficients
+  GGally,                 # to make a correlation matrix
+  skimr,                  # get overview of data
+  pROC,                   # For ROC analysis
+  performance,            # For model performance metrics
   caret,                  # For confusion matrix and classification metrics
-  MASS,          # For statistical functions (polr for ordinal regression)ordinal
-  ordinal,          # For statistical functions (ordinal regression)ordinal
-  ggeffects
-            )
+  ggeffects,              # To display the confusion matrix
+  ResourceSelection       # For Hosmer-Lemeshow test for goodness of fit 
+              )
+# Install/load flexplot
+if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
 ```
 
 ## Access the data
 ```{r read-data, echo=FALSE}
 # file <- "./EpiData/stroke.dta"     # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/stroke.dta"
-df3 <- import(file, trust  = TRUE)
+df3 <- import(file, trust = TRUE)
 summary(df3)
-skim(df3)  # get an overview of the data
+skim(df3) # get an overview of the data
 ```
 
 ## Fix the data
 ```{r fix-data, echo=FALSE}
-# Need to change status to be 1,0 
+# Need to change status to be 1,0
 df3 <- df3 %>%
   mutate(across(c(sex, status, dm, stroke_type), as.integer))
 
@@ -78,7 +81,19 @@ df3 %>%
 ## Multiple Logistic regression
 ```{r logistic_multi-reg, echo=FALSE}
 # Perform logistic regression
-mlog_reg <- glm(status ~ gcs + stroke_type + sex + dm + sbp + age , data = df3, family = binomial(link = 'logit'))
+mlog_reg <- glm(status ~ gcs + stroke_type + sex + dm + sbp + age, data = df3, family = binomial(link = "logit"))
+```
+
+## Plot data and model
+```{r flexplot, echo = TRUE}
+# use flexplot
+flexplot(status ~ gcs + stroke_type | sex + age, data = df3, method = "logistic", se = F, ghost.line = "red", jitter = c(0.1, 0.1))
+```
+
+## Analyze the distribution of residuals
+```{r residuals, echo = TRUE}
+# Residuals analysis
+visualize(mlog_reg)
 ```
 
 ## Model performance measures
@@ -88,17 +103,17 @@ minus_2LL_mlog_reg <- -2 * as.numeric(logLik(mlog_reg))
 AIC_valm <- AIC(mlog_reg)
 
 # Calculate Nagelkerke's R²
-r2_valm <- PseudoR2(mlog_reg, which ="Nagelkerke")
+r2_valm <- PseudoR2(mlog_reg, which = "Nagelkerke")
 
 # Chi-square statistic for the omnibus test
-null_model <- glm(status ~ 1, data = df3, family = binomial(link = 'logit')) # null model (intercept-only model)
-      model_perf <- anova(null_model, mlog_reg, test = "Chisq")
-      chi_sq <- model_perf$Deviance[2]     # Chi-square statistic
-      p_val <- model_perf$`Pr(>Chi)`[2]    # p-value
+null_model <- glm(status ~ 1, data = df3, family = binomial(link = "logit")) # null model (intercept-only model)
+model_perf <- anova(null_model, mlog_reg, test = "Chisq")
+chi_sq <- model_perf$Deviance[2] # Chi-square statistic
+p_val <- model_perf$`Pr(>Chi)`[2] # p-value
 
 # Disiplay the summary of the logistic regression model
 summary(mlog_reg)
-paste("R²= ",r2_valm)
+paste("R²= ", r2_valm)
 ```
 
 ## Calculate log Odds and Odds Ratio
@@ -109,54 +124,94 @@ mlog_reg_summary <- tbl_regression(mlog_reg, exponentiate = FALSE)
 
 mlog_combined_tbl <- tbl_merge(
   tbls = list(mlog_reg_summary, mlog_reg_OR),
-  #tab_spanner = c("**1st Model**", "**2nd Model**")
-)  %>% 
+  # tab_spanner = c("**1st Model**", "**2nd Model**")
+) %>%
   as_gt() %>%
   tab_source_note(
-    source_note = md(paste0("R² = ", round(r2_valm,3),
-                         ",  -2LL = ", round(minus_2LL_mlog_reg, 0), 
-                         ",  AIC = ", round(AIC(mlog_reg), 0), "<br>",
-                         "  χ² = ", round(chi_sq, 0),
-                         ",  p = ", round(p_val, 3), "<br>"
-                        )
-  ))
+    source_note = md(paste0(
+      "R² = ", round(r2_valm, 3),
+      ",  -2LL = ", round(minus_2LL_mlog_reg, 0),
+      ",  AIC = ", round(AIC(mlog_reg), 0), "<br>",
+      "  χ² = ", round(chi_sq, 0),
+      ",  p = ", round(p_val, 3), "<br>"
+    ))
+  )
 
 mlog_combined_tbl
 ```
 
+
+### ------------------------------------------
+
+
 ## Add inreaction term
 ```{r OR, include=FALSE}
 # Recalculate logistic regression for OR
-mlog_reg_ia <- glm(status ~ gcs + stroke_type + gcs:stroke_type, data = df3, family = binomial(link = 'logit'))
+mlog_reg_ia <- glm(status ~ gcs + stroke_type + gcs:stroke_type, data = df3, family = binomial(link = "logit"))
 mlog_reg_ia
 tidy(mlog_reg_ia)
 
 mlog_reg_ia_table <- tbl_regression(
   mlog_reg_ia,
-  exponentiate = TRUE     # show odds ratios instead of log-odds
-#  label = list(
-#    gcs ~ "GCS",
-#    stroke_type ~ "Stroke Type",
-#    gcs:stroke_type ~ "GCS × Stroke Type"
-#  )
+  exponentiate = TRUE # show odds ratios instead of log-odds
+  #  label = list(
+  #    gcs ~ "GCS",
+  #    stroke_type ~ "Stroke Type",
+  #    gcs:stroke_type ~ "GCS × Stroke Type"
+  #  )
 )
 
 mlog_reg_ia_table
 ```
 
-
-## Logistic multi-regression prediction
-```{r log_reg-pred, echo = TRUE}
-# Create a new data frame for prediction
-predict_values <- data.frame(df3 = c(0, 1))
-
-# Calculate predicted probabilities
-predicted_probs <- predict(mlog_reg, type = "response")
-df3$predicted_prob_multi <- predict(mlog_reg, type = "response")
-predict_prob
+## classification table
+```{r , echo=FALSE}
+# Calculate predicted probabilities and append to df
 df3$predicted_prob_multi <- predict(mlog_reg, type = "response")
 
-glimpse(df3)
+# Use caret package to get classification table
+confusion_matrix <- caret::confusionMatrix(data = as.factor(round(df3$predicted_prob_multi, 0)), reference = as.factor(df3$status))
+confusion_matrix
+
+# Extract the confusion matrix table
+cm_table <- as.data.frame(confusion_matrix$table)
+colnames(cm_table) <- c("Predicted", "True", "Count")
+cm_table <- cm_table %>%
+  mutate(Percent = round(Count / sum(Count) * 100, 1))
+
+# Plot confusion matrix as a heatmap
+ggplot(data = cm_table, aes(x = Predicted, y = True, fill = Percent)) +
+  geom_tile() +
+  geom_text(aes(label = Percent), vjust = 0.5, color = "black") +
+  scale_fill_gradient(low = "white", high = "blue") +
+  theme_minimal() +
+  labs(title = "Confusion Matrix", x = "Predicted", y = "True") +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+
+# Get cm metrics
+cm_metrics_df <- data.frame(
+  Metric = c("Accuracy", "PPV", "NPV", "Sensitivity", "Specificity", "Precision", "F1 Score"),
+  Value = round(c(
+    confusion_matrix$overall["Accuracy"],
+    confusion_matrix$byClass["Pos Pred Value"],
+    confusion_matrix$byClass["Neg Pred Value"],
+    confusion_matrix$byClass["Sensitivity"],
+    confusion_matrix$byClass["Specificity"],
+    confusion_matrix$byClass["Precision"],
+    confusion_matrix$byClass["F1"]
+  ), 2)
+)
+cm_metrics_df
+
+cm_metrics_df %>%
+  gt()
+```
+
+## Hosmer-Lemeshow test for GOF
+```{r , echo=FALSE}
+# Use ResourceSelection to get the Hosmer–Lemeshow test result
+hl_test <- hoslem.test(df3$status, df3$predicted_prob_multi, g = 10)
+hl_test
 ```
 
 ## ROC curve and AUC (area under curve)
@@ -171,43 +226,20 @@ auc(roc_obj)
 ```
 
 
-## classification table
-```{r , echo=FALSE}
-# Use caret package to get classification table
-confusion_matrix <- caret::confusionMatrix(data = as.factor(round(df3$predicted_prob_multi,0)), reference = as.factor(df3$status))
-confusion_matrix
+### ------------------------------------------
 
 
-# Extract the confusion matrix table
-cm_table <- as.data.frame(confusion_matrix$table)
-colnames(cm_table) <- c("Predicted", "True", "Count")
-
-# Plot confusion matrix as a heatmap
-ggplot(data = cm_table, aes(x = Predicted, y = True, fill = Count)) +
-  geom_tile() +
-  geom_text(aes(label = Count), vjust = 0.5, color = "black") +
-  scale_fill_gradient(low = "white", high = "blue") +
-  theme_minimal() +
-  labs(title = "Confusion Matrix", x = "Predicted", y = "True") +
-  theme(axis.text.x = element_text(angle = 0, hjust = 1))
-
-# Get cm metrics
-cm_metrics_df <- data.frame(
-  #Metric = c("Accuracy", "PPV", "NPV", "Sensitivity", "Specificity", "Precision", "F1 Score"),
-  Value = c(confusion_matrix$overall["Accuracy"],
-            confusion_matrix$byClass["Pos Pred Value"],
-            confusion_matrix$byClass["Neg Pred Value"],
-            confusion_matrix$byClass["Sensitivity"],
-            confusion_matrix$byClass["Specificity"],
-            confusion_matrix$byClass["Precision"],
-            confusion_matrix$byClass["F1"])
-)
-cm_metrics_df
+## Model comparison
+```{r mdodel-comparison, echo = TRUE}
+model.comparison(mlog_reg, mlog_reg_ia)
 ```
 
-## Hosmer-Lemeshow test for GOF
-```{r , echo=FALSE}
-# Use ResourceSelection to get the Hosmer–Lemeshow test result
-hl_test <- hoslem.test(df3$status, df3$predicted_prob_multi, g = 10)  
-hl_test
+
+## Get better estimates for best model
+```{r log_reg_ia-est, echo = TRUE}
+estimates(mlog_reg_ia)
 ```
+
+
+
+

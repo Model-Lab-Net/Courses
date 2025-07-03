@@ -3,7 +3,7 @@
 ### ID  : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: סיכון יחסי 07  RR 
-### date  : 15/06/2025
+### date  : 03/07/2025
 ###  
 ###  counts רגרסיית פאוסון - ספירות
 ###
@@ -25,35 +25,41 @@ options("install.lock"=FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
-  rio,          # File import
-  tidyverse,    # data management + ggplot2 graphics, 
-  broom,        # For tidying model outputs
-  dplyr,        # For data manipulation
-  gt,           # Nice beuatiful tables
-  nortest,      # Anderson-Darling test for normality
-  ggplot2,      # For creating plots
-  DescTools,    # For statistical functions like skewness and kurtosis
-  janitor,      # adding totals and percents to tables
-  car,           # For Levene's test and ANOVA
-  gtsummary,    # summary statistics and tests
-  corrr,        # correlation analayis for numeric variables
-  reshape2,     # For reshaping data
-  skimr,        # get overview of data
-  performance,           # For model performance metrics
-  ResourceSelection,     # For goodness of fit tests
-  pROC,                  # For ROC analysis
-  caret,
-  MASS,          # For statistical functions (polr for ordinal regression)
-  ordinal,       # For statistical functions (ordinal regression)ordinal
-  ggeffects,
-  epiDisplay     # 
+  rio,                    # File import
+  tidyverse,              # data management + ggplot2 graphics,
+  broom,                  # For tidying model outputs
+  dplyr,                  # For data manipulation
+  gt,                     # Nice beuatiful tables
+  nortest,                # Anderson-Darling test for normality
+  ggplot2,                # For creating plots
+  DescTools,              # For statistical functions like skewness and kurtosis
+  psych,                  # to get a table of all summary statistics
+  janitor,                # adding totals and percents to tables
+  car,                    # For Levene's test and ANOVA
+  gtsummary,              # summary statistics and tests
+  corrr,                  # correlation
+  lmtest,                 # linear regression tets
+  parameters,             # calculate standardized parameters/coefficients
+  GGally,                 # to make a correlation matrix
+  skimr,                  # get overview of data
+  pROC,                   # For ROC analysis
+  performance,            # For model performance metrics
+  MASS,                   # For statistical functions (polr for ordinal regression)ordinal
+  ordinal,                # For ordinal regression statistical functions 
+  caret,                  # For confusion matrix and classification metrics
+  ggeffects,              # To display the confusion matrix
+  ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit 
+  VGAM,                   # for multinomial logistic regression
+  epiDisplay,             # For epi data type handling    
             )
+# Install/load flexplot
+if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
 ```
 
 ## Access the data
 ```{r read-data, echo = TRUE}
 ## read the data in a file online
-# file <- "./EpiData/asthma.csv"     # use this if the file is on your computer
+# file <- "./EpiData/asthma.csv"     # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/asthma.csv"
 df6 <- import(file, trust  = TRUE)
 summary(df6)
@@ -66,41 +72,52 @@ glimpse(df6)  # get an overview of the data
 epiDisplay::codebook(df6)
 ```
 
+## Plot the data
+```{r simple-poisson-reg, echo = TRUE}
+flexplot(attack ~ 1, data = df6)
+```
+
 ## A simple Poisson regression univariate analysis
 ```{r simple-poisson-reg, echo = TRUE}
 # Do a univrariate Poisson regression - attack vs gender
-spr1 <- glm(attack ~ gender, data = df6, family = "poisson")
+spr1 <- glm(ghq12 ~ attack, data = df6, family = "poisson")
 summary(spr1)
-
-# Do a univrariate Poisson regression - attack vs res_inf
-spr2 <- glm(attack ~ res_inf, data = df6, family = "poisson")
-summary(spr2)
-
-# Do a univrariate Poisson regression - attack vs ghq12
-spr3 <- glm(attack ~ ghq12, data = df6, family = "poisson")
-summary(spr3)
+flexplot(attack ~ ghq12, data = df6, method = "poisson", ghost.line = "red", jitter=c(0,0.05))
 ```
 
 ## Poisson regression multivariate analysis
 ```{r poisson-multi-reg, echo = TRUE}
 # Do a multivariate Poisson regression - attack vs everything
-mpr_all = glm(attack ~ ., data = df6, family = "poisson")    # the "." uses all the other variables
-summary(mpr_all)
-
-# Do a multivariate Poisson regression - res_inf + ghq12 (not gender)
-mpr = glm(attack ~ res_inf + ghq12, data = df6, family = "poisson")
-summary(mpr)
+mpr <- glm(ghq12 ~ attack + res_inf, data = df6, family = "poisson")
+summary(spr3)
+flexplot(attack ~ ghq12 | res_inf, data = df6, method = "poisson", ghost.line = "red", jitter=c(0,0.05))
 ```
 
 ## Multiple Poisson regression with interaction
 ```{r poisson-multi-reg-ia, echo = TRUE}
 # Do a multivariate Poisson regression /w interaction term
-mpr_ia = glm(attack ~ res_inf * ghq12, data = df6, family = "poisson")
+mpr_ia = glm(attack ~ ghq12*res_inf, data = df6, family = "poisson")
 summary(mpr_ia)
+flexplot(attack ~ ghq12:res_inf, data = df6, method = "poisson", ghost.line = "red", jitter=c(0,0.05))
 ```
 
-## Model fit and perfoarmance
-```{r rmodel-performance, echo = TRUE}
+## Model comparison
+```{r model-comparison, echo = TRUE}
+# Uaing just flexplot
+model.comparison(spr1, mpr_ia)
+summary(mpr_ia)
+
+visualize(mpr_ia)
+flexplot(attack ~ ghq12:res_inf, data = df6, method = "poisson", ghost.line = "red", jitter=c(0,0.05))
+```
+
+## Model fit and performance
+```{r model-comparison, echo = TRUE}
+estimates(mpr_ia)
+
+# Uaing just flexplot
+visualize(mpr_ia)
+
 # Scaled Pearson chi-square statistic
 
 # Chi-square goodness-of-fit
@@ -113,24 +130,21 @@ AIC(mpr)
 ## Show summary
 ```{r read-data, echo = TRUE}
 # summary of Poisson model
-tbl_regression(mpr, exponentiate = TRUE)
+tbl_regression(mpr_ia, exponentiate = TRUE)
 round(summary(mpr)$coefficients, 2)
 ```
 
-## Prediction
+## Model 
 ```{r read-data, echo = TRUE}
 # expected number of asthmatic attacks per year for a patient with recurrent respiratory infection and GHQ-12 score of 8
-pred <- predict(mpr_ia, list(res_inf = "yes", ghq12 = 8), 
-               type = "response")
-round(pred, 1)
-
-# attacks per year for those with and without recurrent respiratory infection for each 12-mark increase in GHQ-12 score
-pred_values = data.frame(res_inf = rep(c("yes", "no"), each = 4),
-                      ghq12 = rep(c(0, 12, 24, 36), 2))
-pred_values$attack_pred = round(predict(mpr_ia, new_data, 
-                                     type = "response"), 1)
-pred_values
+predict <- predict(mpr_ia, list(res_inf = "yes", ghq12 = 8),type = "response")
 ```
+
+
+
+
+
+### ----------------------------------------------
 
 
 
