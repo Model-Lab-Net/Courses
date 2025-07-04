@@ -2,7 +2,7 @@
 ### name  : [ שם משפחה + שם פרטי]
 ### ID    : [ מספר תעודת זהות ]
 ### course: אפידמיולוגיה (HIT.ac.il)
-### lesson: שיעורי בית 2
+### lesson: עבודה להגשה 2
 ### date  : [ תאריך ]
 ###   
 ###  רגרסיה לוגיסטית
@@ -23,26 +23,34 @@ options("install.lock"=FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
-  rio,          # File import
-  tidyverse,    # data management + ggplot2 graphics, 
-  broom,        # For tidying model outputs
-  dplyr,        # For data manipulation
-  gt,           # Nice beuatiful tables
-  dplyr,        # For data manipulation
-  nortest,      # Anderson-Darling test for normality
-  ggplot2,      # For creating plots
-  DescTools,    # For statistical functions like skewness and kurtosis
-  janitor,      # adding totals and percents to tables
-  car,           # For Levene's test and ANOVA
-  gtsummary,    # summary statistics and tests
-  corrr,        # correlation analayis for numeric variables
-  reshape2,     # For reshaping data
-  skimr,        # get overview of data
-  performance,           # For model performance metrics
-  ResourceSelection,     # For goodness of fit tests
-  pROC,                  # For ROC analysis
-  caret                  # For confusion matrix and classification metrics
+  rio,                    # File import
+  tidyverse,              # data management + ggplot2 graphics,
+  broom,                  # For tidying model outputs
+  dplyr,                  # For data manipulation
+  gt,                     # Nice beuatiful tables
+  nortest,                # Anderson-Darling test for normality
+  ggplot2,                # For creating plots
+  DescTools,              # For statistical functions like skewness and kurtosis
+  psych,                  # to get a table of all summary statistics
+  janitor,                # adding totals and percents to tables
+  car,                    # For Levene's test and ANOVA
+  gtsummary,              # summary statistics and tests
+  corrr,                  # correlation
+  lmtest,                 # linear regression tets
+  parameters,             # calculate standardized parameters/coefficients
+  GGally,                 # to make a correlation matrix
+  skimr,                  # get overview of data
+  pROC,                   # For ROC analysis
+  performance,            # For model performance metrics
+  MASS,                   # For statistical functions (polr for ordinal regression)ordinal
+  ordinal,                # For ordinal regression statistical functions 
+  caret,                  # For confusion matrix and classification metrics
+  ggeffects,              # To display the confusion matrix
+  ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit 
+  VGAM                    # for multinomial logistic regression
             )
+# Install/load flexplot
+if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
 ```
 
 ## Access the data
@@ -54,8 +62,8 @@ summary(df)
 glimpse(df)  # get an overview of the data
 ```
 
-## Show the data
-```{r fix-data, echo=FALSE}
+## Clean the data
+```{r clean-data, echo=FALSE}
 # Need to change status to be 1,0 
 df %>%
   tbl_summary(by = Diagnosis) %>%
@@ -65,8 +73,11 @@ df %>%
 ## Multiple Logistic regression
 ```{r logistic_regression, echo=FALSE}
 # Perform logistic regression
-mlog_reg <- glm(Diagnosis ~ Smoking + AlcoholConsumption + AntihypertensiveMedications + Statins + SerumCreatinine + HbA1c + FastingBloodSugar + FamilyHistoryDiabetes , data = df, family = binomial(link = 'logit'))
+mlog_reg <- glm(Diagnosis ~ Smoking + AlcoholConsumption + AntihypertensiveMedications + 
+              Statins + SerumCreatinine + HbA1c + FastingBloodSugar + 
+              FamilyHistoryDiabetes , data = df, family = binomial(link = 'logit'))
 tidy(mlog_reg, conf.int = TRUE)
+summary(mlog_reg)
 ```
 
 ## Model performance measures
@@ -122,10 +133,11 @@ combined_tbl
 ```
 
 
-## Add inreaction term
+## Use interaction term on significant variables
 ```{r OR, include=FALSE}
 # Recalculate logistic regression for OR
-mlog_reg_ia <- glm(Diagnosis ~ Smoking + HbA1c + FastingBloodSugar + HbA1c:FastingBloodSugar, data = df, family = binomial(link = 'logit'))
+mlog_reg_ia <- glm(Diagnosis ~ HbA1c*FastingBloodSugar,
+                   data = df, family = binomial(link = 'logit'))
 mlog_reg_ia
 tidy(mlog_reg_ia)
 
@@ -137,19 +149,34 @@ mlog_reg_ia_table <- tbl_regression(
 mlog_reg_ia_table
 ```
 
-## Logistic multi-regression prediction
+
+## Model comparison
+```{r mdodel-comparison, echo = TRUE}
+model.comparison(mlog_reg, mlog_reg_ia)
+```
+
+
+## classification table
 ```{r log_reg-pred, echo = TRUE}
 # Create a new data frame for prediction
 predict_values <- data.frame(df = c(0, 1))
 
 # Calculate predicted probabilities
-predicted_probs <- predict(mlog_reg, type = "response")
-df$predicted_prob_multi <- predict(mlog_reg, type = "response")
-predict_prob
-df$predicted_prob_multi <- predict(mlog_reg, type = "response")
-
+df$predicted_prob_multi <- predict(mlog_reg_ia, type = "response")
 glimpse(df)
+
+# Use caret package to get classification table
+confusion_matrix <- caret::confusionMatrix(data = as.factor(round(df$predicted_prob_multi,0)), reference = as.factor(df$Diagnosis))
+confusion_matrix
 ```
+
+## Hosmer-Lemeshow test for GOF
+```{r , echo=FALSE}
+# Use ResourceSelection to get the Hosmer–Lemeshow test result
+hl_test <- hoslem.test(df$Diagnosis, df$predicted_prob_multi, g = 10)  
+hl_test
+```
+
 
 ## ROC curve and AUC (area under curve)
 ```{r mlog_reg-ROC, echo = TRUE}
@@ -162,17 +189,7 @@ plot(roc_obj, col = "blue", main = "ROC Curve")
 auc(roc_obj)
 ```
 
-
-## classification table
-```{r , echo=FALSE}
-# Use caret package to get classification table
-confusion_matrix <- caret::confusionMatrix(data = as.factor(round(df$predicted_prob_multi,0)), reference = as.factor(df$Diagnosis))
-confusion_matrix
-```
-
-## Hosmer-Lemeshow test for GOF
-```{r , echo=FALSE}
-# Use ResourceSelection to get the Hosmer–Lemeshow test result
-hl_test <- hoslem.test(df$Diagnosis, df$predicted_prob_multi, g = 10)  
-hl_test
+## Get standardizec estimate
+```{r std-est, echo = TRUE}
+estimates(mlog_reg_ia)
 ```

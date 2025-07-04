@@ -2,12 +2,12 @@
 ### name   : [ שם משפחה + שם פרטי]
 ### ID     : [ מספר תעודת זהות ]
 ### course: אפידמיולוגיה (HIT.ac.il)
-### lesson: שיעורי בית 3
+### lesson: עבודה להגשה 3
 ### date  : [ תאריך ]
 ###   
 ###  שרידות
 ###
-### source: https://quantdev.ssri.psu.edu/sites/qdev/files/12_SurvivalAnalysis_2020_0408.html
+### source: https://github.com/vincentarelbundock/Rdatasets
 
 # Reset memory
 ```{r setup-packages, include false}
@@ -48,27 +48,27 @@ pacman::p_load(
 
 # Get data
 ```{r load data, include false}
-#file <- "HWdata_3.csv"     # use this if the file is on your computer
+#file <- "HWdata_3.csv"     # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/vincentarelbundock/Rdatasets/refs/heads/master/csv/survival/cancer.csv"
-df7 <- import(file, trust  = TRUE)
-summary(df7)
-glimpse(df7)
+df <- import(file, trust  = TRUE)
+summary(df)
+glimpse(df)
 ```
 
 ## Survival time statistics
 ```{r surv-stats, echo = TRUE}
 # Survival time
-mean_survival_time <- mean(df7$time, na.rm = TRUE)
-sd_survival_time <- sd(df7$time, na.rm = TRUE)
-CI1 <- MeanCI(df7$time, na.rm = TRUE)
+mean_survival_time <- mean(df$time, na.rm = TRUE)
+sd_survival_time <- sd(df$time, na.rm = TRUE)
+CI1 <- MeanCI(df$time, na.rm = TRUE)
   lower_meanci_1 <- as.numeric((CI1["lwr.ci"]))
   upper_meanci_1 <- as.numeric((CI1["upr.ci"]))
-median_survival_time <- median(df7$time, na.rm = TRUE)
-IQR_survival_time <- IQR(df7$time, na.rm = TRUE)
-q25_survival_time <- as.numeric(Quantile(df7$time, probs = 0.25, na.rm = TRUE))
-q75_survival_time <- as.numeric(Quantile(df7$time, probs = 0.75, na.rm = TRUE))
-min_survival_time <- min(df7$time, na.rm = TRUE)
-max_survival_time <- max(df7$time, na.rm = TRUE)
+median_survival_time <- median(df$time, na.rm = TRUE)
+IQR_survival_time <- IQR(df$time, na.rm = TRUE)
+q25_survival_time <- as.numeric(Quantile(df$time, probs = 0.25, na.rm = TRUE))
+q75_survival_time <- as.numeric(Quantile(df$time, probs = 0.75, na.rm = TRUE))
+min_survival_time <- min(df$time, na.rm = TRUE)
+max_survival_time <- max(df$time, na.rm = TRUE)
 
 # Create a data frame to neatly display the statistics
 stats_df <- data.frame(
@@ -88,24 +88,24 @@ summary_stats              # Show the table
 ## Do a Kaplan-Meyer survival analayis
 ```{r km-surv, echo = TRUE}
 # estimate the survival probabilities for all patients
-KM_all <- survfit(Surv(time = time, 
+KM <- survfit(Surv(time = time, 
                        event = status == "2" ) ~ 1, 
-                       data = df7)
-summary(KM_all)
+                       data = df)
+KM
 ```
 
 
 ## Life table
 ```{r life-table, echo = TRUE}
 # Convert status to int
-df7 <- df7 %>%
+df <- df %>%
   mutate(event = ifelse(status == "2", 1, 0))
 
 # Fit Kaplan-Meier model stratified by stroke_type (example)
-km_fit <- survfit(Surv(time, event) ~ 1, data = df7)
+km_fit <- survfit(Surv(time, event) ~ 1, data = df)
 
 # Extract survival summary at intervals of 10 units
-km_summary <- summary(km_fit, times = seq(0, max(df7$time), by = 100))
+km_summary <- summary(km_fit, times = seq(0, max(df$time), by = 100))
 
 # Convert to data frame
 km_df <- data.frame(
@@ -123,7 +123,7 @@ km_df <- data.frame(
 # Display with gt
 km_df %>%
   gt() %>%
-  tab_header(title = "Survival analysis") %>%
+  tab_header(title = "Life Table") %>%
     cols_label(
     time      = "Time",
     n_risk    = "At Risk",
@@ -141,14 +141,14 @@ km_df %>%
 ## Kaplan-Meyer survival analayis plot
 ```{r read-data, echo = TRUE}
 # estimate the survival probabilities for all patients
-KM_all_plot <- ggsurvplot(KM_all, 
-           data = df7, 
+KM_plot <- ggsurvplot(KM, 
+           data = df, 
            risk.table = TRUE, 
            linetype = c(1,4),
            tables.height = 0.3,
            pval = TRUE)
 
-KM_all_plot
+KM_plot
 # *** You may need to zoom out ***
 ```
 
@@ -173,7 +173,100 @@ km_df
 ```
 
 
+### ---------------------------------------------------
 
+
+
+## Do a stratified Kaplan-Meyer survival analayis 
+```{r km-surv-strat, echo = TRUE}
+# estimate the survival probabilities for stroke type
+ KM_str <- survfit(Surv(time = time, 
+                              event = status == "2" ) ~ sex, 
+                         data = df)
+summary(KM_str)
+```
+
+## Survival curve
+```{r read-data, echo = TRUE}
+# estimate the survival probabilities for all patients
+KM_str_plot <- ggsurvplot(KM_str, 
+           data = df, 
+           risk.table = TRUE, 
+           linetype = c(1,4),
+           tables.height = 0.3,
+           pval = TRUE,
+           conf.int = TRUE)
+
+KM_str_plot
+# *** You may need to zoom out ***
+```
+
+## Life table
+```{r life-table, echo = TRUE}
+# Convert status to int
+# Fit Kaplan-Meier model stratified by stroke_type (example)
+km_fit_strat <- survfit(Surv(time, status) ~ sex, data = df)
+
+# Extract survival summary at intervals of 10 units
+km_summary_strat <- summary(km_fit_strat, times = seq(0, max(df$time), by = 100))
+
+# Convert to data frame
+km_df <- data.frame(
+  time = km_summary_strat$time,
+  strata = km_summary_strat$strata,
+  n_risk = km_summary_strat$n.risk,
+  n_event = km_summary_strat$n.event,
+  surv = km_summary_strat$surv,
+  std_err = km_summary_strat$std.err,
+  lower_ci = km_summary_strat$lower,
+  upper_ci = km_summary_strat$upper,
+  n_censor = km_summary_strat$n.censor
+)
+
+# Display with gt
+km_df %>%
+  gt() %>%
+  tab_header(title = "Survival analysis") %>%
+    cols_label(
+    time      = "Time",
+    strata    = "Group",
+    n_risk    = "At Risk",
+    n_event   = "Deaths",
+    surv      = "Survival %",
+    std_err   = "Std. Error",
+    lower_ci  = "Lower CI",
+    upper_ci  = "Upper CI",
+    n_censor  = "Censoerd"
+  ) %>%
+  fmt_percent(columns = c(surv, lower_ci, upper_ci), decimals = 1) %>%
+  fmt_number(columns = std_err, decimals = 3) 
+```
+
+
+### ----------------------------------
+### Compare strata
+
+## Log-rank test
+```{r read-data, echo = TRUE}
+# Test if survival estimates are  different between levels/groups
+log_rank_sex <- survdiff(Surv(time = time, 
+              event = status == "2") ~ sex, 
+         data = df,
+         rho = 0)
+
+log_rank_sex
+```
+
+## Peto's log-rank test
+```{r read-data, echo = TRUE}
+# Test if survival estimates are different between levels/groups
+log_rank_peto_sex <- survdiff(Surv(time = time, 
+              event = status == "2") ~ sex, 
+         data = df,
+         rho = 1)
+
+log_rank_peto_sex
+```
 
 
 

@@ -2,12 +2,12 @@
 ### name  : [ שם משפחה + שם פרטי ]
 ### ID    : [ מספר תעודת זהות ]
 ### course: אפידמיולוגיה (HIT.ac.il)
-### lesson: שיעורי בית 1
+### lesson: עבודה להגשה 1
 ### date  : [ תאריך ]
 ###
 ###  רגרסיה לינראית
 ###
-### source: https://gtpb.github.io/PSLS20/pages/04-dataExploration/04-Data-exploration-FEV.html
+### source: https://www.kaggle.com/datasets/kumarajarshi/life-expectancy-who?select=Life+Expectancy+Data.csv
 
 # Reset memory
 ```{r setup-packages, include false}
@@ -21,154 +21,211 @@ gc()
 install.packages("pacman")
 library(pacman)
 pacman::p_load(
-  rio,          # File import
-  tidyverse,    # data management + ggplot2 graphics, 
-  gt,           # Nice beuatiful tables
-  nortest,      # Anderson-Darling test for normality
-  ggplot2,      # For creating plots
-  DescTools,    # For statistical functions like skewness and kurtosis
-  janitor,      # adding totals and percents to tables
-  car,           # For Levene's test and ANOVA
-  gtsummary,    # summary statistics and tests
-  corrr,        # correlation analayis for numeric variables
-  lmtest
-            )
+  rio,                    # File import
+  tidyverse,              # data management + ggplot2 graphics,
+  broom,                  # For tidying model outputs
+  dplyr,                  # For data manipulation
+  gt,                     # Nice beuatiful tables
+  nortest,                # Anderson-Darling test for normality
+  ggplot2,                # For creating plots
+  DescTools,              # For statistical functions like skewness and kurtosis
+  psych,                  # to get a table of all summary statistics
+  janitor,                # adding totals and percents to tables
+  car,                    # For Levene's test and ANOVA
+  gtsummary,              # summary statistics and tests
+  corrr,                  # correlation matrix
+  lmtest,                 # do linear regression tests
+  parameters,             # get standardized parameters/coefficients
+  GGally                  # to make a correlation matrix  
+              )
+# Install/load flexplot
+if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
 ```
 
 # Get data
 ```{r load data, include false}
-# file <- "./EpiData/HWdata_1.txt"     # 👈 use this if the file is on your computer
-file <- "https://raw.githubusercontent.com/GTPB/PSLS20/master/data/fev.txt"
-df_fev <- import(file, trust  = TRUE)
+# file <- "./EpiData/HWdata_1.zip"     # 👈 use this if the file is on your computer
+file <- "https://storage.googleapis.com/kaggle-data-sets/12603/17232/bundle/archive.zip?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=gcp-kaggle-com%40kaggle-161607.iam.gserviceaccount.com%2F20250703%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20250703T211254Z&X-Goog-Expires=259200&X-Goog-SignedHeaders=host&X-Goog-Signature=b4efa39fcdb3dcfa6d8b9e3d1fd94e83790903126c0e111dd7bd74d8ee48648860fa14c543089c883a11d353a6ea5b167b3843d410de1c8bff936d8f4c3bed51155aae7239ba7ddb3e5da2ca25a0a136482a40560dd2e7f1bb518f2fc8a7ffbe4828eb8acb87c03ee422ad01eb2a77294395efd1756649053330f87ab9965a1d85c1bcda6012b2c8e0967dea71d76d2cfb4ebfa9ab5de540e17661142cf6172e273ba9abd7762fd54d72025c7a9e3a09a9895c8047a0be603c2cff0fd33f73eb7c1171904e0d64da1ae0debb0efabae863cb5a1d80c2536feda0329b5ee9013bf02fec7daea25831cfc59426f7a3a8b1cf2151ecc8358d8c84eeb867f76c0381"
+df <- import(file, trust  = TRUE)
+
+# Sample 500 random rows
+df <- sample_n(df, 500)
 ```
 
 # Check out the variables
 ```{r load data, include false}
-print(df_fev, n=20)
-glimpse(df_fev)
-summary(df_fev)
+print(df, n=20)
+summary(df)
+glimpse(df)
 ```
 
-# summary statistics for numerical variables
-```{r sort_data, include false}
-# Show median and IQR for all numerical variables (5)
-df_fev %>% 
-  select(age, fev, height) %>% 
-  tbl_summary()
+## Clean data
+```{r cleam-data, echo = TRUE}
+# clean up variable names
+df <- clean_names(df)
+names(df) <- gsub("_", ".", names(df))
+
+df <- rename(df,virus = hiv.aids)
 ```
 
-# summary statistics for cat variables
-```{r sort_data, include false}
-# Show percent for all cat variables (5)
-df_fev %>% 
-  select(gender, smoking) %>% 
-  tbl_summary()
+## Select numerical variable for analysis
+```{r descriptives, echo = TRUE}
+# Select variables from the df to calculate summary statistics
+variables <- c("life.expectancy", "adult.mortality")
+
+# Calculate summary statistics
+summary_stats <- describe(df[, variables])           # this is using psych package
+iqr <- sapply(df[, variables], IQR, na.rm = TRUE)
+summary_stats$IQR <- iqr # Add IQR
+
+# Switch around the table
+summary_stats <- as.data.frame(t(summary_stats))      # transpose df direction
+summary_stats <- summary_stats %>%                    # convert into a real df
+  as.data.frame() %>%
+  rownames_to_column(var = "Variable")
+summary_stats <- summary_stats[-c(1, 2), ]            # remove 1st two uneeded rows
+
+# Convert to nice table
+summary_stats_tbl <- summary_stats %>%
+  gt() %>%
+  tab_header(title = "Descriptive Statistics⠀⠀⠀⠀סטטיסטיקה תאורית") %>%
+  fmt_number(
+    columns = where(is.numeric),
+    decimals = 2
+  )
+summary_stats_tbl # Display the table
+```
+
+## Linear regression
+```{r model, echo = TRUE}
+# Perform a Simple Linear Regression
+ model <- lm(life.expectancy ~ alcohol, data = df)
+
+# print the summary of the simple linear regression
+summary(model)
+```
+
+## Calculate pearson correlation coefficient
+```{r pearson, echo = TRUE}
+# Calculate the pearson coefficient
+pearson_result <- cor.test(df$life.expectancy, df$alcohol, method = "pearson", use = "complete.obs")
+pearson_result
+```
+
+## Linear regression with nice output
+```{r smodel-summary, echo = TRUE}
+# use gtsummary to create a nice table
+model_summary <- model %>%
+  tbl_regression(intercept = TRUE) %>%
+  add_glance_table(include = c(
+    nobs,
+    r.squared,
+    adj.r.squared,
+    statistic,
+    sigma,
+    logLik,
+    AIC
+  ))
+
+# Show the model results table
+model_summary
+```
+
+## Flexplot scatter plot
+```{r polt-regression, echo = TRUE}
+# Plot the regression
+flexplot(life.expectancy ~ alcohol, data = df, method = "lm", se = TRUE, ghost.line = "red")
+
+# Analyze the residuals
+visualize(model)
+
+# Get the model parameter values
+estimates(model)
+
+# Kolmogorov-Smirnov test  (Ho: residuals are normal)
+residuals_model <- residuals(model)
+ks_test_result <- ks.test(residuals_model, "pnorm", mean = mean(residuals_model), sd = sd(residuals_model))
+ks_test_result
+```
+
+## Test for homoscedacity
+```{r homoscedacity, echo = TRUE}
+# Run Breusch-Pagan test  (Ho: no heteroscedacity)
+bp_test <- bptest(model)
+bp_test
+```
+
+## Test for autocorrelation 
+```{r autocorrelation , echo = TRUE}
+# Run Durbin-Watson test  (Ho: no autocorelation)
+dw_result <- dwtest(model)
+dw_result
+
+# Plot ACF residuals
+acf(residuals(model), main = "ACF of Residuals")
+```
+
+## Calculate the standaradized parameters
+```{r autocorrelation , echo = TRUE}
+model_parameters(model, standardize = "refit")
 ```
 
 
-# Display boxplot
-```{r select_data, include false}
-# filter() will select males 7+ years old and send
-df_fev %>%
-  ggplot(aes(x=smoking,y=fev,fill=smoking)) +
-  #scale_fill_manual(values=c("dimgrey","firebrick")) +
-  theme_bw() +
-  geom_boxplot(outlier.shape=NA) + 
-  geom_jitter(width = 0.2, size=0.1) +
-  ggtitle("Boxplot of FEV versus smoking") +
-  ylab("fev (l)") +
-  xlab("smoking status")
+
+### -------------------------------------
+
+
+
+## Correlation matrix
+```{r corr-matrix, echo = TRUE}
+# Display the correlation matrix for all numerical variables
+coor_matrix <- ggcorr(df, label = TRUE)
+coor_matrix
+ggsave("correlation_plot.png", plot = coor_matrix, width = 8, height = 6, dpi = 300)
+
 ```
-
-
-
-# Display pairs
-```{r select_data, include false}
-# filter() will select males 7+ years old and send
-pairs_plot <- df_fev %>% 
-  select(-gender, -smoking) %>% 
-  ggpairs()
-
-pairs_plot
-ggplotly(pairs_plot)
-```
-
-
 
 # Multi-variable regression with lm
-```{r num-to-cat, include false}
-# Do a simple linear regression (SLR) with chol as the dependent variable 
-mlr_fev <- lm(fev ~ age + fev + height + gender + smoking, data = df_fev)
-summary(mlr_fev)
+```{r nmulti-reg, echo = TRUE}
+# Do a reduced linear regression (SLR) with chol as the dependent variable
+ model_2 <- lm(life.expectancy ~ alcohol + bmi + virus + thinness.1.19.years, data = df)
+summary(model_2)
 
-tidy(mlr_fev) %>%
-  mutate(p.value = case_when(
-    p.value < 0.001 ~ "<0.001",
-    p.value < 0.01  ~ "<0.01",
-    p.value < 0.05  ~ "<0.05",
-    TRUE            ~ "≥0.05"
-  )) %>%
-  kable("html", caption = "Muliple Linear Regression (p-values)") %>%
-  kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed", "responsive"),
-    full_width = FALSE,
-    position = "left"
-  )
-# Assume dbp and race are significant
-
+visualize(model_2)
 ```
 
-
-
-# Multi-variable regression with lm
-```{r num-to-cat, include false}
-# Do a simple linear regression (SLR) with chol as the dependent variable 
-mlr_fev <- lm(fev ~ age + fev + height + gender + smoking, data = df_fev)
-summary(mlr_fev)
-
-tidy(mlr_fev) %>%
-  mutate(p.value = case_when(
-    p.value < 0.001 ~ "<0.001",
-    p.value < 0.01  ~ "<0.01",
-    p.value < 0.05  ~ "<0.05",
-    TRUE            ~ "≥0.05"
-  )) %>%
-  kable("html", caption = "Muliple Linear Regression (p-values)") %>%
-  kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed", "responsive"),
-    full_width = FALSE,
-    position = "left"
-  )
-# Assume dbp and race are significant
-
+## Model comparison
+```{r model-comparison, echo = TRUE}
+model.comparison(model, model_2)
 ```
 
-
-
-
-# Run a multi-regression analysis
-```{r num-to-cat, include false}
-# Do a multiple regression (MLR) with chol as the dependent variable 
-# both
-mlr_fev_stepboth <- step(mlr_fev, direction = "both")
-
-mlr_fev_sel <- lm(age + fev + height + gender + smoking, data = df_fev)
-summary(mlr_fev)
-
-model_table_stats <- tbl_regression(mlr_fev_sel,
-                             #label = list(dbp = "FEV"),
-                             conf.int = TRUE,
-                             show_single_row = "dbp",
-                             intercept = TRUE) %>%
-  modify_header(label = "**coeff**",
-                estimate = "**beta**",
-                std.error = "**SE**",
-                statistic = "**F**",
-                p.value = "**p**",
-                conf.low = "**CI<sub>95%**") %>%
-  modify_table_body(~ .x %>% filter(label != "Abbreviations")) %>%
+## Show reduced multiple linear regression summary table
+```{r model_2-summary, echo = TRUE}
+model2_summary <- tbl_regression(model_2,
+  # label = list(dbp = "Diastolic Blood Pressure"),
+  conf.int = TRUE,
+  #show_single_row = "dbp",
+  intercept = TRUE
+) %>%
+  modify_header(
+    label = "**coeff**",
+    estimate = "**beta**",
+    std.error = "**SE**",
+    statistic = "**F**",
+    p.value = "**p**",
+    conf.low = "**CI<sub>95%**"
+  ) %>%
+  # modify_table_body(~ .x %>% filter(label != "Abbreviations")) %>%
   add_glance_source_note(
-    include = c(r.squared, adj.r.squared, statistic, p.value, logLik, AIC, sigma),
+    include = c(
+      r.squared,
+      adj.r.squared,
+      statistic,
+      p.value,
+      # logLik,
+      AIC
+      # sigma
+    ),
     label = list(
       r.squared = "R²",
       adj.r.squared = "Adj.R²",
@@ -181,5 +238,11 @@ model_table_stats <- tbl_regression(mlr_fev_sel,
   ) %>%
   modify_caption("**Table 2: Model Coefficients<br>(fit statistics)**")
 
-model_table_stats
+model2_summary
+```
+
+
+## Calculate the standaradized parameters
+```{r std-parms , echo = TRUE}
+model_parameters(model_2, standardize = "refit")
 ```
