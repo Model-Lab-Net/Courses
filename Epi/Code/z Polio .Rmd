@@ -1,0 +1,176 @@
+###
+### name: דוד בורג
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: 1
+### date: 19/05/2025
+###
+###  חצבת
+###
+### source: OWID, US, UK
+###         https://ourworldindata.org/polio
+
+
+## Reset memory
+```{r setup-packages, include false}
+rm(list = ls(all.names = TRUE))
+lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+gc()
+```
+
+## Load required packages
+```{r load-packages, include false}
+options("install.lock"=FALSE)
+install.packages("pacman")
+library(pacman)
+pacman::p_load(
+  rio,          # File import
+  here,         # File locator
+  skimr,        # get overview of data
+  tidyverse,    # data management + ggplot2 graphics, 
+  gtsummary,    # summary statistics and tests
+  rstatix,      # statistics
+  nortest,      # Anderson-Darling test for normality
+  moments,      # skewness and kurtosis
+  corrr,        # correlation analayis for numeric variables
+  janitor,      # adding totals and percents to tables
+  flextable,    # converting tables to HTML
+  dplyr,        # For data manipulation
+  ggplot2,      # For creating plots
+  plotly,
+  DescTools,    # For statistical functions like skewness and kurtosis
+  car,          # For Levene's test and ANOVA
+  vctrs,         # For data type handling
+  rvest,
+  tidyr
+            )
+```
+
+## Get US polio data
+```{r read-data, echo=FALSE}
+## read the data in a file online
+file <- "https://ourworldindata.org/grapher/reported-paralytic-polio-cases-and-deaths-in-the-united-states-since-1910.csv?v=1&csvType=full&useColumnShortNames=true"
+df_polio_US  <- import(file, which = 2, trust  = TRUE)
+colnames(df_polio_US) <- c("country", "code", "year", "cases", "annotations")
+```
+
+## Check out the variables
+```{r load data, include false}
+# Setting the seed based on the current time
+glimpse(df_polio_US)
+```
+
+## plot the US cases
+```{r deaths, include false}
+polio_plot <- ggplot(df_polio_US, aes(x = year, y = cases)) +
+  geom_line(color = "steelblue", linewidth = 1) +
+  #geom_point(color = "darkred", size = 2) +
+  labs(
+    title = "Number of Measles cases in USA",
+    x = "Year",
+    y = "Cases"
+  ) +
+  scale_y_log10() +  # Add logarithmic y-axis
+  theme_minimal()
+ggplotly(polio_plot)
+```
+
+
+### --------------------------------------------
+
+
+
+## Access the population data
+```{r read-data, echo=FALSE}
+file <- "https://www.childstats.gov/americaschildren/tables/xls/pop1.xlsx"
+df_temp <- import(file, trust = TRUE)
+
+df1 <- df_temp[1:2, , drop = FALSE]  # rows 1 and 2, keep as data.frame
+#df1 <- as.matrix(df1)  # remove column names
+rownames(df1) <- NULL
+colnames(df1) <- NULL
+df1 <- t(df1)
+df1 <- df1[-1, ]
+df1 <- as.data.frame(df1)
+
+df2 <- df_temp[8:9, , drop = FALSE]  # rows 1 and 2, keep as data.frame
+#df2 <- as.matrix(df2)  # remove column names
+rownames(df2) <- NULL
+colnames(df2) <- NULL
+df2 <- t(df2)
+df2 <- df2[-1, ]
+df2 <- as.data.frame(df2)
+
+df3 <- df_temp[15:16, , drop = FALSE]  # rows 1 and 2, keep as data.frame
+#df3 <- as.matrix(df3)  # remove column names
+rownames(df3) <- NULL
+colnames(df3) <- NULL
+df3 <- t(df3)
+df3 <- df3[-1, ]
+df3 <- as.data.frame(df3)
+
+df4 <- df_temp[22:23, , drop = FALSE]  # rows 1 and 2, keep as data.frame
+#df4 <- as.matrix(df4)  # remove column names
+rownames(df4) <- NULL
+colnames(df4) <- NULL
+df4 <- t(df4)
+df4 <- df4[-1, ]
+df4 <- as.data.frame(df4)
+
+df_child <- bind_rows(df1, df2, df3, df4)
+colnames(df_child) <- c("year", "children")
+df_child$year <- as.numeric(df_child$year)
+df_child$children <- as.numeric(df_child$children)
+df_child <- head(df_child, -7)
+```
+
+## plot the population
+```{r deaths, include false}
+df_children_plot <- ggplot(df_child, aes(x = year, y = children)) +
+  geom_line(color = "darkgray", size = 1) +
+  #geom_point(color = "darkred", size = 2) +
+  labs(
+    title = "Population size",
+    x = "Year",
+    y = "Children (thousands)"
+  ) +
+  theme_minimal()
+ggplotly(df_children_plot)
+```
+
+
+# Calculate deaths incidence
+```{r incidence, include false}
+# Multiply all columns in df_pop (except Year) by 1000
+df_child <- df_child %>%
+  mutate(across(-year, ~ .x * 1000000))
+
+  # Join df_deaths and df_pop_scaled on Year
+df_combined <- df_polio_US %>%
+  inner_join(df_child, by = "year")  # keep only years in df_deaths
+
+df_combined <- df_combined %>%
+  mutate(cases_per_child = cases / children * 1000000)
+```
+
+## plot incidnce
+```{r mean-deaths, include false}
+mean_Killed_per_Total <- mean(df_combined$Killed_per_Total, na.rm = TRUE) 
+sd_Killed_per_Total <- sd(df_combined$Killed_per_Total, na.rm = TRUE)
+se_Killed_per_Total <- sd(df_combined$Killed_per_Total, na.rm = TRUE) / sqrt(sum(!is.na(df_combined$Killed_per_Total)))
+ymin_Killed_per_Total <- mean_Killed_per_Total - sd_Killed_per_Total
+ymax_Killed_per_Total <- mean_Killed_per_Total + sd_Killed_per_Total
+
+combined_plot <- ggplot(df_combined, aes(x = year, y = cases_per_child)) +
+  geom_line(color = "steelblue", size = 1) +
+  geom_point(color = "darkred", size = 2) +
+  #geom_hline(yintercept = mean_Killed_per_Total, linetype = "dashed", color = "darkgreen") +
+  #geom_ribbon(aes(ymin = ymin_Killed_per_Total, ymax = ymax_Killed_per_Total), fill = "darkgreen", alpha = 0.2) +
+  labs(
+    title = "Measles incidence USA",
+    x = "Year",
+    y = "Cases per million children"
+  ) +
+  scale_y_log10() +  # Add logarithmic y-axis
+  theme_minimal()
+ggplotly(combined_plot)
+```

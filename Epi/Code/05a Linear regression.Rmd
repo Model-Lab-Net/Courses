@@ -230,7 +230,7 @@ acf(residuals(slr), main = "ACF of Residuals")
 ```
 
 ## Calculate the standaradized parameters
-```{r autocorrelation , echo = TRUE}
+```{r std-parms , echo = TRUE}
 model_parameters(slr, standardize = "refit")
 ```
 

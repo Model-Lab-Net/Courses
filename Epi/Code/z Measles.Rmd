@@ -1,0 +1,221 @@
+###
+### name: דוד בורג
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: 1
+### date: 19/05/2025
+###
+###  חצבת
+###
+### source: OWID, US, UK
+
+
+## Reset memory
+```{r setup-packages, include false}
+rm(list = ls(all.names = TRUE))
+lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+gc()
+```
+
+## Load required packages
+```{r load-packages, include false}
+options("install.lock"=FALSE)
+install.packages("pacman")
+library(pacman)
+pacman::p_load(
+  rio,          # File import
+  here,         # File locator
+  skimr,        # get overview of data
+  tidyverse,    # data management + ggplot2 graphics, 
+  gtsummary,    # summary statistics and tests
+  rstatix,      # statistics
+  nortest,      # Anderson-Darling test for normality
+  moments,      # skewness and kurtosis
+  corrr,        # correlation analayis for numeric variables
+  janitor,      # adding totals and percents to tables
+  flextable,    # converting tables to HTML
+  dplyr,        # For data manipulation
+  ggplot2,      # For creating plots
+  plotly,
+  DescTools,    # For statistical functions like skewness and kurtosis
+  car,          # For Levene's test and ANOVA
+  vctrs,         # For data type handling
+  rvest,
+  tidyr
+            )
+```
+
+## Get US measles
+```{r read-data, echo=FALSE}
+## read the data in a file online
+file <- "https://ourworldindata.org/grapher/number-of-measles-cases.zip?v=1&csvType=filtered&useColumnShortNames=false&yScale=linear"
+df_measles_US  <- import(file, which = 2, trust  = TRUE)
+colnames(df_measles_US) <- c("country", "code", "year", "cases", "annotations")
+```
+
+## Check out the variables
+```{r load data, include false}
+# Setting the seed based on the current time
+glimpse(df_measles_US)
+```
+
+## plot the US cases
+```{r deaths, include false}
+measles_plot <- ggplot(df_measles_US, aes(x = year, y = cases)) +
+  geom_line(color = "steelblue", size = 1) +
+  #geom_point(color = "darkred", size = 2) +
+  labs(
+    title = "Number of Measles cases in USA",
+    x = "Year",
+    y = "Cases"
+  ) +
+  scale_y_log10() +  # Add logarithmic y-axis
+  theme_minimal()
+ggplotly(measles_plot)
+```
+
+
+### --------------------------------------------
+
+
+## Get UK measles data
+```{r mean-deaths, include false}
+url <- "https://www.gov.uk/government/publications/measles-deaths-by-age-group-from-1980-to-2013-ons-data/measles-notifications-and-deaths-in-england-and-wales-1940-to-2013"
+page <- read_html(url)
+
+# Parse the first data table in the HTML (Year, Notifications, Total Deaths)
+measles_tbl <- page %>%
+  html_node("table") %>%
+  html_table(fill = TRUE)
+
+# Inspect column names
+head(measles_tbl)
+
+
+df_measles_UK <- measles_tbl %>%
+  rename(Year = 1, Notifications = 2, Deaths = 3) %>%
+  mutate(
+    Year = as.integer(Year),
+    Notifications = as.numeric(gsub(",", "", Notifications)),
+    Deaths = as.integer(Deaths)
+  ) %>%
+  filter(!is.na(Year))       # drop any header/footer rows
+```
+
+## plot UK measles
+```{r deaths, include false}
+plot_measles_UK <- ggplot(df_measles_UK, aes(x = Year, y = Notifications)) +
+  geom_line(color = "darkred", size = 1) +
+  #geom_point(color = "darkred", size = 2) +
+  labs(
+    title = "Number of Measles cases in UK",
+    x = "Year",
+    y = "Cases"
+  ) +
+  scale_y_log10() +  # Add logarithmic y-axis
+  theme_minimal()
+ggplotly(plot_measles_UK)
+```
+
+
+
+
+
+
+
+### --------------------------------------------
+
+## Access the population data
+```{r read-data, echo=FALSE}
+file <- "https://www.childstats.gov/americaschildren/tables/xls/pop1.xlsx"
+df_temp <- import(file, trust = TRUE)
+
+df1 <- df_temp[1:2, , drop = FALSE]  # rows 1 and 2, keep as data.frame
+#df1 <- as.matrix(df1)  # remove column names
+rownames(df1) <- NULL
+colnames(df1) <- NULL
+df1 <- t(df1)
+df1 <- df1[-1, ]
+df1 <- as.data.frame(df1)
+
+df2 <- df_temp[8:9, , drop = FALSE]  # rows 1 and 2, keep as data.frame
+#df2 <- as.matrix(df2)  # remove column names
+rownames(df2) <- NULL
+colnames(df2) <- NULL
+df2 <- t(df2)
+df2 <- df2[-1, ]
+df2 <- as.data.frame(df2)
+
+df3 <- df_temp[15:16, , drop = FALSE]  # rows 1 and 2, keep as data.frame
+#df3 <- as.matrix(df3)  # remove column names
+rownames(df3) <- NULL
+colnames(df3) <- NULL
+df3 <- t(df3)
+df3 <- df3[-1, ]
+df3 <- as.data.frame(df3)
+
+df4 <- df_temp[22:23, , drop = FALSE]  # rows 1 and 2, keep as data.frame
+#df4 <- as.matrix(df4)  # remove column names
+rownames(df4) <- NULL
+colnames(df4) <- NULL
+df4 <- t(df4)
+df4 <- df4[-1, ]
+df4 <- as.data.frame(df4)
+
+df_child <- bind_rows(df1, df2, df3, df4)
+colnames(df_child) <- c("year", "children")
+df_child$year <- as.numeric(df_child$year)
+df_child$children <- as.numeric(df_child$children)
+df_child <- head(df_child, -7)
+```
+
+## plot the population
+```{r deaths, include false}
+df_children_plot <- ggplot(df_child, aes(x = year, y = children)) +
+  geom_line(color = "darkgray", size = 1) +
+  #geom_point(color = "darkred", size = 2) +
+  labs(
+    title = "Population size",
+    x = "Year",
+    y = "Children (thousands)"
+  ) +
+  theme_minimal()
+ggplotly(df_children_plot)
+```
+
+
+# Calculate deaths incidence
+```{r incidence, include false}
+# Multiply all columns in df_pop (except Year) by 1000
+df_child <- df_child %>%
+  mutate(across(-year, ~ .x * 1000000))
+
+  # Join df_deaths and df_pop_scaled on Year
+df_combined <- df_measles_US %>%
+  inner_join(df_child, by = "year")  # keep only years in df_deaths
+
+df_combined <- df_combined %>%
+  mutate(cases_per_child = cases / children * 1000000)
+```
+
+## plot incidnce
+```{r mean-deaths, include false}
+mean_Killed_per_Total <- mean(df_combined$Killed_per_Total, na.rm = TRUE) 
+sd_Killed_per_Total <- sd(df_combined$Killed_per_Total, na.rm = TRUE)
+se_Killed_per_Total <- sd(df_combined$Killed_per_Total, na.rm = TRUE) / sqrt(sum(!is.na(df_combined$Killed_per_Total)))
+ymin_Killed_per_Total <- mean_Killed_per_Total - sd_Killed_per_Total
+ymax_Killed_per_Total <- mean_Killed_per_Total + sd_Killed_per_Total
+
+combined_plot <- ggplot(df_combined, aes(x = year, y = cases_per_child)) +
+  geom_line(color = "steelblue", size = 1) +
+  geom_point(color = "darkred", size = 2) +
+  #geom_hline(yintercept = mean_Killed_per_Total, linetype = "dashed", color = "darkgreen") +
+  #geom_ribbon(aes(ymin = ymin_Killed_per_Total, ymax = ymax_Killed_per_Total), fill = "darkgreen", alpha = 0.2) +
+  labs(
+    title = "Measles incidence USA",
+    x = "Year",
+    y = "Cases per million children"
+  ) +
+  scale_y_log10() +  # Add logarithmic y-axis
+  theme_minimal()
+ggplotly(combined_plot)
+```

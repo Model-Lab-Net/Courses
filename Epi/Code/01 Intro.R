@@ -1,11 +1,11 @@
 ###
-### name: דוד בורג
-### ID  : [מספר תעודת זהות]
+### name  : דוד בורג
+### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: מבוא 01   
-### date  : 19/06/2025
-###  
-###  נכיר כאן פעולות בסיסיות
+### date  : 03/07/2025
+###
+###  נכיר כאן פעולות בסיסיות ממש
 
 
 height = 172
@@ -13,7 +13,7 @@ height
 
 weight = 70
 weight
-bmi = 70/(height/100)^2
+bmi = 70 / (height/100) ^2
 bmi
 
 ### Variable classes- Atomic classes
@@ -125,6 +125,9 @@ df1$cities            # this also retrieves the "cities" column as a vector (sim
 df1 = cbind(df1,"population"=c(47242,117500,43818,82652,279591))
 df1
 
+## Choose a random sample from the df
+df <- sample_n(df, 500)
+
 ## Lists
 list1=list(v2,mat1,df1)    # create an output showing  vector v2,  matrix mat1, and dataframe df1
 list1
@@ -149,3 +152,4 @@ if (y>x){           # check if y is greater than x
 v3 <- c(12,34,56,1,4,45)                    # create a vector v3
 condition <- ifelse(v3 > 10 ,'yes','no')    # ifelse function checks each element in v3, if it's greater than 10, it returns 'yes', otherwise 'no'
 condition
+

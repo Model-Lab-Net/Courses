@@ -1,0 +1,280 @@
+###
+### name: דוד בורג
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: 1
+### date: 19/05/2025
+###
+###  נתונים על תאודנות דרכים בישראל
+###
+### source: https://www.cbs.gov.il/he/publications/Pages/2024/תחבורה-ובטיחות-בדרכים-שנתון-סטטיסטי-לישראל-2024-מספר-75.aspx
+###         https://www.cbs.gov.il/he/publications/Pages/2024/אוכלוסייה-שנתון-סטטיסטי-לישראל-2024-מספר-75.aspx
+
+
+## Reset memory
+```{r setup-packages, include false}
+rm(list = ls(all.names = TRUE))
+lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+gc()
+```
+
+## Load required packages
+```{r load-packages, include false}
+options("install.lock"=FALSE)
+install.packages("pacman")
+library(pacman)
+pacman::p_load(
+  rio,          # File import
+  here,         # File locator
+  skimr,        # get overview of data
+  tidyverse,    # data management + ggplot2 graphics, 
+  gtsummary,    # summary statistics and tests
+  rstatix,      # statistics
+  nortest,      # Anderson-Darling test for normality
+  moments,      # skewness and kurtosis
+  corrr,        # correlation analayis for numeric variables
+  janitor,      # adding totals and percents to tables
+  flextable,    # converting tables to HTML
+  dplyr,        # For data manipulation
+  ggplot2,      # For creating plots
+  plotly,
+  DescTools,    # For statistical functions like skewness and kurtosis
+  car,          # For Levene's test and ANOVA
+  vctrs         # For data type handling
+            )
+```
+
+## Access the accident deaths data
+```{r read-data, echo=FALSE}
+## read the data in a file online
+#file <- "https://www.cbs.gov.il/he/mediarelease/doclib/2022/043/27_22_043t2.xls"
+file <- "https://www.cbs.gov.il/he/mediarelease/DocLib/2025/167/27_25_167t1.xlsx"
+df_deaths <- import(file, skip = 3, trust  = TRUE)
+df_deaths <- head(df_deaths, -1)
+df_deaths <- df_deaths %>%
+  rename(
+    Year = 1,
+    Killed = 2
+  )
+df_deaths$Year <- as.numeric(df_deaths$Year)
+df_deaths$Year <- 1949:2024
+df_deaths$Killed <- as.numeric(df_deaths$Killed)
+```
+
+## Check out the variables
+```{r load data, include false}
+# Setting the seed based on the current time
+glimpse(df_deaths)
+```
+
+## plot the deaths
+```{r deaths, include false}
+killed_plot <- ggplot(df_deaths, aes(x = Year, y = Killed)) +
+  geom_line(color = "steelblue", size = 1) +
+  geom_point(color = "darkred", size = 2) +
+  labs(
+    title = "Number of People Killed by Year",
+    x = "Year",
+    y = "Killed"
+  ) +
+  theme_minimal()
+ggplotly(killed_plot)
+```
+
+## mean deaths and add to plot
+```{r mean-deaths, include false}
+summary(df_deaths)
+mean_killed <- mean(df_deaths$Killed, na.rm = TRUE) 
+sd_killed <- sd(df_deaths$Killed, na.rm = TRUE)
+se_killed <- sd(df_deaths$Killed, na.rm = TRUE) / sqrt(sum(!is.na(df_deaths$Killed)))
+ymin <- mean_killed - sd_killed
+ymax <- mean_killed + sd_killed
+
+killed_plot <- ggplot(df_deaths, aes(x = Year, y = Killed)) +
+  geom_line(color = "steelblue", size = 1) +
+  geom_point(color = "darkred", size = 2) +
+  geom_hline(yintercept = mean_killed, linetype = "dashed", color = "darkgreen") +
+  geom_ribbon(aes(ymin = ymin, ymax = ymax), fill = "darkgreen", alpha = 0.2) +
+
+  labs(
+    title = "Number of People Killed by Year",
+    x = "Year",
+    y = "Killed"
+  ) +
+  theme_minimal()
+ggplotly(killed_plot)
+```
+
+
+
+### --------------------------------------------
+
+
+## Access the population data
+```{r read-data, echo=FALSE}
+## read the data in a file online
+file <- "https://www.cbs.gov.il/he/publications/DocLib/2024/2.ShnatonPopulation/st02_01.xlsx"
+df_pop1 <- import(file, which = 1, skip = 8, trust  = TRUE)
+df_pop1 <- df_pop1[, -c(2, 3, 4, 7, 9)]                           # Remove columns
+df_pop1 <- head(df_pop1, -2)                                      # Remove last 3 rows
+df_pop1 <- df_pop1[-c(13, 25, 37), ]                              # Remove more rows
+colnames(df_pop1) <- c("Year", "Arabs", "Jews", "Total")
+df_pop1$Year <- as.numeric(df_pop1$Year)
+df_pop1$Year <- 1949:1994
+glimpse(df_pop1)
+
+df_pop2 <- import(file, which = 2, skip = 7, trust  = TRUE)
+df_pop2 <- df_pop2[, -c(2, 3, 4, 5, 6, 9, 11)]                   # Remove columns
+colnames(df_pop2) <- c("Year", "Arabs", "Jews", "Total")
+df_pop2 <- head(df_pop2, -16)                                     # Remove last 3 rows
+df_pop2 <- df_pop2[-c(14, 29), ]                              # Remove more rows
+df_pop2$Year <- as.numeric(df_pop2$Year)
+df_pop2$Year <- 1995:2023
+glimpse(df_pop2)
+
+df_pop <- bind_rows(df_pop1, df_pop2)
+
+# Add 2024
+df_pop <- df_pop %>%
+  add_row(Year = 2024, Arabs = 2100, Jews = 7707, Total = 10023)
+```
+
+## plot the population
+```{r deaths, include false}
+pop_plot <- ggplot(df_pop, aes(x = Year, y = Total)) +
+  geom_line(color = "darkgray", size = 1) +
+  #geom_point(color = "darkred", size = 2) +
+  labs(
+    title = "Population size",
+    x = "Year",
+    y = "People (thousands)"
+  ) +
+  theme_minimal()
+ggplotly(pop_plot)
+```
+
+
+# Calculate deaths incidence
+```{r incidence, include false}
+# Multiply all columns in df_pop (except Year) by 1000
+df_pop <- df_pop %>%
+  mutate(across(-Year, ~ .x * 1000))
+
+  # Join df_deaths and df_pop_scaled on Year
+df_combined <- df_deaths %>%
+  inner_join(df_pop, by = "Year")  # keep only years in df_deaths
+
+df_combined <- df_combined %>%
+  mutate(Killed_per_Total = Killed / Total * 1e6)
+```
+
+## plot incidnce
+```{r mean-deaths, include false}
+mean_Killed_per_Total <- mean(df_combined$Killed_per_Total, na.rm = TRUE) 
+sd_Killed_per_Total <- sd(df_combined$Killed_per_Total, na.rm = TRUE)
+se_Killed_per_Total <- sd(df_combined$Killed_per_Total, na.rm = TRUE) / sqrt(sum(!is.na(df_combined$Killed_per_Total)))
+ymin_Killed_per_Total <- mean_Killed_per_Total - sd_Killed_per_Total
+ymax_Killed_per_Total <- mean_Killed_per_Total + sd_Killed_per_Total
+
+combined_plot <- ggplot(df_combined, aes(x = Year, y = Killed_per_Total)) +
+  geom_line(color = "steelblue", size = 1) +
+  geom_point(color = "darkred", size = 2) +
+  geom_hline(yintercept = mean_Killed_per_Total, linetype = "dashed", color = "darkgreen") +
+  geom_ribbon(aes(ymin = ymin_Killed_per_Total, ymax = ymax_Killed_per_Total), fill = "darkgreen", alpha = 0.2) +
+  labs(
+    title = "Killed in accidents",
+    x = "Year",
+    y = "Killed per capita"
+  ) +
+  theme_minimal()
+ggplotly(combined_plot)
+```
+
+
+
+### --------------------------------------------
+
+## Access the car data
+```{r read-data, echo=FALSE}
+## read the data in a file online
+file <- "https://www.cbs.gov.il/he/publications/DocLib/2024/19.ShnatonTransportandRoadSafety/st19_01x.xlsx"
+df_data1 <- import(file, which = 1, skip = 11, trust  = TRUE)
+df_data2 <- import(file, which = 2, skip = 11, trust  = TRUE)
+df_data1 <- head(df_data1, -2)                                     # Remove last 2 rows
+df_data2 <- head(df_data2, -26)                                     # Remove last 26 rows
+df_data1<- df_data1 %>% mutate_all(as.numeric)           # convert all to numeric
+df_data2<- df_data2 %>% mutate_all(as.numeric)           # convert all to numeric
+colnames(df_data1) <- LETTERS[1:ncol(df_data1)]
+colnames(df_data2) <- LETTERS[1:ncol(df_data2)]
+df_data <- bind_rows(df_data1, df_data2)
+
+colnames(df_data) <- c("year", "air_passengers", "aircraft", "maritime_freight_tons",
+                        "maritime_passengers","ships_ariving", "rail_freight_tons",
+                        "rail_passengers", "bus_km", "road_deaths", "raod_casualties",
+                        "road_accidents", "car_km", "trucks", "cars", "vehicles",
+                        "drivers", "roads_km"
+                      )
+
+df_data <- df_data[, -c(19)]                           # Remove columns
+df_data <- df_data %>%  mutate(year = seq(1950, 2023))
+df_data <- df_data %>% mutate(air_passengers = air_passengers * 1000)
+df_data <- df_data %>% mutate(maritime_freight_tons = maritime_freight_tons * 1000)
+df_data <- df_data %>% mutate(maritime_passengers = maritime_passengers * 1000)
+df_data <- df_data %>% mutate(rail_freight_tons = rail_freight_tons * 1000)
+df_data <- df_data %>% mutate(rail_passengers = rail_passengers * 1000)
+df_data <- df_data %>% mutate(bus_km = bus_km * 1000000)
+df_data <- df_data %>% mutate(car_km = car_km * 1000000)
+df_data <- df_data %>% mutate(trucks = trucks * 1000)
+df_data <- df_data %>% mutate(cars = cars * 1000)
+df_data <- df_data %>% mutate(vehicles = vehicles * 1000)
+
+
+# calculate incidence
+df_data <- df_data %>% mutate(death_per_km = road_deaths / roads_km)
+df_data <- df_data %>% mutate(death_per_car_km = road_deaths / car_km)
+df_data <- df_data %>% mutate(death_per_car = road_deaths / cars)
+
+glimpse(df_data)
+```
+
+## Plot data
+```{r read-data, echo=FALSE}
+# Set x variable and y variables
+x_var <- "year"
+y_vars <- c("road_deaths", "cars")  # Add more if needed
+
+# Create a list of plots
+plot_list <- lapply(y_vars, function(y_var) {
+  p <- ggplot(df_data, aes(x = !!sym(x_var), y = !!sym(y_var))) +
+    geom_smooth(method = "loess", se = TRUE, color = "grey", linewidth = 1.2) +
+    geom_point(color = "black") +
+    labs(title = paste(y_var, "vs", x_var)) +
+    theme_minimal()
+  
+  ggplotly(p)
+})
+
+# Combine side-by-side
+subplot(plot_list, nrows = 1, margin = 0.05, shareX = TRUE, titleX = TRUE, titleY = TRUE)
+```
+
+## Plot incidence
+```{r read-data, echo=FALSE}
+# Set x variable and y variables
+x_var <- "year"
+y_vars <- c("death_per_car", "death_per_car_km")  # Add more if needed
+
+# Create a list of plots
+plot_list <- lapply(y_vars, function(y_var) {
+  p <- ggplot(df_data, aes(x = !!sym(x_var), y = !!sym(y_var))) +
+    geom_smooth(method = "loess", se = TRUE, color = "grey", linewidth = 1.2) +
+    geom_point(color = "black") +
+    scale_y_log10() +  # 🔹 log scale inside ggplot
+    labs(title = paste(y_var, "vs", x_var)) +
+    theme_minimal()
+  
+  ggplotly(p) 
+})
+
+# Combine side-by-side
+subplot(plot_list, nrows = 1, margin = 0.05, shareX = TRUE, titleX = TRUE, titleY = TRUE)
+```

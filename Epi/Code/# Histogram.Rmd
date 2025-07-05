@@ -1,0 +1,39 @@
+###
+### name: דוד בורג
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: 0
+### date: 19/05/2025
+###  
+###  להציג התפלגות של מספרים רנדומליים
+
+
+# Load required packages
+```{r setup-packages, include=TRUE}
+# Install and load the plotly package
+if (!requireNamespace("plotly", quietly = TRUE)) {  install.packages("plotly") }
+library(plotly)
+```
+
+# Generate a random sample
+```{r generate-sample, include=TRUE}
+# Generate a random sample from a normal distribution
+#set.seed(123) # Set seed for reproducibility
+sample_size <- 1000
+random_sample <- rnorm(sample_size, mean = 0, sd = 1) # Mean = 0, SD = 1
+```
+
+# Create histogram
+```{r histogram-plot, include=TRUE}
+fill_color <- rgb(0, 0, 0, max = 255, alpha = 75, names = "black50")
+
+# Create an interactive histogram using plotly
+plot <- plot_ly(x = ~random_sample, type = "histogram",
+                marker = list(color = fill_color,
+                line = list(color = "black", width = 1))) %>%
+  layout(title = "Normal Distribution",
+         xaxis = list(title = "Value", range = c(-3.5, 3.5)), # Set x-axis range
+         yaxis = list(title = "Frequency"))
+
+# Display the plot
+plot
+```

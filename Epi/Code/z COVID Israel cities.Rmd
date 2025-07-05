@@ -1,0 +1,510 @@
+###
+### name: דוד בורג
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: 1
+### date: 19/05/2025
+###
+###  קורונה בערי ישראל
+###
+### source: https://data.gov.il/dataset/covid-19
+###         https://www.cbs.gov.il/he/publications/Pages/2019/הרשויות-המקומיות-בישראל-קובצי-נתונים-לעיבוד-1999-2017.aspx
+###         https://data.gov.il/dataset/residents_in_israel_by_communities_and_age_groups
+
+
+## Reset memory
+```{r setup-packages, include false}
+rm(list = ls(all.names = TRUE))
+lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
+gc()
+```
+
+load("covid.RData")
+
+## Load required packages
+```{r load-packages, include false}
+options("install.lock"=FALSE)
+install.packages("pacman")
+library(pacman)
+pacman::p_load(
+  rio,          # File import
+  here,         # File locator
+  skimr,        # get overview of data
+  tidyverse,    # data management + ggplot2 graphics, 
+  gtsummary,    # summary statistics and tests
+  rstatix,      # statistics
+  nortest,      # Anderson-Darling test for normality
+  moments,      # skewness and kurtosis
+  corrr,        # correlation analayis for numeric variables
+  janitor,      # adding totals and percents to tables
+  flextable,    # converting tables to HTML
+  dplyr,        # For data manipulation
+  ggplot2,      # For creating plots
+  plotly,
+  DescTools,    # For statistical functions like skewness and kurtosis
+  car,          # For Levene's test and ANOVA
+  vctrs,         # For data type handling
+  rvest,
+  tidyr,
+  lmtest,
+  vars,
+  httr,
+  jsonlite,
+  ISOweek,
+  lubridate
+            )
+```
+ 
+## Get COVID main data for Israel cities
+```{r read-data, echo=FALSE}
+# Define the API endpoint
+api_endpoint <- "https://data.gov.il/api/3/action/datastore_search?resource_id=8a21d39d-91e3-40db-aca1-f73f7ab1df69&limit=400000"
+
+# Send GET request to the API
+response <- GET(api_endpoint)
+
+# Check if the request was successful (status code 200)
+if (status_code(response) == 200) {
+      # Extract content as text and parse JSON
+      content <- content(response, as = "text", encoding = "UTF-8")
+      data <- fromJSON(content)
+      records <- data$result$records    # Extract the records from the result
+      df <- as.data.frame(records)      # Convert records to a data frame
+      } else {
+       cat("Error: Failed to fetch data. Status code:", status_code(response), "\n")
+     }
+```
+
+## Cleanup data
+```{r load data, include false}
+# Setting the seed based on the current time
+df <- df[, -c(1)]                           # Remove columns
+colnames(df) <- c("city", "cityid", "date", "cases", "recovered", "deaths", "tests", "positive", "color", "score")
+df$cityid <- as.numeric(df$cityid)
+df$date  <- as.Date(df$date, format = "%Y-%m-%d")
+df$cases <- as.numeric(df$cases)
+    df$cases[df$cases == 0] <- NA
+df$recovered <- as.numeric(df$recovered)
+    df$recovered[df$recovered == 0] <- NA
+df$deaths <- as.numeric(df$deaths)
+    df$deaths[df$deaths == 0] <- NA
+df$tests <- gsub("<15", "5", df$tests)
+    df$tests <- as.numeric(df$tests)
+    df$tests[df$tests == 0] <- NA
+df$positive <- gsub("<15", "5", df$positive)
+df$positive <- as.numeric(df$positive)
+    df$positive[df$positive == 0] <- NA
+df$score <- as.numeric(df$score)
+df$color <- gsub("NULL", "--", df$color)
+df$color <- gsub("ירוק", "green", df$color)
+df$color <- gsub("צהוב", "yellow", df$color)
+df$color <- gsub("כתום", "orange", df$color)
+df$color <- gsub("אדום", "red", df$color)
+
+df$year <- year(df$date)
+```
+
+## Check out the variables
+```{r load data, include false}
+# Setting the seed based on the current time
+glimpse(df)
+```
+
+## Get population data for Israel cities
+```{r read-data, echo=FALSE}
+# Get population for 2020 (this will be the main df)
+file <- "https://www.cbs.gov.il/he/publications/DocLib/2019/hamakomiot1999_2017/2020.xlsx"
+df_pop <- import(file, which = 2, trust  = TRUE)
+df_pop <- df_pop[, c(1, 2, 13)]
+df_pop <- df_pop[c(5:205), ]                              # keep rows
+colnames(df_pop) <- c("city", "cityid", "pop2020")
+df_pop$cityid <- as.numeric(df_pop$cityid)
+df_pop$pop2020 <- as.numeric(df_pop$pop2020)
+glimpse(df_pop)
+
+file <- "https://www.cbs.gov.il/he/publications/DocLib/2019/hamakomiot1999_2017/2020.xlsx"
+df_area2020 <- import(file, which = 3, trust  = TRUE)
+df_area2020 <- df_area2020[, c(1, 2, 74)]
+df_area2020 <- df_area2020[c(7:207), ]                              # keep rows
+colnames(df_area2020) <- c("city", "cityid", "apt_area")
+### estimate apt_area for 7300, 1247, 3608, 0520
+df_area2020$apt_area[df_area2020$cityid == "7300"] <- "1545"
+df_area2020$apt_area[df_area2020$cityid == "1247"] <- "439"
+df_area2020$apt_area[df_area2020$cityid == "3608"] <- "36"
+df_area2020$apt_area[df_area2020$cityid == "0520"] <- "205"
+df_area2020$cityid <- as.numeric(df_area2020$cityid)
+df_area2020$apt_area <- as.numeric(df_area2020$apt_area)
+glimpse(df_area2020)
+
+#combine 
+df_pop <- df_pop %>%
+  left_join(df_area2020 %>% dplyr::select(cityid, apt_area), by = "cityid")
+
+# ---------------------------------
+
+# Get population for 2021 and built area data (this will be appended to main df)
+file <- "https://www.cbs.gov.il/he/publications/DocLib/2019/hamakomiot1999_2017/p_libud_2021.xlsx"
+df_2021 <- import(file, which = 2, trust  = TRUE)
+df_2021 <- df_2021[, c(1, 2, 13, 245)]
+df_2021 <- df_2021[c(5:205), ]                              # keep rows
+colnames(df_2021) <- c("city", "cityid", "pop2021", "built_area")
+df_2021$cityid <- as.numeric(df_2021$cityid)
+df_2021$pop2021 <- as.numeric(df_2021$pop2021)
+df_2021$built_area <- as.numeric(df_2021$built_area)
+glimpse(df_2021)
+#combine 
+df_pop <- df_pop %>%
+  left_join(df_2021 %>% dplyr::select(cityid, built_area, pop2021), by = "cityid")
+
+# ---------------------------------
+
+# Get population for 2022 (this will be appended to main df)
+file <- "https://www.cbs.gov.il/he/publications/DocLib/2019/hamakomiot1999_2017/p_libud_22.xlsx"
+df_2022 <- import(file, which = 2, trust  = TRUE)
+df_2022 <- df_2022[, c(1, 2, 13)]
+df_2022 <- df_2022[c(9:210), ]                              # keep rows
+colnames(df_2022) <- c("city", "cityid", "pop2022")
+df_2022$cityid <- as.numeric(df_2022$cityid)
+df_2022$pop2022 <- as.numeric(df_2022$pop2022)
+df_2022$pop2022 <- round(as.numeric(df_2022$pop2022), 0)
+#combine 
+df_pop <- df_pop %>%
+  left_join(df_2022 %>% dplyr::select(cityid, pop2022), by = "cityid")
+
+# ---------------------------------
+
+# Get population for 2023 (this will be appended to main df)
+years <- c(2020, 2021, 2022)
+df_pop$pop2023 <- apply(df_pop[, c("pop2020", "pop2021", "pop2022")], 1, function(pops) {
+  model <- lm(pops ~ years)
+  predict(model, newdata = data.frame(years = 2023))
+})
+df_pop$pop2023 <- round(as.numeric(df_pop$pop2023), 0)
+
+colnames(df_pop) <- c("city", "cityid", "2020", "apt_area", "built_area", "2021", "2022", "2023")
+df_pop$built_area <- df_pop$built_area * 1000000
+df_pop$apt_area <- df_pop$apt_area * 1000
+
+# Get english city names (this will be appended to main df)
+file <- "https://www.cbs.gov.il/he/publications/LochutTlushim/2020/%D7%90%D7%95%D7%9B%D7%9C%D7%95%D7%A1%D7%99%D7%99%D7%94.xlsx"
+df_names <- import(file, skip = 7, trust  = TRUE)
+df_names <- df_names[ , c(1,9)]                           # Remove columns
+colnames(df_names) <- c("cityid", "name")
+df_names$cityid <- as.numeric(df_names$cityid)
+glimpse(df_names)
+write_csv(df_names, "Israel city names.csv")
+```
+
+
+## combine
+```{r read-data, echo=FALSE}
+df <- merge(df, 
+            df_pop[, c("cityid", "built_area", "apt_area"), drop = FALSE], 
+            by = "cityid", all.x = TRUE)
+print(head(df, n = 30))
+
+df_pop_long <- df_pop %>%
+  pivot_longer(cols = c("2020", "2021", "2022", "2023"),
+               names_to = "year",
+               values_to = "pop") %>%
+  mutate(year = as.integer(year))  # make year numeric to match df$year
+
+# Step 2: Join the population to df based on cityid and year
+df <- df %>%
+  left_join(df_pop_long, by = c("cityid", "year"))
+
+df <- df %>%
+  arrange(cityid, date)
+
+df <- df %>% dplyr::select(-city.y, -built_area.y, -apt_area.y)
+df <- df %>% rename(city = city.x, built_area = built_area.x, apt_area = apt_area.x)
+
+
+df <- merge(df, 
+            df_names[, c("cityid", "name"), drop = FALSE], 
+            by = "cityid", all.x = TRUE)
+```
+
+## calculate density
+```{r read-data, echo=FALSE}
+df <- df %>%
+  mutate(pop_density = pop / (built_area/1000))
+    df$pop_density[df$pop_density == 0] <- NA
+
+df <- df %>%
+  mutate(tests_density = tests / pop_density)
+    df$tests_density[df$tests_density == 0] <- NA
+
+df <- df %>%
+  mutate(cases_density = cases / pop_density)
+    df$cases_density[df$cases_density == 0] <- NA
+
+df <- df %>%
+  mutate(deaths_density = deaths / pop_density)
+    df$deaths_density[df$deaths_density == 0] <- NA
+
+df <- df %>%
+  mutate(recovered_density = recovered / pop_density)
+    df$recovered_density[df$recovered_density == 0] <- NA
+
+glimpse(df)
+print(head(df, n = 30))
+
+#df1 <- df
+```
+
+
+## graph
+```{r read-data, echo=FALSE}
+city_name <-  "TEL AVIV - YAFO"
+
+one_city_df <- df %>%
+  filter(name == city_name)  # or filter(cityid == 123)
+
+
+# Process cases
+one_city_cases <- one_city_df %>%
+  arrange(date) %>%
+  mutate(
+    daily_cases = cases_density - lag(cases_density),    #get the rate from the cum.
+    week = isoweek(date),
+    year = isoyear(date)
+  ) %>%
+  group_by(year, week) %>%
+  summarise(
+    avg_weekly_cases = mean(daily_cases, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+one_city_cases <- one_city_cases %>%
+  mutate(
+    week_str = sprintf("%d-W%02d", year, week),
+    date = ISOweek2date(paste0(week_str, "-2"))  # "-2" = Tuesday
+  )
+one_city_cases <- one_city_cases %>%
+  filter(avg_weekly_cases > 0 | is.na(avg_weekly_cases))
+
+glimpse(one_city_deaths)
+
+
+# Process deaths
+one_city_deaths <- one_city_df %>%
+  arrange(date) %>%
+  mutate(
+    daily_deaths = deaths_density - lag(deaths_density),    #get the rate from the cum.
+    week = isoweek(date),
+    year = isoyear(date)
+  ) %>%
+  group_by(year, week) %>%
+  summarise(
+    avg_weekly_deaths = mean(daily_deaths, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+one_city_deaths <- one_city_deaths %>%
+  mutate(
+    week_str = sprintf("%d-W%02d", year, week),
+    date = ISOweek2date(paste0(week_str, "-2"))  # "-2" = Tuesday
+  )
+one_city_deaths <- one_city_deaths %>%
+  filter(avg_weekly_deaths > 0 | is.na(avg_weekly_deaths))
+
+
+# Process tests
+one_city_tests <- one_city_df %>%
+  arrange(date) %>%
+  mutate(
+    daily_tests = tests_density - lag(tests_density),    #get the rate from the cum.
+    week = isoweek(date),
+    year = isoyear(date)
+  ) %>%
+  group_by(year, week) %>%
+  summarise(
+    avg_weekly_tests = mean(daily_tests, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+one_city_tests <- one_city_tests %>%
+  mutate(
+    week_str = sprintf("%d-W%02d", year, week),
+    date = ISOweek2date(paste0(week_str, "-2"))  # "-2" = Tuesday
+  )
+one_city_tests <- one_city_tests %>%
+  filter(avg_weekly_cases > 0 | is.na(avg_weekly_cases))
+
+glimpse(one_city_tests)
+
+# Process recovered
+one_city_recovered <- one_city_df %>%
+  arrange(date) %>%
+  mutate(
+    daily_recovered = recovered_density - lag(recovered_density),    #get the rate from the cum.
+    week = isoweek(date),
+    year = isoyear(date)
+  ) %>%
+  group_by(year, week) %>%
+  summarise(
+    avg_weekly_recovered = mean(daily_recovered, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+one_city_recovered <- one_city_recovered %>%
+  mutate(
+    week_str = sprintf("%d-W%02d", year, week),
+    date = ISOweek2date(paste0(week_str, "-2"))  # "-2" = Tuesday
+  )
+one_city_recovered <- one_city_recovered %>%
+  filter(avg_weekly_cases > 0 | is.na(avg_weekly_cases))
+
+glimpse(one_city_recovered)
+
+
+# Append to one_city_data
+one_city_data <- reduce(
+  list(
+    one_city_cases,
+    one_city_deaths,
+    one_city_tests,
+    one_city_recovered
+  ),
+  full_join,
+  by = c("year", "week", "date")
+)
+
+one_city_data <- one_city_data[, -c(4, 7, 9, 11)]                           # Remove columns
+
+one_city_data <- one_city_data %>%
+  mutate(active_cases =  avg_weekly_cases - avg_weekly_deaths - avg_weekly_recovered)
+#    one_city_data$cases_density[one_city_data$cases_density == 0] <- NA
+
+
+glimpse(one_city_data)
+
+# move deaths two weeks ahead
+#one_city_deaths <- one_city_deaths %>%
+#  arrange(date) %>%
+#  mutate(
+#    avg_weekly_deaths = lead(avg_weekly_deaths, 2)
+#  )
+
+## graph
+```{r read-data, echo=FALSE}
+plot <- plot_ly(data = one_city_data, 
+                x = ~ date, 
+                y = ~ avg_weekly_tests, 
+                type = "bar", 
+                marker = list(color = "darkgrey")) %>%
+  add_trace(y = ~ avg_weekly_cases, 
+            type = "bar", 
+            name = "Deaths",  # Name for legend
+            marker = list(color = "darkorange")) %>%
+  add_trace(y = ~ avg_weekly_deaths, 
+            type = "bar", 
+            name = "Deaths",  # Name for legend
+            marker = list(color = "darkred")) %>%
+#  add_trace(y = ~ active_cases, 
+#            type = "scatter",
+#            mode = "lines", 
+#            name = "Active",  # Name for legend
+#            line = list(color = "darkgreen"),
+#            marker = list(color = "darkgreen"),
+#            yaxis = "y2"
+#           ) %>%             
+  layout(
+    title = list(
+      text = paste0("COVID-19 Cases Over Time<br><sup>City: ", city_name, "</sup>"), 
+      x = 0.5, 
+      xanchor = "center"
+    ),
+    xaxis = list(
+      title = "Date",
+      range = c("2020-01-01", "2023-07-01")  # ❗️Start x-axis at Feb 1, 2020
+    ),
+    yaxis = list(
+      title = "Cases per population density<br><sup>(Log10 Scale)</sup>", 
+      type = "log", 
+      range = c(log10(0.001), log10(10000))
+    ),
+    barmode = "overlay",  # Set bars to overlap
+    bargap = 0,
+    showlegend = FALSE,
+    paper_bgcolor = "rgba(0,0,0,0)",
+    plot_bgcolor = "rgba(0,0,0,0)"
+  )
+# Display the plot
+plot
+```
+
+## urban scaling
+```{r read-data, echo=FALSE}
+
+df_date <- df %>% filter(date == as.Date("2021-09-15"))
+glimpse(df_date)
+write_csv(data.frame(anme = df_date$name), "1.csv")
+plot <- plot_ly(
+  data = df_date,
+  x = ~ pop_density,
+  y = ~ cases,
+  type = "scatter",
+  mode = "markers",
+  text = ~paste("Name:", name),  # tooltip content
+  marker = list(color = "darkblue", size = 6)
+) %>%
+  layout(
+    title = "Urban Scaling<br><sup>Allometry",
+    xaxis = list(
+      title = "log Population Density<br><sup>people per dunam",
+      type = "log",
+      range = c(log10(1), NA)  # Start at 1 to avoid log(0)
+    ),
+    yaxis = list(
+      title = "log Cases",
+      type = "log",
+      range = c(log10(1), NA)
+    ),
+    plot_bgcolor = "rgba(0,0,0,0)",
+    paper_bgcolor = "rgba(0,0,0,0)"
+  )
+
+plot
+```
+
+## Power law fit
+```{r read-data, echo=FALSE}
+
+```
+
+## 3D urban scaling
+```{r read-data, echo=FALSE}
+plot <- plot_ly(
+  data = df_date,
+  x = ~tests,
+  y = ~cases,
+  z = ~deaths,
+  type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 4, color = ~cases, colorscale = "Viridis"),
+  text = ~paste("Name:", name, 
+                "<br>Tests:", tests, 
+                "<br>Cases:", cases, 
+                "<br>Deaths:", deaths),
+  hoverinfo = "text"
+) %>%
+  layout(
+    title = "3D Scatter Plot: Tests vs. Cases vs. Deaths",
+    scene = list(
+      xaxis = list(title = "Tests", type = "log"),
+      yaxis = list(title = "Cases", type = "log"),
+      zaxis = list(title = "Deaths", type = "log")
+    )
+  )
+
+plot
+```
+
+
+
+
+
+
+
+save.image(file = "covid.RData")

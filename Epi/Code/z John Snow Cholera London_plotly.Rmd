@@ -1,12 +1,12 @@
 ###
 ### name: דוד בורג
 ### course: אפידמיולוגיה (HIT.ac.il)
-### lesson: ___
+### lesson: 1
 ### date: 19/05/2025
-### source: https://arxiv.org/html/2504.13970v1
-###  
-###  ניתונים של מחלת הכורה בלונדון מ-1854
+### 
+### ניתונים של מחלת הכורה בלונדון מ-1854
 ###
+### source: https://arxiv.org/html/2504.13970v1
 
 
 # Reset memory
