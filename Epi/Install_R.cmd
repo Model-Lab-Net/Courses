@@ -42,8 +42,8 @@ echo ----------------- Download VSCode  ---  ZIP for portable ------------------
 :IInstallVSCode
 ::if not exist c:\RVSCode md c:\RVSCode
 ::cd c:\RVSCode
-::if not exist rvscode.zip c:\temp\curl.exe --progress-bar -o rvscode.zip https://vscode.download.prss.microsoft.com/dbazure/download/stable/%VSCODE_VERSION%.zip
-powershell Invoke-WebRequest -Uri 'https://vscode.download.prss.microsoft.com/dbazure/download/stable/%VSCODE_VERSION%' -OutFile 'c:\Temp\rvscode.zip'
+if not exist rvscode.zip c:\temp\curl.exe --progress-bar -o rvscode.zip https://vscode.download.prss.microsoft.com/dbazure/download/stable/%VSCODE_VERSION%.zip
+::powershell Invoke-WebRequest -Uri 'https://vscode.download.prss.microsoft.com/dbazure/download/stable/%VSCODE_VERSION%' -OutFile 'c:\Temp\rvscode.zip'
 powershell Expand-Archive -Path "C:\temp\rvscode.zip" -DestinationPath "C:\RVSCode" 
 
 
