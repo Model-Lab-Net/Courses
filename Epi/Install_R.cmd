@@ -1,8 +1,8 @@
 @echo off
-:: Title:   Code to install R, RStudio and R in VSCode
-:: Author:  David Burg
-:: For:     R course
-:: Date:    06/07/2025
+:: Title -- Code to install R, RStudio and R in VSCode
+:: Author -- David Burg
+:: For -- R course
+:: Date -- 01/07/2025
 
 ::----------------------Get everything ready-------------------------------
 set R_VERSION=4.5.1
@@ -106,7 +106,7 @@ curl --progress-bar -o c:\RVSCode\Course\Initialize_R_for_Epi.Rmd https://github
 ::powershell Invoke-WebRequest -Uri 'https://github.com/Model-Lab-Net/Courses/blob/main/Epi/Initialize_R_for_Epi.Rmd' -OutFile 'c:\RVSCode\Course\Initialize_R.Rmd'
 
 ::Create shortcut link to Desktop
-powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%ALLUSERSPROFILE%\Desktop\RVSCode.lnk');$s.TargetPath='C:\RVSCode\code.exe c:\RStudio\Course';$s.IconLocation='C:\RVSCode\code.exe,0';$s.Save()"
+powershell -Command "$s=(New-Object -COM WScript.Shell).CreateShortcut('%ALLUSERSPROFILE%\Desktop\RVSCode.lnk');$s.TargetPath='C:\RVSCode\code.exe';$s.Arguments='\"C:\RVScode\Course\"';$s.IconLocation='C:\RVSCode\code.exe,0';$s.Save()"
 
 
 
