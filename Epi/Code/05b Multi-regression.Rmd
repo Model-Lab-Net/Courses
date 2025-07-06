@@ -1,211 +1,213 @@
-###
-### name: דוד בורג
-### ID  : [מספר תעודת זהות]
-### course: אפידמיולוגיה (HIT.ac.il)
-### lesson: סרגרסיה לינארית 05   
-### date  : 03/07/2025
-###  
-###  נלמד לעשות רגסיה מרובה
-###
-### source: https://bookdown.org/drki_musa/dataanalysis/linear-regression.html#multiple-linear-regression
-###         https://github.com/drkamarul/multivar_data_analysis/tree/main/data
-
-
-## Reset memory
-```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))
-lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
-gc()
-dev.off()
-```
-
-## Load required packages
-```{r setup-packages, include = FALSE}
-options("install.lock" = FALSE)
-if (!require("pacman")) install.packages("pacman")
-library(pacman)
-pacman::p_load(
-  rio,                    # File import
-  tidyverse,              # data management + ggplot2 graphics,
-  broom,                  # For tidying model outputs
-  dplyr,                  # For data manipulation
-  gt,                     # Nice beuatiful tables
-  nortest,                # Anderson-Darling test for normality
-  ggplot2,                # For creating plots
-  DescTools,              # For statistical functions like skewness and kurtosis
-  psych,                  # to get a table of all summary statistics
-  janitor,                # adding totals and percents to tables
-  car,                    # For Levene's test and ANOVA
-  gtsummary,              # summary statistics and tests
-  corrr,                  # correlation
-  lmtest,                 # linear regression tets
-  parameters,             # calculate standardized parameters/coefficients
-  GGally                  # to make a correlation matrix
-              )
-# Install/load flexplot
-if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
-```
-
-## Access the data
-```{r read-data, echo = TRUE}
-# file <- "./EpiData/coronary.dta"     # 👈 use this if the file is on your computer
-file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/coronary.dta"
-df2 <- import(file, trust = TRUE)
-summary(df2)
-glimpse(df2)
-```
-
-## Clean daaa
-```{r clean-data, echo = TRUE}
-# Mutate id to factor
-df2 <- df2 %>%
-  mutate(id = as.factor(id))
-
-# Mutate cad to factor
-df2 <- df2 %>%
-  mutate(cad = as.factor(cad))
-
-# Mutate gender column from 1, 2 to "F", "M"
-df2 <- df2 %>%
-  mutate(gender = case_when(
-    gender == 1 ~ "F",
-    gender == 2 ~ "M",
-    TRUE ~ as.character(gender) # Preserve other values (e.g., NA)
-  ))
-
-# Mutate race column from 1, 2,3  to "W", "B", "J"
-df2 <- df2 %>%
-  mutate(race = case_when(
-    race == 1 ~ "W",
-    race == 2 ~ "B",
-    race == 3 ~ "J",
-    TRUE ~ as.character(gender) # Preserve other values (e.g., NA)
-  ))
-
-glimpse(df2)
-```
-
-# Multi-variable regression with lm
-```{r nmulti-reg, echo = TRUE}
-# Do a reduced linear regression (SLR) with chol as the dependent variable
-mlr <- lm(chol ~ sbp + dbp + bmi + age + race, data = df2)
-tidy(mlr, conf.int = TRUE)
-```
-
-## Present multi-regression reults in a nice table
-```{r reduced-multi-regression, echo = TRUE}
-# Show results
-mlr_summary <- tbl_regression(
-  mlr,
-  intercept = TRUE,
-  estimate_fun = ~ round(.x, 2)
-) %>%
-  add_glance_source_note(
-    include = c(r.squared, adj.r.squared, AIC, p.value)
-  )
-mlr_summary
-```
-
-## Correlation matrix
-```{r corr-matrix, echo = TRUE}
-# Display the correlation matrix for all numerical variables
-ggcorr(df2, label = TRUE)
-```
-
-## Perform a reducedr multiple linear regression
-```{r reduced-multi-reg, echo = TRUE}
-mlr_reduced <- lm(chol ~ dbp + age, data = df2)
-tidy(mlr_reduced, conf.int = TRUE)
-```
-
-## Test for normal distribution of residuals
-```{r residuals, echo = TRUE}
-# Residuals analysis
-flexplot(chol ~ dbp | age + bmi, data = df2, method = "lm", ghost.line = "red")
-
-# Analyze the residuals
-visualize(mlr_reduced)
-
-# Q-Q plot
-residuals_mlr <- residuals(mlr_reduced) # Get nmodel residuals
-qqnorm(residuals_mlr)
-qqline(residuals_mlr, col = "red")
-# visualize(chol ~ dbp + bmi + age, data = df2, plot = "qq")    # use flexplot here
-
-# Kolmogorov-Smirnov test  (Ho: residuals are normal)
-ks_test_result <- ks.test(residuals_mlr, "pnorm", mean = mean(residuals_mlr), sd = sd(residuals_mlr))
-ks_test_result
-```
-
-## Test for homoscedacity
-```{r homoscedacity, echo = TRUE}
-# Run Breusch-Pagan test  (Ho: no heteroscedacity)
-bp_test <- bptest(mlr_reduced)
-bp_test
-```
-
-## Test for autocorrelation
-```{r autocorrelation , echo = TRUE}
-# Run Durbin-Watson test  (Ho: no autocorelation)
-dw_result <- dwtest(mlr_reduced)
-dw_result
-
-# Plot ACF residuals
-acf(residuals(mlr_reduced), main = "ACF of Residuals")
-```
-
-## Test for multicolinearity
-```{r VIF, echo = TRUE}
-# Run VIF colinearity test  (no multicolinearity == VIF ≈ 1)
-mlr_vif <- vif(mlr_reduced)
-mlr_vif
-```
-
-
-## Model comparison
-```{r mdodel-comparison, echo = TRUE}
-# Run VIF colinearity test  (no multicolinearity == VIF ≈ 1)
-model.comparison(mlr, mlr_reduced)
-```
-
-## Show reduced multiple linear regression summary table
-```{r mlr-summary, echo = TRUE}
-mlr_reduced_summary <- tbl_regression(mlr_reduced,
-  # label = list(dbp = "Diastolic Blood Pressure"),
-  conf.int = TRUE,
-  show_single_row = "dbp",
-  intercept = TRUE
-) %>%
-  modify_header(
-    label = "**coeff**",
-    estimate = "**beta**",
-    std.error = "**SE**",
-    statistic = "**F**",
-    p.value = "**p**",
-    conf.low = "**CI<sub>95%**"
-  ) %>%
-  # modify_table_body(~ .x %>% filter(label != "Abbreviations")) %>%
-  add_glance_source_note(
-    include = c(
-      r.squared,
-      adj.r.squared,
-      statistic,
-      p.value,
-      # logLik,
-      AIC
-      # sigma
-    ),
-    label = list(
-      r.squared = "R²",
-      adj.r.squared = "Adj.R²",
-      statistic = "F",
-      p.value = "p",
-      logLik = "log-L",
-      sigma = "\U03C3",
-      AIC = "AIC"
-    )
-  ) %>%
-  modify_caption("**Table 2: Model Coefficients<br>(fit statistics)**")
-
-mlr_reduced_summary
+###
+### name  : דוד בורג
+### ID    : [מספר תעודת זהות]
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: סרגרסיה לינארית 05   
+### date  : 03/07/2025
+###  
+###  נלמד לעשות רגסיה מרובה
+###
+### source: https://bookdown.org/drki_musa/dataanalysis/linear-regression.html#multiple-linear-regression
+###         https://github.com/drkamarul/multivar_data_analysis/tree/main/data
+
+
+## Reset memory
+```{r setup-packages, include = FALSE}
+rm(list = ls(all.names = TRUE))
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
+gc()
+dev.off()
+```
+
+
+
+## Load required packages
+```{r setup-packages, include = FALSE}
+options("install.lock" = FALSE)
+if (!require("pacman")) install.packages("pacman")
+library(pacman)
+pacman::p_load(
+  rio,                    # File import
+  tidyverse,              # data management + ggplot2 graphics,
+  broom,                  # For tidying model outputs
+  dplyr,                  # For data manipulation
+  gt,                     # Nice beuatiful tables
+  nortest,                # Anderson-Darling test for normality
+  ggplot2,                # For creating plots
+  DescTools,              # For statistical functions like skewness and kurtosis
+  psych,                  # to get a table of all summary statistics
+  janitor,                # adding totals and percents to tables
+  car,                    # For Levene's test and ANOVA
+  gtsummary,              # summary statistics and tests
+  corrr,                  # correlation
+  lmtest,                 # linear regression tets
+  parameters,             # calculate standardized parameters/coefficients
+  GGally                  # to make a correlation matrix
+              )
+# Install/load flexplot
+if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
+```
+
+## Access the data
+```{r read-data, echo = TRUE}
+# file <- "./EpiData/coronary.dta"     # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/coronary.dta"
+df2 <- import(file, trust = TRUE)
+summary(df2)
+glimpse(df2)
+```
+
+## Clean daaa
+```{r clean-data, echo = TRUE}
+# Mutate id to factor
+df2 <- df2 %>%
+  mutate(id = as.factor(id))
+
+# Mutate cad to factor
+df2 <- df2 %>%
+  mutate(cad = as.factor(cad))
+
+# Mutate gender column from 1, 2 to "F", "M"
+df2 <- df2 %>%
+  mutate(gender = case_when(
+    gender == 1 ~ "F",
+    gender == 2 ~ "M",
+    TRUE ~ as.character(gender) # Preserve other values (e.g., NA)
+  ))
+
+# Mutate race column from 1, 2,3  to "W", "B", "J"
+df2 <- df2 %>%
+  mutate(race = case_when(
+    race == 1 ~ "W",
+    race == 2 ~ "B",
+    race == 3 ~ "J",
+    TRUE ~ as.character(gender) # Preserve other values (e.g., NA)
+  ))
+
+glimpse(df2)
+```
+
+# Multi-variable regression with lm
+```{r nmulti-reg, echo = TRUE}
+# Do a reduced linear regression (SLR) with chol as the dependent variable
+mlr <- lm(chol ~ sbp + dbp + bmi + age + race, data = df2)
+tidy(mlr, conf.int = TRUE)
+```
+
+## Present multi-regression reults in a nice table
+```{r reduced-multi-regression, echo = TRUE}
+# Show results
+mlr_summary <- tbl_regression(
+  mlr,
+  intercept = TRUE,
+  estimate_fun = ~ round(.x, 2)
+) %>%
+  add_glance_source_note(
+    include = c(r.squared, adj.r.squared, AIC, p.value)
+  )
+mlr_summary
+```
+
+## Correlation matrix
+```{r corr-matrix, echo = TRUE}
+# Display the correlation matrix for all numerical variables
+ggcorr(df2, label = TRUE)
+```
+
+## Perform a reducedr multiple linear regression
+```{r reduced-multi-reg, echo = TRUE}
+mlr_reduced <- lm(chol ~ dbp + age, data = df2)
+tidy(mlr_reduced, conf.int = TRUE)
+```
+
+## Test for normal distribution of residuals
+```{r residuals, echo = TRUE}
+# Residuals analysis
+flexplot(chol ~ dbp | age + bmi, data = df2, method = "lm", ghost.line = "red")
+
+# Analyze the residuals
+visualize(mlr_reduced)
+
+# Q-Q plot
+residuals_mlr <- residuals(mlr_reduced) # Get nmodel residuals
+qqnorm(residuals_mlr)
+qqline(residuals_mlr, col = "red")
+# visualize(chol ~ dbp + bmi + age, data = df2, plot = "qq")    # use flexplot here
+
+# Kolmogorov-Smirnov test  (Ho: residuals are normal)
+ks_test_result <- ks.test(residuals_mlr, "pnorm", mean = mean(residuals_mlr), sd = sd(residuals_mlr))
+ks_test_result
+```
+
+## Test for homoscedacity
+```{r homoscedacity, echo = TRUE}
+# Run Breusch-Pagan test  (Ho: no heteroscedacity)
+bp_test <- bptest(mlr_reduced)
+bp_test
+```
+
+## Test for autocorrelation
+```{r autocorrelation , echo = TRUE}
+# Run Durbin-Watson test  (Ho: no autocorelation)
+dw_result <- dwtest(mlr_reduced)
+dw_result
+
+# Plot ACF residuals
+acf(residuals(mlr_reduced), main = "ACF of Residuals")
+```
+
+## Test for multicolinearity
+```{r VIF, echo = TRUE}
+# Run VIF colinearity test  (no multicolinearity == VIF ≈ 1)
+mlr_vif <- vif(mlr_reduced)
+mlr_vif
+```
+
+
+## Model comparison
+```{r mdodel-comparison, echo = TRUE}
+# Run VIF colinearity test  (no multicolinearity == VIF ≈ 1)
+model.comparison(mlr, mlr_reduced)
+```
+
+## Show reduced multiple linear regression summary table
+```{r mlr-summary, echo = TRUE}
+mlr_reduced_summary <- tbl_regression(mlr_reduced,
+  # label = list(dbp = "Diastolic Blood Pressure"),
+  conf.int = TRUE,
+  show_single_row = "dbp",
+  intercept = TRUE
+) %>%
+  modify_header(
+    label = "**coeff**",
+    estimate = "**beta**",
+    std.error = "**SE**",
+    statistic = "**F**",
+    p.value = "**p**",
+    conf.low = "**CI<sub>95%**"
+  ) %>%
+  # modify_table_body(~ .x %>% filter(label != "Abbreviations")) %>%
+  add_glance_source_note(
+    include = c(
+      r.squared,
+      adj.r.squared,
+      statistic,
+      p.value,
+      # logLik,
+      AIC
+      # sigma
+    ),
+    label = list(
+      r.squared = "R²",
+      adj.r.squared = "Adj.R²",
+      statistic = "F",
+      p.value = "p",
+      logLik = "log-L",
+      sigma = "\U03C3",
+      AIC = "AIC"
+    )
+  ) %>%
+  modify_caption("**Table 2: Model Coefficients<br>(fit statistics)**")
+
+mlr_reduced_summary
 ```
