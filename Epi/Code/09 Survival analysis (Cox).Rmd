@@ -1,6 +1,6 @@
 ###
-### name: דוד בורג
-### ID  : [מספר תעודת זהות]
+### name  : דוד בורג
+### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: 09 רגרסיית קוקס   Cox regression
 ### date  : 15/06/2025
@@ -118,6 +118,9 @@ hz_combined_tbl
 
 
 ### -----------------------------------------
+
+
+
 ### Cox multi-regression
 
 ## Do a multi-variate Cox regression
@@ -180,3 +183,34 @@ cox_mreg_ia <-
         data = df7)
 
 cox_mreg_ia_tbl <- tbl_regression(cox_mreg_ia)
+```
+
+
+
+
+
+
+### -------------------------------------------------
+
+
+
+
+### שאלות לתרגול עצמי
+
+## שאלה 1
+```{r question-1, echo = TRUE}
+# 
+
+```
+
+## שאלה 2
+```{r question-2, echo = TRUE}
+# 
+
+```
+
+## שאלה 3
+```{r question-3, echo = TRUE}
+# 
+
+```

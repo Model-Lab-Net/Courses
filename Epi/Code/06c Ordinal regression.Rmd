@@ -1,6 +1,6 @@
 ###
-### name: דוד בורג
-### ID  : [מספר תעודת זהות]
+### name  : דוד בורג
+### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה אורדינלית 06   
 ### date  : 03/07/2025
@@ -241,4 +241,33 @@ ggplot(preds_systolic, aes(x = x, y = predicted, color = response.level)) +
     fill = "Outcome"
   ) +
   theme_minimal()
+```
+
+
+
+
+
+### -------------------------------------------------
+
+
+
+
+### שאלות לתרגול עצמי
+
+## שאלה 1
+```{r question-1, echo = TRUE}
+# 
+
+```
+
+## שאלה 2
+```{r question-2, echo = TRUE}
+# 
+
+```
+
+## שאלה 3
+```{r question-3, echo = TRUE}
+# 
+
 ```

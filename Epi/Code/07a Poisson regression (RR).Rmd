@@ -1,6 +1,6 @@
 ###
-### name: דוד בורג
-### ID  : [מספר תעודת זהות]
+### name  : דוד בורג
+### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: סיכון יחסי 07  RR 
 ### date  : 03/07/2025
@@ -140,6 +140,34 @@ round(summary(mpr)$coefficients, 2)
 predict <- predict(mpr_ia, list(res_inf = "yes", ghq12 = 8),type = "response")
 ```
 
+
+
+
+
+### -------------------------------------------------
+
+
+
+
+### שאלות לתרגול עצמי
+
+## שאלה 1
+```{r question-1, echo = TRUE}
+# 
+
+```
+
+## שאלה 2
+```{r question-2, echo = TRUE}
+# 
+
+```
+
+## שאלה 3
+```{r question-3, echo = TRUE}
+# 
+
+```
 
 
 

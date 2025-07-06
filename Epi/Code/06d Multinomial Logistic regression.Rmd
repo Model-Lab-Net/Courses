@@ -1,6 +1,6 @@
 ###
-### name: דוד בורג
-### ID  : [מספר תעודת זהות]
+### name  : דוד בורג
+### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה לוגיסטית 06   
 ### date  : 03/07/2025
@@ -63,8 +63,8 @@ summary(df4)
 glimpse(df4)  # get an overview of the data
 ```
 
-## Fix the data
-```{r fix-data, echo=FALSE}
+## Clean the data
+```{r clean-data, echo = TRUE}
 # change all chr variables to factor
 df4 <- df4 %>% 
     mutate_if(is.character, as.factor)
@@ -115,7 +115,7 @@ summary_stats
 ```
 
 ## Multiple Logistic regression
-```{r logistic_regression, echo=FALSE}
+```{r logistic_regression, echo = TRUE}
 # Perform logistic regression
 mlog_reg <- glm(cat_fbs ~ totchol + hpt + weight , data = df4, family = binomial(link = 'logit'))
 #mlog_reg <- vglm(cat_fbs ~ totchol + hpt + weight, multinomial, data = df4, model = TRUE)
@@ -123,7 +123,7 @@ summary(mlog_reg)
 ```
 
 ## Model performance measures
-```{r model-performance, echo=FALSE}
+```{r model-performance, echo = TRUE}
 mlog_reg_perf <- vglm(cat_fbs ~ totchol + hpt + weight, multinomial, data = df4, model = TRUE)
 # Get -2LL and AIC
 minus_2LL_mlog_reg <- -2 * as.numeric(logLik(mlog_reg_perf))
@@ -169,14 +169,14 @@ combined_tbl_mlog_reg <- tbl_merge(
 
 
 ## Multiple Logistic regression /w inteaction term
-```{r logistic_regression, echo=FALSE}
+```{r logistic_regression, echo = TRUE}
 # Perform logistic regression
 mlog_reg_ia <- glm(cat_fbs ~ totchol + hpt + weight + totchol*weight, data = df4, family = binomial(link = 'logit'))
 summary(mlog_reg_ia)
 ```
 
 ## Model performance measures
-```{r model-performance, echo=FALSE}
+```{r model-performance, echo = TRUE}
 # Get -2LL and AIC
 mlog_reg_ia_perf <- vglm(cat_fbs ~ totchol + hpt + weight + totchol*weight , multinomial, data = df4, model = TRUE)
 minus_2LL_mlog_reg_ia <- -2 * as.numeric(logLik(mlog_reg_ia_perf))
@@ -260,8 +260,37 @@ cm_metrics_df %>%
 ```
 
 ## Hosmer-Lemeshow test for GOF
-```{r , echo=FALSE}
+```{r hosmer-lemeshow, echo = TRUE}
 # Use ResourceSelection to get the Hosmer–Lemeshow test result
 hl_test <- hoslem.test(df4$cat_fbs, df4$predicted_prob_multi, g = 10)
 hl_test
+```
+
+
+
+
+
+### -------------------------------------------------
+
+
+
+
+### שאלות לתרגול עצמי
+
+## שאלה 1
+```{r question-1, echo = TRUE}
+# 
+
+```
+
+## שאלה 2
+```{r question-2, echo = TRUE}
+# 
+
+```
+
+## שאלה 3
+```{r question-3, echo = TRUE}
+# 
+
 ```
