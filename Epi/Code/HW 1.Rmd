@@ -44,7 +44,7 @@ if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = 
 
 # Get data
 ```{r load data, include false}
-# file <- "./EpiData/HWdata_1.zip"     # 👈 use this if the file is on your computer
+# file <- "HWdata_1.zip"     # 👈 use this if the file is on your computer
 file <- "https://storage.googleapis.com/kaggle-data-sets/12603/17232/bundle/archive.zip?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=gcp-kaggle-com%40kaggle-161607.iam.gserviceaccount.com%2F20250703%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20250703T211254Z&X-Goog-Expires=259200&X-Goog-SignedHeaders=host&X-Goog-Signature=b4efa39fcdb3dcfa6d8b9e3d1fd94e83790903126c0e111dd7bd74d8ee48648860fa14c543089c883a11d353a6ea5b167b3843d410de1c8bff936d8f4c3bed51155aae7239ba7ddb3e5da2ca25a0a136482a40560dd2e7f1bb518f2fc8a7ffbe4828eb8acb87c03ee422ad01eb2a77294395efd1756649053330f87ab9965a1d85c1bcda6012b2c8e0967dea71d76d2cfb4ebfa9ab5de540e17661142cf6172e273ba9abd7762fd54d72025c7a9e3a09a9895c8047a0be603c2cff0fd33f73eb7c1171904e0d64da1ae0debb0efabae863cb5a1d80c2536feda0329b5ee9013bf02fec7daea25831cfc59426f7a3a8b1cf2151ecc8358d8c84eeb867f76c0381"
 df <- import(file, trust  = TRUE)
 
