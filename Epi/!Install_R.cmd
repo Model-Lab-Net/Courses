@@ -80,7 +80,7 @@ echo     ],
 echo     "r.rterm.windows": "C:\\RVSCode\\R\\R-%R_VERSION%\\bin\\R.exe",
 echo     "r.bracketedPaste": true,
 echo     "r.sessionWatcher": true,
-echo     "editor.wordSeparators": "`~!@#%%$^&*()-=+[{]}\\|;:'^\",<>/?",
+echo     "editor.wordSeparators": "`~!@#$%%^&*()=+[{]}\\|;:'^\",<>/?",
 echo     "r.plot.useHttpgd": true,
 echo     "terminal.integrated.profiles.windows": {
 echo         "R": {
