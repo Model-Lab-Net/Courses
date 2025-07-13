@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: סיכון יחסי 07  RR 
-### date  : 03/07/2025
+### date  : 13/07/2025
 ###  
 ###  quasi רגרסיית פאוסון  
 ###
@@ -13,10 +13,11 @@
 
 ## Reset memory
 ```{r setup-packages, include false}
-rm(list = ls(all.names = TRUE))
-lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
-gc()
-dev.off()
+rm(list = ls(all.names = TRUE))       # 👈 Remove all data objects        👇 Remove packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
+gc()                                  # Remove unused data from memory ("garbage cllection")
+dev.off()                             # Reset the display output of R
+q("no")                               # This will completely shutdown R terminal
 ```
 
 ## Load required packages
@@ -25,7 +26,8 @@ options("install.lock"=FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
-  rio,                    # File import
+  Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
+  rio, here,              # File import and path support
   tidyverse,              # data management + ggplot2 graphics,
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
@@ -36,7 +38,7 @@ pacman::p_load(
   psych,                  # to get a table of all summary statistics
   janitor,                # adding totals and percents to tables
   car,                    # For Levene's test and ANOVA
-  gtsummary,              # summary statistics and tests
+  gtsummary,              # summary statistics and tests in beautiful tables
   corrr,                  # correlation
   lmtest,                 # linear regression tets
   parameters,             # calculate standardized parameters/coefficients
@@ -44,7 +46,7 @@ pacman::p_load(
   skimr,                  # get overview of data
   pROC,                   # For ROC analysis
   performance,            # For model performance metrics
-  MASS,                   # For statistical functions (polr for ordinal regression)ordinal
+  #MASS,                   # For statistical functions (polr for ordinal regression)ordinal
   caret,                  # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
   ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit 
@@ -53,7 +55,7 @@ pacman::p_load(
   epiDisplay,             # For epi data type handling    
             )
 # Install/load flexplot
-if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
+if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
 ```
 
 ## Access the data
@@ -65,6 +67,12 @@ df6 <- import(file, trust  = TRUE)
 summary(df6)
 glimpse(df6)  # get an overview of the data
 ```
+## Clean data
+```{r clean-data, echo = TRUE}
+# Clean up variable names
+df6 <- clean_names(df6)
+names(df6) <- gsub("_", ".", names(df6))
+```
 
 ## Do summary stats
 ```{r read-data, echo=FALSE}
@@ -72,7 +80,7 @@ glimpse(df6)  # get an overview of the data
 epiDisplay::codebook(df6)
 ```
 
-## A simple Poisson regression univariate analysis
+## A simple Poisson regression multivariate analysis
 ```{r read-data, echo=FALSE}
 ## read the data in a file online
 qpr <- glm(attack ~ ., data = df6, family = "quasipoisson")
@@ -84,11 +92,7 @@ tidy(qpr, conf.int = TRUE)
 
 
 ### -------------------------------------------------
-
-
-
-
-### שאלות לתרגול עצמי
+## תרגול-עצמי
 
 ## שאלה 1
 ```{r question-1, echo = TRUE}

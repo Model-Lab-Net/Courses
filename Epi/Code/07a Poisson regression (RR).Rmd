@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: סיכון יחסי 07  RR 
-### date  : 03/07/2025
+### date  : 13/07/2025
 ###  
 ###  counts רגרסיית פאוסון - ספירות
 ###
@@ -13,10 +13,11 @@
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))
-lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
-gc()
-dev.off()
+rm(list = ls(all.names = TRUE))       # 👈 Remove all data objects        👇 Remove packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
+gc()                                  # Remove unused data from memory ("garbage cllection")
+dev.off()                             # Reset the display output of R
+q("no")                               # This will completely shutdown R terminal
 ```
 
 ## Load required packages
@@ -25,7 +26,8 @@ options("install.lock"=FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
-  rio,                    # File import
+  Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
+  rio, here,              # File import and path support
   tidyverse,              # data management + ggplot2 graphics,
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
@@ -36,7 +38,7 @@ pacman::p_load(
   psych,                  # to get a table of all summary statistics
   janitor,                # adding totals and percents to tables
   car,                    # For Levene's test and ANOVA
-  gtsummary,              # summary statistics and tests
+  gtsummary,              # summary statistics and tests in beautiful tables
   corrr,                  # correlation
   lmtest,                 # linear regression tets
   parameters,             # calculate standardized parameters/coefficients
@@ -44,16 +46,17 @@ pacman::p_load(
   skimr,                  # get overview of data
   pROC,                   # For ROC analysis
   performance,            # For model performance metrics
-  MASS,                   # For statistical functions (polr for ordinal regression)ordinal
+  #MASS,                   # For statistical functions (polr for ordinal regression)ordinal
   ordinal,                # For ordinal regression statistical functions 
   caret,                  # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
+  generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 
   ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit 
   VGAM,                   # for multinomial logistic regression
   epiDisplay,             # For epi data type handling    
             )
 # Install/load flexplot
-if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
+if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
 ```
 
 ## Access the data
@@ -63,7 +66,14 @@ if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = 
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/asthma.csv"
 df6 <- import(file, trust  = TRUE)
 summary(df6)
-glimpse(df6)  # get an overview of the data
+glimpse(df6)                        # get an overview of the data
+```
+
+## Clean data
+```{r clean-data, echo = TRUE}
+# Clean up variable names
+df6 <- clean_names(df6)
+names(df6) <- gsub("_", ".", names(df6))
 ```
 
 ## Do summary stats
@@ -88,35 +98,27 @@ flexplot(attack ~ ghq12, data = df6, method = "poisson", ghost.line = "red", jit
 ## Poisson regression multivariate analysis
 ```{r poisson-multi-reg, echo = TRUE}
 # Do a multivariate Poisson regression - attack vs everything
-mpr <- glm(ghq12 ~ attack + res_inf, data = df6, family = "poisson")
+mpr <- glm(ghq12 ~ attack + res.inf, data = df6, family = "poisson")
 summary(spr3)
-flexplot(attack ~ ghq12 | res_inf, data = df6, method = "poisson", ghost.line = "red", jitter=c(0,0.05))
-```
-
-## Multiple Poisson regression with interaction
-```{r poisson-multi-reg-ia, echo = TRUE}
-# Do a multivariate Poisson regression /w interaction term
-mpr_ia = glm(attack ~ ghq12*res_inf, data = df6, family = "poisson")
-summary(mpr_ia)
-flexplot(attack ~ ghq12:res_inf, data = df6, method = "poisson", ghost.line = "red", jitter=c(0,0.05))
+flexplot(attack ~ ghq12 | res.inf, data = df6, method = "poisson", ghost.line = "red", jitter=c(0,0.05))
 ```
 
 ## Model comparison
 ```{r model-comparison, echo = TRUE}
 # Uaing just flexplot
-model.comparison(spr1, mpr_ia)
-summary(mpr_ia)
+model.comparison(spr1, mpr)
+summary(mpr)
 
-visualize(mpr_ia)
-flexplot(attack ~ ghq12:res_inf, data = df6, method = "poisson", ghost.line = "red", jitter=c(0,0.05))
+visualize(mpr)
+flexplot(attack ~ ghq12 + res.inf, data = df6, method = "poisson", ghost.line = "red", jitter=c(0,0.05))
 ```
 
 ## Model fit and performance
 ```{r model-comparison, echo = TRUE}
-estimates(mpr_ia)
+estimates(mpr)
 
 # Uaing just flexplot
-visualize(mpr_ia)
+visualize(mpr)
 
 # Scaled Pearson chi-square statistic
 
@@ -127,17 +129,17 @@ epiDisplay::poisgof(mpr)
 AIC(mpr)
 ```
 
-## Show summary
-```{r read-data, echo = TRUE}
+## Show model summary
+```{r show-summary, echo = TRUE}
 # summary of Poisson model
-tbl_regression(mpr_ia, exponentiate = TRUE)
+tbl_regression(mpr, exponentiate = TRUE)
 round(summary(mpr)$coefficients, 2)
 ```
 
-## Model 
-```{r read-data, echo = TRUE}
+## Predicr 
+```{r predict-data, echo = TRUE}
 # expected number of asthmatic attacks per year for a patient with recurrent respiratory infection and GHQ-12 score of 8
-predict <- predict(mpr_ia, list(res_inf = "yes", ghq12 = 8),type = "response")
+predict <- predict(mpr, list(res.inf = "yes", ghq12 = 8),type = "response")
 ```
 
 
@@ -145,11 +147,7 @@ predict <- predict(mpr_ia, list(res_inf = "yes", ghq12 = 8),type = "response")
 
 
 ### -------------------------------------------------
-
-
-
-
-### שאלות לתרגול עצמי
+## תרגול-עצמי
 
 ## שאלה 1
 ```{r question-1, echo = TRUE}

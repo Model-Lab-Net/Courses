@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: סטטיסטיקה תאורית וניתות בסיסי 02-03   
-### date  : 03/07/2025
+### date  : 13/07/2025
 ###  
 ###  נלמד לבצע ניתוח סטטיסטי פשוט
 ###
@@ -13,11 +13,13 @@
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))
-lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
-gc()
-dev.off()
+rm(list = ls(all.names = TRUE))       # 👈 Remove all data objects        👇 Remove packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
+gc()                                  # Remove unused data from memory ("garbage cllection")
+dev.off()                             # Reset the display output of R
+q("no")                               # This will completely shutdown R terminal
 ```
+
 
 ## Load required packages
 ```{r load-packages, include = FALSE}  
@@ -25,8 +27,9 @@ options("install.lock" = FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
-  rio,                    # File import
-  tidyverse,              # data management + ggplot2 graphics,
+  Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
+  rio, here,              # File import and path support
+  tidyverse,              # Data management
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
   gt,                     # Nice beuatiful tables
@@ -89,11 +92,17 @@ summary_stats_tbl # Display the table
 desc_result <- Desc(df1[variable], plotit = TRUE)
 desc_result
 
+mean_var1 <- mean(df$var.1, na.rm = TRUE)
+median_var1 <- median(df$var.1, na.rm = TRUE)
+
+sd_var1 <- mean(df$var.1, na.rm = TRUE)
+iqr_var1 <- median(df$var.1, na.rm = TRUE)
+
 mean1 <- Mean(df1[[variable]], na.rm = TRUE)
 sd1 <- sd(df1[[variable]], na.rm = TRUE)
 CI1 <- MeanCI(df1[[variable]], na.rm = TRUE)
-lower_meanci_1 <- as.numeric((CI1["lwr.ci"]))
-upper_meanci_1 <- as.numeric((CI1["upr.ci"]))
+   lower_meanci_1 <- as.numeric((CI1["lwr.ci"]))
+   upper_meanci_1 <- as.numeric((CI1["upr.ci"]))
 mode1 <- as.numeric(Mode(df1[[variable]], na.rm = TRUE))
 median1 <- Median(df1[[variable]], na.rm = TRUE)
 q25_1 <- as.numeric(Quantile(df1[[variable]], probs = 0.25, na.rm = TRUE))
@@ -124,7 +133,7 @@ summary_stats # Show the table
 
 ## Pie Chart 
 ```{r pie, echo = TRUE}
-pie_var <- "age_cat" # Change this to the categorial variable
+pie_var <- "age_cat"                                   # Change this to the categorial variable
 ggplot(df1, aes(x = "", fill = .data[[pie_var]])) +
   geom_bar(width = 1, stat = "count") +
   coord_polar(theta = "y") +
@@ -155,9 +164,11 @@ x_var <- "cough" # Change this to a categorial variable
 y_var <- "temp" # Change this to a numerical variable
 ggplot(df1, aes(x = get(x_var), y = get(y_var), fill = get(x_var))) +
   geom_boxplot(outlier.shape = NA) +
-  geom_jitter(width = 0.2, alpha = 0.25, size = 0.25, color = "grey") +
+  geom_jitter(width = 0.2, alpha = 0.25, size = 0.25, color = "darkgrey") +
   theme_minimal() +
-  scale_fill_manual(values = c("yes" = "lightblue", "no" = "lightgreen", "unknown" = "lightgray")) +
+  scale_fill_manual(values = c("yes" = "lightblue",
+                   "no" = "lightgreen", "unknown" = "lightgray")
+                   ) +
   labs(
     title = "Boxplot of Temperature by Cough Status",
     x = "Cough",
@@ -171,103 +182,22 @@ ggplot(df1, aes(x = get(x_var), y = get(y_var), fill = get(x_var))) +
 
 
 ### -------------------------------------------------
+## תרגול-עצמי
 
-
-
-
-### Question1
-
-## 
-```{r question1}
-
-library(ggplot2)
-
-
-ggplot(data, aes(x = height0, y = weight0)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE) +  # Adding the trend line with linear model
-  labs(title = "Scatter Plot of Weight vs Height",
-       x = " Height (cm)",
-       y = "Weight (kg)")
-
-
-
-##pearson
-test_result <- cor.test(data$weight0, data$height0, method = "pearson", use = "complete.obs")
-print(test_result)
-
-
-
-#spearman
-spearman_test_result <- cor.test(data$weight0, data$height0, method = "spearman", use = "complete.obs")
-
-# Print the test result
-print(spearman_test_result)
-```
-##chi square
-```{r pressure, echo=FALSE}
-
- 
-data$pacifier_dich <- factor(data$pacifier_dich, levels = c(0, 1), labels = c("no", "yes"))
-data$newborn_gender <- factor(data$newborn_gender, levels = c(0, 1), labels = c("male", "female"))
-# Create a contingency table
-table_data <- table(data$pacifier_dich, data$newborn_gender)
-table_data
-
-# Calculate and print the percentage table
-percent_table <- prop.table(table_data, margin = 1) * 100  # Row percentages
-print(percent_table)
-print(column_percentages)
-column_percentages <- prop.table(table_data, margin = 2) * 100 #column percentages
-print(column_percentages)
-
-# Perform the chi-square test
-chi_test <- chisq.test(table_data)
-
-# Print the results of the chi-square test
-print(chi_test)
-
-
-expected_counts <- chi_test$expected
-expected_counts
-count_violations <- sum(expected_counts < 5)
-total_counts <- length(expected_counts)
-percentage_violations <- (count_violations / total_counts) * 100
-percentage_violations
-
-
-cat("Percentage of expected counts less than 5:", percentage_violations, "%\n")
-if (percentage_violations > 20) {
-  cat("Warning: More than 20% of expected counts are less than 5, which violates chi-square test assumptions.\n")
-}
+## שאלה 1
+```{r question-1, echo = TRUE}
+# 
 
 ```
 
+## שאלה 2
+```{r question-2, echo = TRUE}
+# 
 
-## OR and RR for 2*2
-```{r question1}
-install.packages("epitools")
-library(epitools)
-
-# Create a contingency table
-contingency_table <- table(data$newborn_gender ,data$pacifier_dich)
-
-# Compute Odds Ratio (OR) and Relative Risk (RR)
-OR_result <- epitab(contingency_table, method = "oddsratio")
-print(OR_result)
-
-RR_result <- epitab(contingency_table, method = "riskratio")
-print(RR_result)
 ```
 
+## שאלה 3
+```{r question-3, echo = TRUE}
+# 
 
-##fisher
-```{r pressure, echo=FALSE}
-contingency_table <- table(data$newborn_gender, data$pacifier_dich)
-
-# Perform Fisher's exact test
-fisher_result <- fisher.test(contingency_table)
-
-# Print the result
-print(fisher_result)
 ```

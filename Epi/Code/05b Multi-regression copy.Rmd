@@ -28,8 +28,7 @@ options("install.lock" = FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
-  Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
-  rio, here,              # File import and path support
+  rio,                    # File import
   tidyverse,              # data management + ggplot2 graphics,
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
@@ -47,7 +46,7 @@ pacman::p_load(
   GGally                  # to make a correlation matrix
               )
 # Install/load flexplot
-if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
+if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
 ```
 
 ## Access the data
@@ -61,6 +60,10 @@ glimpse(df2)
 
 ## Clean daaa
 ```{r clean-data, echo = TRUE}
+# Mutate id to factor
+df2 <- df2 %>%
+  mutate(id = as.factor(id))
+
 # Mutate cad to factor
 df2 <- df2 %>%
   mutate(cad = as.factor(cad))

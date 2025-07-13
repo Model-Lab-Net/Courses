@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: הישרדות 08   Survival
-### date  : 03/07/2025
+### date  : 13/07/2025
 ###  
 ###  נלמד לבצע ניתוח שרידות 
 ###
@@ -12,10 +12,11 @@
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))
-lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
-gc()
-dev.off()
+rm(list = ls(all.names = TRUE))       # 👈 Remove all data objects        👇 Remove packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
+gc()                                  # Remove unused data from memory ("garbage cllection")
+dev.off()                             # Reset the display output of R
+q("no")                               # This will completely shutdown R terminal
 ```
 
 ## Load required packages
@@ -24,7 +25,8 @@ options("install.lock"=FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
-  rio,                    # File import
+  Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
+  rio, here,              # File import and path support
   tidyverse,              # data management + ggplot2 graphics,
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
@@ -35,7 +37,7 @@ pacman::p_load(
   psych,                  # to get a table of all summary statistics
   janitor,                # adding totals and percents to tables
   car,                    # For Levene's test and ANOVA
-  gtsummary,              # summary statistics and tests
+  gtsummary,              # summary statistics and tests in beautiful tables
   corrr,                  # correlation
   lmtest,                 # linear regression tets
   parameters,             # calculate standardized parameters/coefficients
@@ -43,18 +45,19 @@ pacman::p_load(
   skimr,                  # get overview of data
   pROC,                   # For ROC analysis
   performance,            # For model performance metrics
-  MASS,                   # For statistical functions (polr for ordinal regression)ordinal
+   #MASS,                   # For statistical functions (polr for ordinal regression)ordinal
+  ordinal,                # For ordinal regression statistical functions 
   caret,                  # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
+  generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 
   ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit 
-  ordinal,                # For ordinal regression statistical functions 
   VGAM,                   # for multinomial logistic regression
   epiDisplay,             # For epi data type handling    
   survival,               # For survival analysis
   survminer               # For survival analysis and visualization
            )
 # Install/load flexplot
-if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
+if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
 ```
 
 ## Access the data
@@ -69,6 +72,10 @@ glimpse(df8)
 
 ## Clean the data
 ```{r clean-data, echo = TRUE}
+# Clean up variable names
+df8 <- clean_names(df8)
+names(df8) <- gsub("_", ".", names(df8))
+
 # convert the variable doa and variable doa to a more valid format (date format)
 df8 <- 
   df8 %>%
@@ -90,7 +97,7 @@ df8 %>%
 
 df8 %>%
   tbl_summary(
-    by = stroke_type,
+    by = stroke.type,
     include = -c(doa, dod)  # exclude these two date variables
   ) %>%
   as_gt()
@@ -143,7 +150,7 @@ summary(KM_all)
 df8 <- df8 %>%
   mutate(event = ifelse(status == "dead", 1, 0))
 
-# Fit Kaplan-Meier model stratified by stroke_type (example)
+# Fit Kaplan-Meier model stratified by stroke.type (example)
 km_fit <- survfit(Surv(time2, event) ~ 1, data = df8)
 
 # Extract survival summary at intervals of 10 units
@@ -194,20 +201,14 @@ KM_all_plot
 ```
 
 
-
-
-
 ### ----------------------------------------------------------
-
-
-
 
 
 ## Do a Kaplan-Meyer survival analayis - stratified
 ```{r km-surv-strat, echo = TRUE}
 # estimate the survival probabilities for stroke type
 KM_str_type <- survfit(Surv(time = time2, 
-                             event = status == "dead" ) ~ stroke_type, 
+                             event = status == "dead" ) ~ stroke.type, 
                         data = df8)
 summary(KM_str_type)
 ```
@@ -220,6 +221,7 @@ KM_str_plot <- ggsurvplot(KM_str_type,
            risk.table = TRUE, 
            linetype = c(1,4),
            tables.height = 0.3,
+           conf.int = 0.95,
            pval = TRUE)
 
 KM_str_plot
@@ -229,8 +231,8 @@ KM_str_plot
 ## Life table
 ```{r life-table, echo = TRUE}
 # Convert status to int
-# Fit Kaplan-Meier model stratified by stroke_type (example)
-km_fit_strat <- survfit(Surv(time2, event) ~ stroke_type, data = df8)
+# Fit Kaplan-Meier model stratified by stroke.type (example)
+km_fit_strat <- survfit(Surv(time2, event) ~ stroke.type, data = df8)
 
 # Extract survival summary at intervals of 10 units
 km_summary_strat <- summary(km_fit_strat, times = seq(0, max(df8$time2), by = 10))
@@ -275,7 +277,7 @@ km_df %>%
 ```{r read-data, echo = TRUE}
 # Test if survival estimates are  different between levels/groups
 log_rank_stroke <- survdiff(Surv(time = time2, 
-              event = status == "dead") ~ stroke_type, 
+              event = status == "dead") ~ stroke.type, 
          data = df8,
          rho = 0)
 
@@ -294,7 +296,7 @@ log_rank_diabetes
 ```{r read-data, echo = TRUE}
 # Test if survival estimates are different between levels/groups
 log_rank_stroke <- survdiff(Surv(time = time2, 
-              event = status == "dead") ~ stroke_type, 
+              event = status == "dead") ~ stroke.type, 
          data = df8,
          rho = 1)
 
@@ -314,11 +316,7 @@ log_rank_dm
 
 
 ### -------------------------------------------------
-
-
-
-
-### שאלות לתרגול עצמי
+## תרגול-עצמי
 
 ## שאלה 1
 ```{r question-1, echo = TRUE}

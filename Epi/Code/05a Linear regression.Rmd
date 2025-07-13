@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה לינארית 05   
-### date  : 03/07/2025
+### date  : 13/07/2025
 ###  
 ### נלמד לעשות רגרסיה לינארית פשוטה
 ###
@@ -13,10 +13,11 @@
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))
-lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
-gc()
-dev.off()
+rm(list = ls(all.names = TRUE))       # 👈 Remove all data objects        👇 Remove packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
+gc()                                  # Remove unused data from memory ("garbage cllection")
+dev.off()                             # Reset the display output of R
+q("no")                               # This will completely shutdown R terminal
 ```
 
 ## Load required packages
@@ -25,7 +26,8 @@ options("install.lock" = FALSE)
 install.packages("pacman")
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
-  rio,                    # File import
+  Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
+  rio, here,              # File import and path support
   tidyverse,              # data management + ggplot2 graphics,
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
@@ -36,13 +38,13 @@ pacman::p_load(
   psych,                  # to get a table of all summary statistics
   janitor,                # adding totals and percents to tables
   car,                    # For Levene's test and ANOVA
-  gtsummary,              # summary statistics and tests
+  gtsummary,              # summary statistics and tests in beautiful tables
   corrr,                  # correlation matrix
   lmtest,                 # do linear regression tests
   parameters              # get standardized parameters/coefficients
               )
 # Install/load flexplot
-if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
+if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
 ```
 
 ## Access the data
@@ -204,10 +206,6 @@ ks_test_result
 
 ## Test for homoscedacity
 ```{r homoscedacity, echo = TRUE}
-# Run Breusch-Pagan test  (Ho: no heteroscedacity)
-bp_test <- bptest(slr)
-bp_test
-
 # Plot Residuals vs. Fitted Values Plot
 # (homoscedacity = scattered randomly around the horizontal line)
 # (heteroscedacity = Patterns like a funnel shape (wider spread at higher/lower fitted values), curves, or systematic trends)
@@ -217,16 +215,20 @@ plot(slr$fitted.values, residuals(slr),
   ylab = "Residuals"
 )
 abline(h = 0, col = "red", lty = 2) # Add horizontal line at y = 0
+
+# Run Breusch-Pagan test  (Ho: no heteroscedacity)
+bp_test <- bptest(slr)
+bp_test
 ```
 
 ## Test for autocorrelation 
 ```{r autocorrelation , echo = TRUE}
+# Plot ACF residuals
+acf(residuals(slr), main = "ACF of Residuals")
+
 # Run Durbin-Watson test  (Ho: no autocorelation)
 dw_result <- dwtest(slr)
 dw_result
-
-# Plot ACF residuals
-acf(residuals(slr), main = "ACF of Residuals")
 ```
 
 ## Calculate the standaradized parameters
@@ -237,30 +239,24 @@ model_parameters(slr, standardize = "refit")
 
 
 
-### ------------------------------------
 
+### -------------------------------------------------
+## תרגול-עצמי
 
+## שאלה 1
+```{r question-1, echo = TRUE}
+# 
 
-
-## Question 2
-```{r Q2, include=FALSE}
-model2 <- lm(weight1 ~ newborn_gender, data = data)
-
-summary_model2 <- summary(model2)
-summary_model2
 ```
 
+## שאלה 2
+```{r question-2, echo = TRUE}
+# 
 
-## Question 3
-```{r Q3, include=FALSE}
-install.packages("lm.beta")
-library(lm.beta)
+```
 
-### Pearson coefficient
-test2 <- cor.test(data$height4, data$newborn_gender, method = "spearman", use = "complete.obs")
-test3 <- cor.test(data$height4, data$mother_weight, method = "spearman", use = "complete.obs")
-test4 <- cor.test(data$mother_weight, data$newborn_gender, method = "spearman", use = "complete.obs")
-test2
-test3
-test4
+## שאלה 3
+```{r question-3, echo = TRUE}
+# 
+
 ```

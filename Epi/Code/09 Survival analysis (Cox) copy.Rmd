@@ -94,7 +94,6 @@ cox_reg <-
   coxph(Surv(time = time2, 
              event = status == 'dead') ~ stroke.type,
                      data = df7)
-summary(cox_reg)
 ```
 
 ## Calculate Hazard ratios and display
@@ -127,33 +126,19 @@ hz_combined_tbl
 
 ## Cox hazard plot
 ```{r cox-plot, echo = TRUE}
-# Create a newdata frame with one row per stroke.type level
-newdata <- df7 %>%
-  distinct(stroke.type) %>%
-  arrange(stroke.type)
-
-surv_fit <- survfit(cox_reg, newdata = newdata)
-
-ggsurvplot(
-  surv_fit,
-  data = df7,
-  pval = TRUE,
-  legend.title = "Stroke Type",
-  title = "Survival Curves by Stroke Type"
-)
-
 # Fit the survival object
-#surv_obj <- with(df7, Surv(time2, stroke.type == "dead"))
+surv_obj <- with(df7, Surv(time2, stroke.type == "dead"))
 
 # Estimate hazard function
-#hz <- muhaz(df7$time2, df7$status == "dead")
+hz <- muhaz(df7$time2, df7$status == "dead")
 
 # Plot
-#plot(hz, main = "Smoothed Hazard Function", xlab = "Time", ylab = "Hazard")
+plot(hz, main = "Smoothed Hazard Function", xlab = "Time", ylab = "Hazard")
 ```
 
 
 ### -----------------------------------------
+
 
 
 ### Cox multi-regression
