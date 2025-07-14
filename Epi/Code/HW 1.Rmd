@@ -6,8 +6,7 @@
 ### date  : [ תאריך ]
 ###
 ###  רגרסיה לינראית
-###
-### source: https://www.kaggle.com/datasets/kumarajarshi/life-expectancy-who?select=Life+Expectancy+Data.csv
+
 
 # Reset memory
 ```{r setup-packages, include false}
@@ -21,7 +20,8 @@ gc()
 install.packages("pacman")
 library(pacman)
 pacman::p_load(
-  rio,                    # File import
+  Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
+  rio, here,              # File import and path support
   tidyverse,              # data management + ggplot2 graphics,
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
@@ -32,11 +32,11 @@ pacman::p_load(
   psych,                  # to get a table of all summary statistics
   janitor,                # adding totals and percents to tables
   car,                    # For Levene's test and ANOVA
-  gtsummary,              # summary statistics and tests
-  corrr,                  # correlation matrix
-  lmtest,                 # do linear regression tests
-  parameters,             # get standardized parameters/coefficients
-  GGally                  # to make a correlation matrix  
+  gtsummary,              # summary statistics and tests in beautiful tables
+  corrr,                  # correlation
+  lmtest,                 # linear regression tets
+  parameters,             # calculate standardized parameters/coefficients
+  GGally                  # to make a correlation matrix
               )
 # Install/load flexplot
 if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
@@ -44,28 +44,15 @@ if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = 
 
 # Get data
 ```{r load data, include false}
-# file <- "HWdata_1.zip"     # 👈 use this if the file is on your computer
-file <- "https://storage.googleapis.com/kaggle-data-sets/12603/17232/bundle/archive.zip?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=gcp-kaggle-com%40kaggle-161607.iam.gserviceaccount.com%2F20250703%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20250703T211254Z&X-Goog-Expires=259200&X-Goog-SignedHeaders=host&X-Goog-Signature=b4efa39fcdb3dcfa6d8b9e3d1fd94e83790903126c0e111dd7bd74d8ee48648860fa14c543089c883a11d353a6ea5b167b3843d410de1c8bff936d8f4c3bed51155aae7239ba7ddb3e5da2ca25a0a136482a40560dd2e7f1bb518f2fc8a7ffbe4828eb8acb87c03ee422ad01eb2a77294395efd1756649053330f87ab9965a1d85c1bcda6012b2c8e0967dea71d76d2cfb4ebfa9ab5de540e17661142cf6172e273ba9abd7762fd54d72025c7a9e3a09a9895c8047a0be603c2cff0fd33f73eb7c1171904e0d64da1ae0debb0efabae863cb5a1d80c2536feda0329b5ee9013bf02fec7daea25831cfc59426f7a3a8b1cf2151ecc8358d8c84eeb867f76c0381"
+# file <- "./EpiData/HWdata_1.rds"            # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/HWdata_1.rds"
 df <- import(file, trust  = TRUE)
-
-# Sample 500 random rows
-df <- sample_n(df, 500)
 ```
 
 # Check out the variables
 ```{r load data, include false}
-print(df, n=20)
 summary(df)
 glimpse(df)
-```
-
-## Clean data
-```{r cleam-data, echo = TRUE}
-# clean up variable names
-df <- clean_names(df)
-names(df) <- gsub("_", ".", names(df))
-
-df <- rename(df,virus = hiv.aids)
 ```
 
 ## Select numerical variable for analysis
@@ -102,7 +89,7 @@ summary_stats_tbl # Display the table
  model <- lm(life.expectancy ~ alcohol, data = df)
 
 # print the summary of the simple linear regression
-summary(model)
+tidy(model)
 ```
 
 ## Calculate pearson correlation coefficient
@@ -245,4 +232,34 @@ model2_summary
 ## Calculate the standaradized parameters
 ```{r std-parms , echo = TRUE}
 model_parameters(model_2, standardize = "refit")
+```
+
+
+
+
+
+
+
+
+
+
+### source: https://www.kaggle.com/datasets/kumarajarshi/life-expectancy-who?select=Life+Expectancy+Data.csv
+## Clean data
+```{r cleam-data, echo = TRUE}
+# Load the data
+file <- "https://storage.googleapis.com/kaggle-data-sets/12603/17232/bundle/archive.zip?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=gcp-kaggle-com%40kaggle-161607.iam.gserviceaccount.com%2F20250714%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20250714T092436Z&X-Goog-Expires=259200&X-Goog-SignedHeaders=host&X-Goog-Signature=322c53eaad862597c7dbd89acd0cc6c945d9d24dfaf0830dc5414c566802f515ef63b5d49f07eccb7b149bb54de1e264afdad536d0567a7470868899acd8932fc09e12fa6900dfebf139858709b15b0acc374a215a2901e42664fe6088c32232ecad7b769c03f68499b651d3ef2d36cecc18573e0f5e3ec5884f0a1319b2e6be0b2a40b589fbdd337bebe400ef772c672345e0ae7b1a124e1bc948f12cbb34b5e5950eeb2fd96117d1230dba3b98d3595e07d293da13dcf6f2155eb52252057da12ba82301d7784e5845a13603a4d8b719d731e96498c8c703c6803152fe76d19da988429f7db0e4f89ed1d7a45eed2d1af849a09830bfc01a9f4b71955ac601"
+df <- import(file, trust  = TRUE)
+
+# Clean up variable names
+df <- clean_names(df)
+names(df) <- gsub("_", ".", names(df))
+
+# Rename the virus
+df <- rename(df,virus = hiv.aids)
+
+# Check the updated dataset structure
+glimpse(df)
+
+# Save as R data file
+saveRDS(df, here("EpiData", "HWdata_1.rds"))
 ```

@@ -6,8 +6,6 @@
 ### date  : [ תאריך ]
 ###   
 ###  רגרסיה לוגיסטית
-###
-### https://github.com/ThecoderPinar/Diabetes_Health_Prediction_and_Analysis
 
 
 ## Reset memory
@@ -23,18 +21,20 @@ options("install.lock"=FALSE)
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
-  rio,                    # File import
+  Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
+  rio, here,              # File import and path support
   tidyverse,              # data management + ggplot2 graphics,
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
   gt,                     # Nice beuatiful tables
+  gtsummary,              # summary statistics and tests in beautiful tables
   nortest,                # Anderson-Darling test for normality
   ggplot2,                # For creating plots
   DescTools,              # For statistical functions like skewness and kurtosis
-  psych,                  # to get a table of all summary statistics
   janitor,                # adding totals and percents to tables
+  psych,                  # to get a table of all summary statistics
   car,                    # For Levene's test and ANOVA
-  gtsummary,              # summary statistics and tests
+  gtsummary,              # summary statistics and tests in beautiful tables
   corrr,                  # correlation
   lmtest,                 # linear regression tets
   parameters,             # calculate standardized parameters/coefficients
@@ -42,12 +42,9 @@ pacman::p_load(
   skimr,                  # get overview of data
   pROC,                   # For ROC analysis
   performance,            # For model performance metrics
-  MASS,                   # For statistical functions (polr for ordinal regression)ordinal
-  ordinal,                # For ordinal regression statistical functions 
   caret,                  # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
-  ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit 
-  VGAM                    # for multinomial logistic regression
+  ResourceSelection       # For Hosmer-Lemeshow test for goodness of fit 
             )
 # Install/load flexplot
 if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
@@ -55,27 +52,27 @@ if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = 
 
 ## Access the data
 ```{r read-data, echo=FALSE}
-# file <- "HWdata_2.csv       # 👈 use this if the file is on your computer
-file <- "https://raw.githubusercontent.com/ThecoderPinar/Diabetes_Health_Prediction_and_Analysis/refs/heads/main/raw/diabetes_data.csv"
+# file <- "./EpiData/HWdata_2.rds               # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/HWdata_2.rds"
 df <- import(file)
 summary(df)
 glimpse(df)  # get an overview of the data
 ```
 
-## Clean the data
-```{r clean-data, echo=FALSE}
+## Get summary statistics
+```{r read-data, echo=FALSE}
 # Need to change status to be 1,0 
 df %>%
-  tbl_summary(by = Diagnosis) %>%
+  tbl_summary(by = diagnosis) %>%
   as_gt()
 ```
 
 ## Multiple Logistic regression
 ```{r logistic_regression, echo=FALSE}
 # Perform logistic regression
-mlog_reg <- glm(Diagnosis ~ Smoking + AlcoholConsumption + AntihypertensiveMedications + 
-              Statins + SerumCreatinine + HbA1c + FastingBloodSugar + 
-              FamilyHistoryDiabetes , data = df, family = binomial(link = 'logit'))
+mlog_reg <- glm(diagnosis ~ smoking + alcohol.consumption + antihypertensive.medications + 
+              statins + serum.creatinine + hb.a1c + fasting.blood.sugar + 
+              family.history.diabetes , data = df, family = binomial(link = 'logit'))
 tidy(mlog_reg, conf.int = TRUE)
 summary(mlog_reg)
 ```
@@ -90,7 +87,7 @@ AIC_val <- AIC(mlog_reg)
 r2_val <- PseudoR2(mlog_reg, which ="Nagelkerke")
 
 # Chi-square statistic for the omnibus test
-null_model <- glm(Diagnosis ~ 1, data = df, family = binomial(link = 'logit')) # null model (intercept-only model)
+null_model <- glm(diagnosis ~ 1, data = df, family = binomial(link = 'logit')) # null model (intercept-only model)
       model_perf <- anova(null_model, mlog_reg, test = "Chisq")
       chi_sq <- model_perf$Deviance[2]     # Chi-square statistic
       p_val <- model_perf$`Pr(>Chi)`[2]    # p-value
@@ -136,7 +133,7 @@ combined_tbl
 ## Use interaction term on significant variables
 ```{r OR, include=FALSE}
 # Recalculate logistic regression for OR
-mlog_reg_ia <- glm(Diagnosis ~ HbA1c*FastingBloodSugar,
+mlog_reg_ia <- glm(diagnosis ~ hb.a1c*fasting.blood.sugar,
                    data = df, family = binomial(link = 'logit'))
 mlog_reg_ia
 tidy(mlog_reg_ia)
@@ -156,31 +153,31 @@ model.comparison(mlog_reg, mlog_reg_ia)
 ```
 
 
-## classification table
+## Classification table
 ```{r log_reg-pred, echo = TRUE}
 # Create a new data frame for prediction
-predict_values <- data.frame(df = c(0, 1))
+predict.values <- data.frame(df = c(0, 1))
 
 # Calculate predicted probabilities
-df$predicted_prob_multi <- predict(mlog_reg_ia, type = "response")
+df$predict.prob <- predict(mlog_reg_ia, type = "response")
 glimpse(df)
 
 # Use caret package to get classification table
-confusion_matrix <- caret::confusionMatrix(data = as.factor(round(df$predicted_prob_multi,0)), reference = as.factor(df$Diagnosis))
+confusion_matrix <- caret::confusionMatrix(data = as.factor(round(df$predict.prob,0)), reference = as.factor(df$diagnosis))
 confusion_matrix
 ```
 
 ## Hosmer-Lemeshow test for GOF
 ```{r , echo=FALSE}
 # Use ResourceSelection to get the Hosmer–Lemeshow test result
-hl_test <- hoslem.test(df$Diagnosis, df$predicted_prob_multi, g = 10)  
+hl_test <- hoslem.test(df$diagnosis, df$predict.prob, g = 10)  
 hl_test
 ```
 
 
 ## ROC curve and AUC (area under curve)
 ```{r mlog_reg-ROC, echo = TRUE}
-roc_obj <- roc(df$Diagnosis, df$predicted_prob_multi)
+roc_obj <- roc(df$diagnosis, df$predict.prob)
 
 # Plot ROC curve
 plot(roc_obj, col = "blue", main = "ROC Curve")
@@ -192,4 +189,30 @@ auc(roc_obj)
 ## Get standardizec estimate
 ```{r std-est, echo = TRUE}
 estimates(mlog_reg_ia)
+```
+
+
+
+
+
+
+
+
+
+### source: https://github.com/ThecoderPinar/Diabetes_Health_Prediction_and_Analysis
+## Clean the data
+```{r clean-data, echo=FALSE}
+# Load the data
+file <- "https://raw.githubusercontent.com/ThecoderPinar/Diabetes_Health_Prediction_and_Analysis/refs/heads/main/raw/diabetes_data.csv"
+df <- import(file)
+
+# Clean up variable names
+df <- clean_names(df)
+names(df) <- gsub("_", ".", names(df))
+
+# Check the updated dataset structure
+glimpse(df)
+
+# Save as R data file
+saveRDS(df, here("EpiData", "HWdata_2.rds"))
 ```
