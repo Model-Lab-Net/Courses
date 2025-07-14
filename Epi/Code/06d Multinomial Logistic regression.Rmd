@@ -6,9 +6,7 @@
 ### date  : 13/07/2025
 ###  
 ###  נלמד לעשות רגסיה לוגיסטית עם יותר משתי רמות
-###
-### source: https://bookdown.org/drki_musa/dataanalysis/multinomial-logistic-regression.html
-###         https://github.com/drkamarul/multivar_data_analysis/tree/main/data
+
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
@@ -60,46 +58,19 @@ if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/f
 
 ## Access the data
 ```{r read-data, echo = TRUE}
-# file <- "./EpiData/metabolic_syndrome.dta"     # 👈 use this if the file is on your computer
-file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/metabolic_syndrome.dta"
+# file <- "./EpiData/06 metabolic_syndrome.rds"     # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/06%20metabolic_syndrome.rds"
 df4 <- import(file, trust  = TRUE)
 summary(df4)
 glimpse(df4)  # get an overview of the data
 ```
 
-## Clean the data
-```{r clean-data, echo = TRUE}
-# change all chr variables to factor
-df4 <- df4 %>% 
-    mutate_if(is.character, as.factor)
-glimpse(df4)
-
-# Create new categorical variable from fbs (normal, impaired, diabetes)
-df4 <- df4 %>%
-  mutate(cat_fbs = cut(fbs, 
-                       breaks = c(2.50 , 6.10 , 6.90 , 28.01 ),
-                       labels = c("normal","impaired", "diabetes")))
-glimpse(df4)
-
-# Remove NAs from cat_fbs
-df4 <- df4 %>%
-  filter(!is.na(cat_fbs)) 
-df4 %>%
-  count(cat_fbs)
-
-# Flip dirction of cat_fbs
-#df4 <- df4 %>%
-#  mutate(cat_fbs = fct_relevel(cat_fbs, 
-#                               c("Diabetes", 'Impaired', 'Normal')))
-# levels(df4$cat_fbs)
-```
-
 ## Summary statistics
 ```{r clean-data, echo = TRUE}
 summary_stats <- df4 %>%
-  dplyr::select(totchol, hpt, weight, cat_fbs) %>%
+  dplyr::select(totchol, hpt, weight, fbs.cat) %>%
   tbl_summary(
-    by = cat_fbs,  # Group by cat_fbs
+    by = fbs.cat,  # Group by fbs.cat
     statistic = list(
       all_continuous() ~ "{mean} ({sd})"  # Mean and SD for continuous variables
       #all_continuous() ~ "{median} ({p25}, {p75})"  # Median and IQR
@@ -120,14 +91,14 @@ summary_stats
 ## Multinomial Logistic regression
 ```{r logistic_regression, echo = TRUE}
 # Perform Multinomial logistic regression
-#mlog_reg <- glm(cat_fbs ~ totchol + hpt + weight , data = df4, family = binomial(link = 'logit'))
-mlog_reg <- vglm(cat_fbs ~ totchol + weight + hpt, family = multinomial, data = df4, model = TRUE)
+#mlog_reg <- glm(fbs.cat ~ totchol + hpt + weight , data = df4, family = binomial(link = 'logit'))
+mlog_reg <- vglm(fbs.cat ~ totchol + weight + hpt, family = multinomial, data = df4, model = TRUE)
 summary(mlog_reg)
 ```
 
 ## Model performance measures
 ```{r model-performance, echo = TRUE}
-mlog_reg_perf <- vglm(cat_fbs ~ totchol + weight + hpt, family = multinomial, data = df4, model = TRUE)
+mlog_reg_perf <- vglm(fbs.cat ~ totchol + weight + hpt, family = multinomial, data = df4, model = TRUE)
 # Get -2LL and AIC
 minus_2LL_mlog_reg <- -2 * as.numeric(logLik(mlog_reg_perf))
 AIC_valm <- AIC(mlog_reg_perf)
@@ -166,21 +137,20 @@ combined_tbl_mlog_reg <- tbl_merge(
 ```
 
 
-
 ### --------------------------------------
 
 
 ## Multiple multinomial Logistic regression /w inteaction term
 ```{r logistic_regression, echo = TRUE}
 # Perform logistic regression
-mlog_reg_ia <- glm(cat_fbs ~ totchol*weight + hpt, data = df4, family = binomial(link = 'logit'))
+mlog_reg_ia <- glm(fbs.cat ~ totchol*weight + hpt, data = df4, family = binomial(link = 'logit'))
 summary(mlog_reg_ia)
 ```
 
 ## Model performance measures
 ```{r model-performance, echo = TRUE}
 # Get -2LL and AIC
-mlog_reg_ia_perf <- vglm(cat_fbs ~ totchol + hpt + weight + totchol*weight , multinomial, data = df4, model = TRUE)
+mlog_reg_ia_perf <- vglm(fbs.cat ~ totchol + hpt + weight + totchol*weight , multinomial, data = df4, model = TRUE)
 minus_2LL_mlog_reg_ia <- -2 * as.numeric(logLik(mlog_reg_ia_perf))
 AIC_val_ia <- AIC(mlog_reg_ia_perf)
 
@@ -225,7 +195,7 @@ predicted_probs <- predict(mlog_reg, type = "response")
 df4$predicted_prob_multi <- predict(mlog_reg_ia, type = "response")
 
 # Use caret package to get classification table
-confusion_matrix <- caret::confusionMatrix(data = as.factor(round(df4$predicted_prob_multi, 0)), reference = as.factor(df4$cat_fbs))
+confusion_matrix <- caret::confusionMatrix(data = as.factor(round(df4$predicted_prob_multi, 0)), reference = as.factor(df4$fbs.cat))
 confusion_matrix
 
 # Extract the confusion matrix table
@@ -264,7 +234,7 @@ cm_metrics_df %>%
 ## Hosmer-Lemeshow test for GOF
 ```{r hosmer-lemeshow, echo = TRUE}
 # Use ResourceSelection to get the Hosmer–Lemeshow test result
-hl_test <- hoslem.test(df4$cat_fbs, df4$predicted_prob_multi, g = 10)
+hl_test <- hoslem.test(df4$fbs.cat, df4$predicted_prob_multi, g = 10)
 hl_test
 ```
 
@@ -291,4 +261,56 @@ hl_test
 ```{r question-3, echo = TRUE}
 # 
 
+```
+
+
+
+
+
+
+
+
+
+### source: https://bookdown.org/drki_musa/dataanalysis/multinomial-logistic-regression.html
+###         https://github.com/drkamarul/multivar_data_analysis/tree/main/data
+
+## Clean the data
+```{r clean-data, echo = TRUE}
+# Load the data
+file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/metabolic_syndrome.dta"
+df4 <- import(file, trust  = TRUE)
+
+# Clean up variable names
+df <- clean_names(df)
+names(df) <- gsub("_", ".", names(df))
+
+# change all chr variables to factor
+df4 <- df4 %>% 
+    mutate_if(is.character, as.factor)
+glimpse(df4)
+
+# Create new categorical variable from fbs (normal, impaired, diabetes)
+df4 <- df4 %>%
+  mutate(fbs.cat = cut(fbs, 
+                       breaks = c(2.50 , 6.10 , 6.90 , 28.01 ),
+                       labels = c("normal","impaired", "diabetes")))
+glimpse(df4)
+
+# Remove NAs from fbs.cat
+df4 <- df4 %>%
+  filter(!is.na(fbs.cat)) 
+df4 %>%
+  count(fbs.cat)
+
+# Flip dirction of fbs.cat
+#df4 <- df4 %>%
+#  mutate(fbs.cat = fct_relevel(fbs.cat, 
+#                               c("Diabetes", 'Impaired', 'Normal')))
+# levels(df4$fbs.cat)
+
+# Check the updated dataset structure
+glimpse(df4)
+
+# Save as R data file
+saveRDS(df4, here("EpiData", "06 metabolic_syndrome.rds"))
 ```

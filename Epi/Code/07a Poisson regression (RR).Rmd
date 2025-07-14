@@ -6,9 +6,6 @@
 ### date  : 13/07/2025
 ###  
 ###  counts רגרסיית פאוסון - ספירות
-###
-### source:  https://bookdown.org/drki_musa/dataanalysis/poisson-regression.html
-###          https://github.com/drkamarul/multivar_data_analysis/tree/main/data
 
 
 ## Reset memory
@@ -53,7 +50,7 @@ pacman::p_load(
   generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 
   ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit 
   VGAM,                   # for multinomial logistic regression
-  epiDisplay,             # For epi data type handling    
+  epiDisplay,             # For epi data type handling
             )
 # Install/load flexplot
 if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
@@ -62,21 +59,14 @@ if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/f
 ## Access the data
 ```{r read-data, echo = TRUE}
 ## read the data in a file online
-# file <- "./EpiData/asthma.csv"     # 👈 use this if the file is on your computer
-file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/asthma.csv"
+# file <- "./EpiData/07 asthma.rds"     # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/07%20asthma.rds"
 df6 <- import(file, trust  = TRUE)
 summary(df6)
 glimpse(df6)                        # get an overview of the data
 ```
 
-## Clean data
-```{r clean-data, echo = TRUE}
-# Clean up variable names
-df6 <- clean_names(df6)
-names(df6) <- gsub("_", ".", names(df6))
-```
-
-## Do summary stats
+## Get summary stats
 ```{r summary-stats, echo = TRUE}
 # read the data in a file online
 epiDisplay::codebook(df6)
@@ -87,7 +77,7 @@ epiDisplay::codebook(df6)
 flexplot(attack ~ 1, data = df6)
 ```
 
-## A simple Poisson regression univariate analysis
+## Simple Poisson regression univariate model
 ```{r simple-poisson-reg, echo = TRUE}
 # Do a univrariate Poisson regression - attack vs gender
 spr1 <- glm(ghq12 ~ attack, data = df6, family = "poisson")
@@ -95,7 +85,7 @@ summary(spr1)
 flexplot(attack ~ ghq12, data = df6, method = "poisson", ghost.line = "red", jitter=c(0,0.05))
 ```
 
-## Poisson regression multivariate analysis
+## Multivariate Poisson regression model  
 ```{r poisson-multi-reg, echo = TRUE}
 # Do a multivariate Poisson regression - attack vs everything
 mpr <- glm(ghq12 ~ attack + res.inf, data = df6, family = "poisson")
@@ -136,7 +126,7 @@ tbl_regression(mpr, exponentiate = TRUE)
 round(summary(mpr)$coefficients, 2)
 ```
 
-## Predicr 
+## Model prediction
 ```{r predict-data, echo = TRUE}
 # expected number of asthmatic attacks per year for a patient with recurrent respiratory infection and GHQ-12 score of 8
 predict <- predict(mpr, list(res.inf = "yes", ghq12 = 8),type = "response")
@@ -170,10 +160,43 @@ predict <- predict(mpr, list(res.inf = "yes", ghq12 = 8),type = "response")
 
 
 
+
+
+
+
+
+### source:  https://bookdown.org/drki_musa/dataanalysis/poisson-regression.html
+###          https://github.com/drkamarul/multivar_data_analysis/tree/main/data
+
+## Clean data
+```{r clean-data, echo = TRUE}
+# Load the data
+file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/asthma.csv"
+df6 <- import(file, trust  = TRUE)
+
+# Clean up variable names
+df6 <- clean_names(df6)
+names(df6) <- gsub("_", ".", names(df6))
+
+# Check the updated dataset structure
+glimpse(df6)
+
+# Save as R data file
+saveRDS(df6, here("EpiData", "07 asthma.rds"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
 ### ----------------------------------------------
-
-
-
 
 
 
@@ -333,9 +356,6 @@ CI_upper <- exp(coefs + 1.96 * se_qp)
   CI_lower
   CI_upper
  
-
-
-
 ```
 
 

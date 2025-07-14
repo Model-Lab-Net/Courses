@@ -7,8 +7,6 @@
 ###  
 ###  rates רגרסיית פאוסון - היערות
 ###
-### source:  https://bookdown.org/drki_musa/dataanalysis/poisson-regression.html#poisson-regression-for-rate
-###          https://github.com/drkamarul/multivar_data_analysis/tree/main/data
 
 
 ## Reset memory
@@ -62,22 +60,14 @@ if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/f
 ## Access the data
 ```{r read-data, echo = TRUE}
 ## read the data in a file online
-# file <- "./EpiData/smoke.csv"     # 👈 use this if the file is on your computer
-file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/smoke.csv"
+# file <- "./EpiData/08 smoke.rds"     # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/08%20smoke.rds"
 df7 <- import(file, trust  = TRUE)
 summary(df7)
 glimpse(df7)
 ```
 
-
-## Clean data
-```{r clean-data, echo = TRUE}
-# Clean up variable names
-df7 <- clean_names(df7)
-names(df7) <- gsub("_", ".", names(df7))
-```
-
-## Do summary stats
+## Get summary stats
 ```{r summary-stats, echo = TRUE}
 # Get summary stastistics
 epiDisplay::codebook(df7)
@@ -89,14 +79,14 @@ epiDisplay::codebook(df7)
 flexplot(case ~ 1, data = df7)
 ```
 
-## A simple Poisson regression univariate analysis for rates
+## A simple Poisson regression univariate model for rates
 ```{r read-data, echo = TRUE}
 # read the data in a file online
 spr <- glm(rate ~ cigar.day, data = df7, family = "poisson", offset = log(person.yrs))
 summary(spr)
 ```
 
-##  Poisson multivariate regression analysis for rates
+##  Poisson multivariate regression model for rates
 ```{r poisson-multi-reg, echo = TRUE}
 # read the data in a file online
 mpr <- glm(case ~ cigar.day + smoke.yrs, data = df7, family = "poisson", offset = log(person.yrs))    # the "." uses all the other variables
@@ -110,7 +100,7 @@ mpr_ia <- glm(case ~ cigar.day*smoke.yrs, data = df7, family = "poisson", offset
 summary(mpr_ia)
 ```
 
-## Model fit and perfoarmance
+## Model fit and performance
 ```{r read-data, echo = TRUE}
 #Scaled Pearson chi-square statistic
 
@@ -149,4 +139,32 @@ round(summary(mpr)$coefficients, 2)
 ```{r question-3, echo = TRUE}
 # 
 
+```
+
+
+
+
+
+
+
+
+
+### source:  https://bookdown.org/drki_musa/dataanalysis/poisson-regression.html#poisson-regression-for-rate
+###          https://github.com/drkamarul/multivar_data_analysis/tree/main/data
+
+## Clean data
+```{r clean-data, echo = TRUE}
+# Load the data
+file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/smoke.csv"
+df7 <- import(file, trust  = TRUE)
+
+# Clean up variable names
+df7 <- clean_names(df7)
+names(df7) <- gsub("_", ".", names(df7))
+
+# Check the updated dataset structure
+glimpse(df7)
+
+# Save as R data file
+saveRDS(df7, here("EpiData", "08 smoke.rds"))
 ```

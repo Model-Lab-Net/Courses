@@ -6,9 +6,6 @@
 ### date  : 13/07/2025
 ###  
 ### נלמד לעשות רגרסיה לינארית פשוטה
-###
-### source: https://bookdown.org/drki_musa/dataanalysis/linear-regression.html
-###         https://github.com/drkamarul/multivar_data_analysis/tree/main/data
 
 
 ## Reset memory
@@ -49,47 +46,14 @@ if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/f
 
 ## Access the data
 ```{r read-data, echo = TRUE}
-# file <- "./EpiData/coronary.dta" # 👈 use this if the file is on your computer
-file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/coronary.dta"
+# file <- "./EpiData/03 coronary.rds" # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/03%20coronary.rds"
 df2 <- import(file, trust = TRUE)
 summary(df2)
 glimpse(df2)
 ```
 
-## Clean data
-```{r clean-data, echo = TRUE}
-# Change id to factor
-df2 <- df2 %>%
-  mutate(id = as.factor(id))
-
-# Change cad to factor
-df2 <- df2 %>%
-  mutate(cad = as.factor(cad))
-
-# Change gender column from 1, 2 to "F", "M"
-df2 <- df2 %>%
-  mutate(gender = case_when(
-    gender == 1 ~ "F",
-    gender == 2 ~ "M",
-    TRUE ~ as.factor(gender) # Preserve other values (e.g., NA)
-  ))
-
-# Change race column from 1, 2, 3  to "W", "B", "J"
-df2 <- df2 %>%
-  mutate(race = case_when(
-    race == 1 ~ "W",
-    race == 2 ~ "B",
-    race == 3 ~ "J",
-    TRUE ~ as.factor(race) # Preserve other values (e.g., NA)
-  ))
-
-df <- mutate_if(df2, is.character, as.factor)
-
-# Look at the variables list
-glimpse(df2)
-```
-
-# Summary statistics for numerical variables
+## Summary statistics for numerical variables
 ```{r summary-stats, echo = TRUE}
 # Create summary statistics for all numerical variables grouped by "race"
 df2_summary_stats <- df2 %>%
@@ -121,7 +85,7 @@ y_var <- "sbp"    # Change this to the numerical variable
 f <- as.formula(paste(y_var, "~", x_var))     # This just helps further down....
 ```
 
-## Linear regression
+## Simple linear regression model
 ```{r slr, echo = TRUE}
 # Perform a Simple Linear Regression
 slr <- lm(df2[[y_var]] ~ df2[[x_var]], data = df2)
@@ -139,7 +103,7 @@ pearson_result <- cor.test(df2[[x_var]], df2[[y_var]], method = "pearson", use =
 pearson_result
 ```
 
-## Linear regression with nice output
+## Linear regression parameter values with nice output
 ```{r slr-summary, echo = TRUE}
 # use gtsummary to create a nice table
 slr_summary <- slr %>%
@@ -158,7 +122,7 @@ slr_summary <- slr %>%
 slr_summary
 ```
 
-## Show the scatter plot with regression line
+## Show the scatter plot with regression model
 ```{r polt-regression, echo = TRUE}
 # use ggplot to show the scatter plot with regression line with linear model and confidence interval
 ggplot(df2, aes_string(x = x_var, y = y_var)) +
@@ -172,7 +136,7 @@ ggplot(df2, aes_string(x = x_var, y = y_var)) +
   theme_minimal()
 ```
 
-## Flexplot scatter plot
+## Flexplot scatter plot and analysis
 ```{r polt-regression, echo = TRUE}
 # Plot the regression
 flexplot(f, data = df2, method = "lm", se = TRUE, ghost.line = "red")
@@ -184,7 +148,7 @@ visualize(slr)
 estimates(slr)
 ```
 
-## Test for normal distribution of residuals
+## Test for normal distribution of model residuals
 ```{r residuals, echo = TRUE}
 # Get nmodel residuals
 residuals_slr <- residuals(slr)
@@ -259,4 +223,56 @@ model_parameters(slr, standardize = "refit")
 ```{r question-3, echo = TRUE}
 # 
 
+```
+
+
+
+
+
+
+
+
+
+### source: https://bookdown.org/drki_musa/dataanalysis/linear-regression.html
+###         https://github.com/drkamarul/multivar_data_analysis/tree/main/data
+
+## Clean data
+```{r clean-data, echo = TRUE}
+# Load the data
+file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/coronary.dta"
+df2 <- import(file, trust = TRUE)
+
+# Change id to factor
+df2 <- df2 %>%
+  mutate(id = as.factor(id))
+
+# Change cad to factor
+df2 <- df2 %>%
+  mutate(cad = as.factor(cad))
+
+# Change gender column from 1, 2 to "F", "M"
+df2 <- df2 %>%
+  mutate(gender = case_when(
+    gender == 1 ~ "F",
+    gender == 2 ~ "M",
+    TRUE ~ as.factor(gender) # Preserve other values (e.g., NA)
+  ))
+
+# Change race column from 1, 2, 3  to "W", "B", "J"
+df2 <- df2 %>%
+  mutate(race = case_when(
+    race == 1 ~ "W",
+    race == 2 ~ "B",
+    race == 3 ~ "J",
+    TRUE ~ as.factor(race) # Preserve other values (e.g., NA)
+  ))
+
+# Convert all chr variables to fct
+df2 <- mutate_if(df2, is.character, as.factor)
+
+# Check the updated dataset structure
+glimpse(df2)
+
+# Save as R data file
+saveRDS(df2, here("EpiData", "03 coronary.rds"))
 ```

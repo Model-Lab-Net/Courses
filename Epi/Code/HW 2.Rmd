@@ -97,19 +97,19 @@ summary(mlog_reg)
 paste("R²= ",r2_val)
 ```
 
-# Calculate log OR
+## Calculate log OR
 ```{r calc-log_OR, echo = TRUE}
 mlog_reg_tbl <- tbl_regression(mlog_reg, exponentiate = FALSE)
 mlog_reg_tbl
 ```
 
-# Calculate OR
+## Calculate OR
 ```{r calc-OR, include=FALSE}
 mlog_reg_OR <- tbl_regression(mlog_reg, exponentiate = TRUE)
 mlog_reg_OR
 ```
 
-# Combine logOR and OR results with model performance 
+## Combine logOR and OR results with model performance 
 ```{r log_reg_tbl, echo = TRUE}
 combined_tbl <- tbl_merge(
   tbls = list(mlog_reg_tbl, mlog_reg_OR),

@@ -63,8 +63,8 @@ if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/f
 
 ## Access the data
 ```{r read-data, echo = TRUE}
-# file <- "./EpiData/stroke_data.csv"     # 👈 use this if the file is on your computer
-file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/stroke_data.csv"
+# file <- "./EpiData/09 stroke_data.csv"     # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/09%20stroke_data.rds"
       ## read the data in a file online
 df7 <- import(file, trust  = TRUE)
 summary(df7)
@@ -87,7 +87,7 @@ df7 <- df7 %>%
   mutate(status = fct_relevel(status, "alive"))
 ```
 
-## Do a simple Cox regession
+## Simple Cox regession model
 ```{r cox-reg, echo = TRUE}
 # Cox regression
 cox_reg <- 
@@ -156,9 +156,7 @@ ggsurvplot(
 ### -----------------------------------------
 
 
-### Cox multi-regression
-
-## Do a multi-variate Cox regression
+## Multi-variate Cox regression model
 ```{r read-data, echo = TRUE}
 # Perform the Cos regression on multple variables
 cox_mreg <-
@@ -179,7 +177,7 @@ combined_tbl <- tbl_merge(
 combined_tbl
 ```
 
-## Test with respect to stroke.type and refereal_form
+## Test with respect to stroke.type and refereal.form
 ```{r read-data, echo = TRUE}
 # Perform the Cos regression on multple variables
 cox_mreg_test <-
@@ -191,7 +189,7 @@ cox_mreg_test <-
 anova(cox_mreg_test, cox_mreg, test = 'Chisq')
 ```
 
-### Model Perforamnce
+### Model perforamnce
 ```{r read-data, echo = TRUE}
 # -2LL
 minus_2LL_cox <- -2 * as.numeric(logLik(cox_mreg))
@@ -208,9 +206,8 @@ schoenfeld_test
 plot(schoenfeld_test)
 ```
 
-## Do a multi-variate Cox regression with interaction term
+## Multi-variate Cox regression model with interaction term
 ```{r read-data, echo = TRUE}
-### -----------------------------------------
 # Perform the Cos regression on multple variables
 cox_mreg_ia <-
   coxph(Surv(time = time2, 
@@ -243,4 +240,42 @@ cox_mreg_ia_tbl
 ```{r question-3, echo = TRUE}
 # 
 
+```
+
+
+
+
+
+
+
+
+
+### source:  https://bookdown.org/drki_musa/dataanalysis/survival-analysis-kaplan-meier-and-cox-proportional-hazard-ph-regression.html#kaplan-meier-survival-estimates
+
+## Clean the data
+```{r clean-data, echo = TRUE}
+# Load the data
+file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/stroke_data.csv"
+df7 <- import(file, trust  = TRUE)
+
+# Clean up variable names
+df7 <- clean_names(df7)
+names(df7) <- gsub("_", ".", names(df7))
+
+# Convert the variable doa and variable doa to a more valid format (date format)
+df7 <- 
+  df7 %>%
+  mutate(doa = dmy(doa),
+         dod = dmy(dod)
+        )
+
+# Convert status to fct
+df7 <- df7 %>%
+  mutate(status = fct_relevel(status, "alive"))
+
+# Check the updated dataset structure
+glimpse(df7)
+
+# Save as R data file
+saveRDS(df7, here("EpiData", "09 stroke_data.rds"))
 ```

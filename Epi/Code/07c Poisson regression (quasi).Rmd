@@ -7,7 +7,7 @@
 ###  
 ###  quasi רגרסיית פאוסון  
 ###
-### source:  https://bookdown.org/drki_musa/dataanalysis/poisson-regression.html
+### source:  https://bookdown.org/drki_musa/dataanalysis/poisson-regression.html#quasi-poisson-regression-for-overdispersed-data
 ###          https://github.com/drkamarul/multivar_data_analysis/tree/main/data
 
 
@@ -52,7 +52,7 @@ pacman::p_load(
   ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit 
   ordinal,                # For ordinal regression statistical functions 
   VGAM,                   # for multinomial logistic regression
-  epiDisplay,             # For epi data type handling    
+  epiDisplay,             # For epi data type handling
             )
 # Install/load flexplot
 if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
@@ -61,17 +61,11 @@ if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/f
 ## Access the data
 ```{r read-data, echo=FALSE}
 ## read the data in a file online
-# file <- "./EpiData/asthma.csv"     # 👈 use this if the file is on your computer
-file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/asthma.csv"
+# file <- "./EpiData/07 asthma.rds"     # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/07%20asthma.rds"
 df6 <- import(file, trust  = TRUE)
 summary(df6)
 glimpse(df6)  # get an overview of the data
-```
-## Clean data
-```{r clean-data, echo = TRUE}
-# Clean up variable names
-df6 <- clean_names(df6)
-names(df6) <- gsub("_", ".", names(df6))
 ```
 
 ## Do summary stats
@@ -80,9 +74,9 @@ names(df6) <- gsub("_", ".", names(df6))
 epiDisplay::codebook(df6)
 ```
 
-## A simple Poisson regression multivariate analysis
+## Simple Poisson regression multivariate model for quasi (when “mean equals variance” assumption is violated)
 ```{r read-data, echo=FALSE}
-## read the data in a file online
+## Perform a "quasi"-poisson model
 qpr <- glm(attack ~ ., data = df6, family = "quasipoisson")
 tidy(qpr, conf.int = TRUE)
 ```

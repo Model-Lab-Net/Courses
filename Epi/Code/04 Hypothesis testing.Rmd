@@ -5,9 +5,7 @@
 ### lesson: בדיקת השערות 02-04   
 ### date  : 13/07/2025
 ###  
-###  נלמד לבצע סטטיטסיים הסקתית ומבחני השערות
-###
-### source: https://www.emilyzabor.com/mmedr/tools-manipulate-dataframes.html
+###  נלמד לבצע סטטיטסיקה הסקתית ומבחני השערות
 
 
 ## Reset memory
@@ -44,38 +42,10 @@ pacman::p_load(
 
 ## Access the data
 ```{r read-data, echo = TRUE}
-# file <- "./EpiData/breastcancer.csv"     # 👈 use this if the file is on your computer
-file <- "https://raw.githubusercontent.com/zabore/mmedr/refs/heads/main/data/breastcancer.csv"
+# file <- "./EpiData/02 breastcancer.rds"     # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/02%20breastcancer.rds"
 # read the data in a file online
 df_bc <- import(file, trust = TRUE)
-glimpse(df_bc)
-```
-
-## Clean data
-```{r cleam-data, echo = TRUE}
-# clean up variable names
-df_bc <- clean_names(df_bc)
-names(df_bc) <- gsub("_", ".", names(df_bc))
-
-# Recode grade from I,II,III to 1,2,3
-df_bc <- df_bc %>%
-  mutate(grade = case_when(
-    grade == "I" ~ 1L,
-    grade == "II" ~ 2L,
-    grade == "III" ~ 3L,
-    TRUE ~ as.integer(NA)  # Convert unexpected values to NA
-  ))
-df_bc$grade <- as.factor(df_bc$grade)
-
-# rename variables - new_name = old_name
-df_bc <- rename(df_bc,
-                recurrence = event
-               )
-
-# Convert recurrence to a factor for Levene's test
-df_bc$recurrence <- as.factor(df_bc$recurrence)
-
-# Check the updated dataset structure
 glimpse(df_bc)
 ```
 
@@ -113,11 +83,8 @@ tukey_result
 
 ## Mann-Whitney test (a nonparametric "T test")
 ```{r M_U-test, echo = TRUE}
-# Test for variance homogeneity
-levene_result <- leveneTest(nodal.ratio ~ optimal.systemic.therapy, data = df_bc, var.equal = TRUE)
-levene_result
-
-MW_test <- wilcox.test(nodal.ratio ~ optimal.systemic.therapy, data = df_bc, na.action = na.exclude)
+# Perform Mann-Whitney test (paired = FALSE)
+MW_test <- wilcox.test(nodal.ratio ~ optimal.systemic.therapy, data = df_bc, na.action = na.exclude, paired = FALSE)
 MW_test
 ```
 
@@ -151,11 +118,11 @@ flexplot(tumor.size.cm ~ grade, data = df_bc)
 df_bc$grade <- as.integer(df_bc$grade)
 
 # Spearman regrssion (better not to use it....)
-spearman <- cor.test(df_bc$tumor.size.cm, df_bc$grade, method = "spearman", use = "complete.obs")
-spearman
+#spearman <- cor.test(df_bc$tumor.size.cm, df_bc$grade, method = "spearman", use = "complete.obs")
+#spearman
 ```
 
-# Paired T test / Wilcoxon ranked sum
+# Paired T test or Wilcoxon ranked sum
 ```{r paired-t-test, echo = TRUE}
 ## Lets get some data on anorexia
 df_anorexia <- data.frame(anorexia)
@@ -199,4 +166,47 @@ ggpaired(df_anorexia, cond1 = "Prewt", cond2 = "Postwt",
 ```{r question-3, echo = TRUE}
 # 
 
+```
+
+
+
+
+
+
+
+
+
+### source: https://www.emilyzabor.com/mmedr/tools-manipulate-dataframes.html
+
+## Clean data
+```{r cleam-data, echo = TRUE}
+# Load the data
+file <- "https://raw.githubusercontent.com/zabore/mmedr/refs/heads/main/data/breastcancer.csv"
+df <- import(file, trust = TRUE)
+
+# Clean up variable names
+df <- clean_names(df)
+names(df) <- gsub("_", ".", names(df))
+
+# Recode grade from I,II,III to 1,2,3
+df <- df %>%
+  mutate(grade = case_when(
+    grade == "I" ~ 1L,
+    grade == "II" ~ 2L,
+    grade == "III" ~ 3L,
+    TRUE ~ as.integer(NA)  # Convert unexpected values to NA
+  ))
+df$grade <- factor(df$grade, levels = c("1", "2", "3"), ordered = TRUE)
+
+# Convert to int variable
+df$days.onset.hosp <- as.integer(df$days.onset.hosp)
+
+# rename variables - new_name = old_name
+df <- dplyr::rename(df, recurrence = event)
+
+# Check the updated dataset structure
+glimpse(df)
+
+# Save as R data file
+saveRDS(df, here("EpiData", "02 breastcancer.rds"))
 ```

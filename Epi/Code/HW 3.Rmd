@@ -8,14 +8,14 @@
 ###  שרידות
 
 
-# Reset memory
+## Reset memory
 ```{r setup-packages, include false}
 rm(list = ls(all.names = TRUE))
 lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
 gc()
 ```
 
-# Load required packages
+## Load required packages
 ```{r setup-packages, include false}
 install.packages("pacman")
 library(pacman)
@@ -53,7 +53,7 @@ pacman::p_load(
             )
 ```
 
-# Get data
+## Get data
 ```{r load data, include false}
 # file <- "./EpiData/HWdata_3.rds"            # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/HWdata_3.rds"

@@ -6,8 +6,6 @@
 ### date  : 13/07/2025
 ###  
 ###  נלמד לעשות רגרסיה לוגיסטי מרובה על משתנים אורדינליים
-### 
-### source: https://www.scielosp.org/pdf/rsp/2009.v43n1/183-194/en
 
 
 ## Reset memory
@@ -49,7 +47,7 @@ pacman::p_load(
   ggeffects,              # To display the confusion matrix
   generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 
   #MASS,                   # For statistical functions (polr for ordinal regression)ordinal
-  ordinal                # For ordinal regression statistical functions 
+  ordinal                 # For ordinal regression statistical functions 
               )
 # Install/load flexplot
 if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
@@ -58,33 +56,11 @@ if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = 
 ## Access the data
 ```{r read-data, echo = TRUE}
 ## read the data in a file online
-# file <- "./EpiData/peptic_ulcer.xlsx"     # use this if the file is on your computer
-file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/peptic_ulcer.xlsx"
+# file <- "./EpiData/05 peptic_ulcer.rds"     # use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/05%20peptic_ulcer.rds"
 df5 <- import(file, trust = TRUE)
 summary(df5)
 glimpse(df5)
-```
-
-## Fix the data
-```{r fix-data, echo = TRUE}
-# Clean up variable names
-df5 <- clean_names(df5)
-names(df5) <- gsub("_", ".", names(df5))
-
-# Swap all char variables to fct
-df5 <- mutate_if(df5, is.character, as.factor)
-
-df5$perforation.ord <- factor(
-  ifelse(df5$perforation <= 1.0, 0L, 1L),  # use integer values
-  levels = c(0L, 1L),                     # explicitly set levels
-  ordered = TRUE                          # make it ordinal
-)
-
-df5$degree.perforation <- factor(
-  ifelse(df5$perforation <= 1.0, 0, 1),
-  levels = c(0, 1),
-  ordered = TRUE
-)
 ```
 
 ## Perfrom an ordinal linear regression
@@ -239,4 +215,47 @@ ggplot(preds_systolic, aes(x = x, y = predicted, color = response.level, group =
     fill = "Outcome"
   ) +
   theme_minimal()
+```
+
+
+
+
+
+
+
+
+### source: https://www.scielosp.org/pdf/rsp/2009.v43n1/183-194/en
+
+## Clean the data
+```{r clean-data, echo = TRUE}
+# Load the data
+file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/peptic_ulcer.xlsx"
+df5 <- import(file, trust = TRUE)
+
+# Clean up variable names
+df5 <- clean_names(df5)
+names(df5) <- gsub("_", ".", names(df5))
+
+# Swap all char variables to fct
+df5 <- mutate_if(df5, is.character, as.factor)
+
+# Create an ordinal variable from perforation
+df5$perforation.ord <- factor(
+  ifelse(df5$perforation <= 1.0, 0L, 1L),  # use integer values
+  levels = c(0L, 1L),                     # explicitly set levels
+  ordered = TRUE                          # make it ordinal
+)
+
+# Replace egree.perforation as an ordinal variable
+df5$degree.perforation <- factor(
+  ifelse(df5$perforation <= 1.0, 0, 1),
+  levels = c(0, 1),
+  ordered = TRUE
+)
+
+# Check the updated dataset structure
+glimpse(df5)
+
+# Save as R data file
+saveRDS(df5, here("EpiData", "05 peptic_ulcer.rds"))
 ```

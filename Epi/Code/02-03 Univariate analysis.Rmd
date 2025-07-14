@@ -6,9 +6,6 @@
 ### date  : 13/07/2025
 ###  
 ###  נלמד לבצע ניתוח סטטיסטי פשוט
-###
-### source: https://epirhandbook.com/en/
-###         https://github.com/appliedepi/epirhandbook_eng
 
 
 ## Reset memory
@@ -42,18 +39,10 @@ pacman::p_load(
 
 ## Access the data
 ```{r read-data, echo = FALSE}
-# file <- "./EpiData/linelist_cleaned.rds"     # 👈 use this if the file is on your computer
-file <- "https://github.com/appliedepi/epirhandbook_eng/raw/master/data/case_linelists/linelist_cleaned.rds"
+here::set_here("EpiCode")
+# file <- "./EpiData/01 linelist_cleaned.rds"     # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/01%20linelist_cleaned.rds"
 df1 <- import(file, trust = TRUE)
-summary(df1)
-glimpse(df1)
-```
-
-## Replace bmi with calculation
-```{r read-data, echo = FALSE}
-## read the data in a file online
-df1 <- df1 %>%
-  mutate(bmi = wt_kg / (ht_cm / 100)^2)
 summary(df1)
 glimpse(df1)
 ```
@@ -200,4 +189,41 @@ ggplot(df1, aes(x = get(x_var), y = get(y_var), fill = get(x_var))) +
 ```{r question-3, echo = TRUE}
 # 
 
+```
+
+
+
+
+
+
+
+
+
+
+### source: https://epirhandbook.com/en/
+###         https://github.com/appliedepi/epirhandbook_eng
+
+## Clean data
+```{r clean-data, echo = FALSE}
+# Load the data
+file <- "https://github.com/appliedepi/epirhandbook_eng/raw/master/data/case_linelists/linelist_cleaned.rds"
+df1 <- import(file, trust = TRUE)
+
+# Clean up variable names
+df1 <- clean_names(df1)
+names(df1) <- gsub("_", ".", names(df1))
+
+# Convert chr variables to fct
+df1 <- df1 %>% 
+  mutate_if(is.character, as.factor)
+
+# Calculate BMI
+df1 <- df1 %>%
+  mutate(bmi = wt_kg / (ht_cm / 100)^2)
+
+summary(df1)
+glimpse(df1)
+
+# Save to R data file
+saveRDS(df1, here("EpiData", "01 linelist_cleaned.rds"))
 ```
