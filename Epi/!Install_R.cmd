@@ -102,7 +102,7 @@ call C:\RVSCode\bin\code.cmd --install-extension reditorsupport.r
 call C:\RVSCode\bin\code.cmd --install-extension rdebugger.r-debugger
 
 ::Download first script to initialize for course
-curl --progress-bar -o c:\RVSCode\Course\Initialize_R_for_Epi.Rmd https://github.com/Model-Lab-Net/Courses/blob/main/Epi/Initialize_R_for_Epi.Rmd
+curl --progress-bar -o c:\RVSCode\Course\Initialize_R.Rmd https://github.com/Model-Lab-Net/Courses/blob/main/Epi/Initialize_R.Rmd
 ::powershell Invoke-WebRequest -Uri 'https://github.com/Model-Lab-Net/Courses/blob/main/Epi/Initialize_R_for_Epi.Rmd' -OutFile 'c:\RVSCode\Course\Initialize_R.Rmd'
 
 ::Create shortcut link to Desktop
