@@ -2,7 +2,7 @@
 :: Title -- Code to install R, RStudio and R in VSCode
 :: Author -- David Burg
 :: For -- R course
-:: Date -- 01/07/2025
+:: Date -- 20/07/2025
 :: source -- https://www.youtube.com/watch?v=k79H8EeR5Jo
 ::           https://www.youtube.com/watch?v=rKPfssR66GM
 ::           https://www.datanovia.com/learn/tools/r-in-vscode/recommended-vscode-configurations-for-r-programming.html
