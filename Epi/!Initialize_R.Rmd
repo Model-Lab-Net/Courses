@@ -7,7 +7,7 @@
 ###  VSCode-זה קוד שיוריד את כל החבילות והקבצים כדי לעבוד ב
 ###
 ### source: https://www.datanovia.com/learn/tools/r-in-vscode/recommended-vscode-configurations-for-r-programming.html
-
+###         https://community.r-multiverse.org/httpgd
 
 # Reset memory
 ```{r setup-packages, include false}
