@@ -9,17 +9,8 @@
 ### source: https://www.datanovia.com/learn/tools/r-in-vscode/recommended-vscode-configurations-for-r-programming.html
 ###         https://community.r-multiverse.org/httpgd
 
-# Reset memory
-```{r setup-packages, include false}
-rm(list = ls(all.names = TRUE))       # Remove all data objects from memory
-lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
-gc()                                  # Remove unused data from memory ("garbage cllection")
-dev.off()                             # Reset the display output of R
-q("no")                               # This will completely shutdown R terminal
-```
 
-
-## Install required packages
+## Install required packages  (you might need to run this twice, sorry....)
 ```{r load-packages, include false}  
 options("install.lock"=FALSE)
 if (!require("pacman")) install.packages("pacman")
