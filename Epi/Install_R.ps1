@@ -98,7 +98,7 @@ $settingsJson | Out-File -FilePath "C:\RVSCode\data\user-data\User\settings.json
 
 # Add extensions to VSCode
 & "C:\RVSCode\bin\code.cmd" --install-extension github.copilot
-& "C:\RVSCode\bin\code.cmd" --install-extension github.copilot-chat
+# & "C:\RVSCode\bin\code.cmd" --install-extension github.copilot-chat
 & "C:\RVSCode\bin\code.cmd" --install-extension reditorsupport.r
 & "C:\RVSCode\bin\code.cmd" --install-extension rdebugger.r-debugger
 
