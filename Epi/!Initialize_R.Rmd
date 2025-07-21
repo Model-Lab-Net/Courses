@@ -13,6 +13,12 @@
 ## Install required packages  (you might need to run this twice, sorry....)
 ```{r load-packages, include false}  
 options("install.lock"=FALSE)
+
+if (!require("languageserver", quietly = TRUE)) install.packages("languageserver")
+if (!require("httpgd", quietly = TRUE)) install.packages('httpgd', repos = c('https://community.r-multiverse.org', 'https://cloud.r-project.org'))
+if (!require("vscDebugger", quietly = TRUE)) install.packages("vscDebugger", repos = "https://manuelhentschel.r-universe.dev")
+if (!require("devtools", quietly = TRUE)) install.packages("devtools")
+
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
@@ -46,7 +52,7 @@ pacman::p_load(
   epiDisplay,             # For epi data type handling
   survival,               # For survival analysis
   survminer,              # For survival analysis and visualization
-  muhaz                   #
+  muhaz,                  #
   rstatix,                            # statistics
   flextable,                          # converting tables to HTML
   vctrs                               # For data type handling
@@ -58,13 +64,9 @@ if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/f
 # This will install the LogisticDx package from the archive
 # Note: The package is not be available on CRAN anymore, so
 # the URL is used
-install.packages(c('rms', 'statmod', 'speedglm', 'pROC', 'aod'))
-install.packages(
-  "https://cran.r-project.org/src/contrib/Archive/LogisticDx/LogisticDx_0.3.tar.gz",
-dependencies = TRUE
-)
-
-install.packages('languageserver')
-install.packages('httpgd', repos = c('https://community.r-multiverse.org', 'https://cloud.r-project.org'))
-install.packages("vscDebugger", repos = "https://manuelhentschel.r-universe.dev")
+if (!require("LogisticDx", quietly = TRUE)) install.packages(c('rms', 'statmod', 'speedglm', 'pROC', 'aod'))
+if (!require("LogisticDx", quietly = TRUE)) install.packages(
+    "https://cran.r-project.org/src/contrib/Archive/LogisticDx/LogisticDx_0.3.tar.gz",
+    dependencies = TRUE
+   )
 ```
