@@ -81,7 +81,7 @@ $settingsJson = @"
     "r.rterm.windows": "C:\\RVSCode\\R\\R-$R_VERSION\\bin\\R.exe",
     "r.bracketedPaste": true,
     "r.sessionWatcher": true,
-    "editor.wordSeparators": "`~!@#`$`^&*()-=+[{]}\\|;:'`",<>/?",
+    "editor.wordSeparators": "`~!@#%$^&*()-=+[{]}\\|;:'\",<>/?",
     "r.plot.useHttpgd": true,
     "terminal.integrated.profiles.windows": {
         "R": {
