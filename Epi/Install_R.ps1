@@ -124,8 +124,8 @@ if (-not (Test-Path -Path "C:\RStudio\rstudio.exe")) {
 }
 
 # Download settings for RStudio
-& "C:\temp\curl.exe" --progress-bar -o "C:\RStudio\user-data\rstudio-prefs.json" "https://drive.usercontent.google.com/download?id=19KaP4pbdM_O78gcgepxqE196SG0zE7fq"
-& "C:\temp\curl.exe" --progress-bar -o "C:\RStudio\user-data\rstudio-desktop.json" "https://drive.usercontent.google.com/download?id=1priqCaKnSOOwCRU5J0anC8mH2gQMQYxE"
+# & "C:\temp\curl.exe" --progress-bar -o "C:\RStudio\user-data\rstudio-prefs.json" "https://drive.usercontent.google.com/download?id=19KaP4pbdM_O78gcgepxqE196SG0zE7fq"
+# & "C:\temp\curl.exe" --progress-bar -o "C:\RStudio\user-data\rstudio-desktop.json" "https://drive.usercontent.google.com/download?id=1priqCaKnSOOwCRU5J0anC8mH2gQMQYxE"
 
 # Make folders for RStudio
 New-Item -Path "C:\RStudio\Course" -ItemType Directory -Force
