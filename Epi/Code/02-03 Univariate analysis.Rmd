@@ -2,7 +2,7 @@
 ### name  : דוד בורג
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
-### lesson: סטטיסטיקה תאורית וניתות בסיסי 02-03   
+### lesson: סטטיסטיקה תאורית וניתוח בסיסי 02-03   
 ### date  : 13/07/2025
 ###  
 ###  נלמד לבצע ניתוח סטטיסטי פשוט
@@ -10,19 +10,17 @@
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))       # 👈 Remove all data objects        👇 Remove packages
+rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
 lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
-gc()                                  # Remove unused data from memory ("garbage cllection")
+gc()                                  # Clear unused data from memory ("garbage cllection")
 dev.off()                             # Reset the display output of R
 q("no")                               # This will completely shutdown R terminal
 ```
 
-
 ## Load required packages
 ```{r load-packages, include = FALSE}  
 options("install.lock" = FALSE)
-if (!require("pacman")) install.packages("pacman")
-library(pacman)
+if (!require("pacman")) install.packages("pacman") ; library(pacman)
 pacman::p_load(
   Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
   rio, here,              # File import and path support
@@ -30,18 +28,18 @@ pacman::p_load(
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
   gt,                     # Nice beuatiful tables
+  gtsummary,              # summary statistics and tests
   nortest,                # Anderson-Darling test for normality
   ggplot2,                # For creating plots
   DescTools,              # For statistical functions like skewness and kurtosis
-  psych                   # to get a table of all summary statistics
+  summarytools            # to get a table of all summary statistics
               )
 ```
 
 ## Access the data
 ```{r read-data, echo = FALSE}
-here::set_here("EpiCode")
-# file <- "./EpiData/01 linelist_cleaned.rds"     # 👈 use this if the file is on your computer
-file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/01%20linelist_cleaned.rds"
+# file <- "./EpiData/01 ebola.rds"     # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/01%20ebola.rds"
 df1 <- import(file, trust = TRUE)
 summary(df1)
 glimpse(df1)
@@ -53,16 +51,15 @@ glimpse(df1)
 variables <- c("age", "bmi", "temp")
 
 # Calculate summary statistics
-summary_stats <- describe(df1[, variables])           # this is using psych package
-iqr <- sapply(df1[, variables], IQR, na.rm = TRUE)
-summary_stats$IQR <- iqr # Add IQR
+summary_stats <- descr(df1[, variables], round.digits = 2, headings = TRUE)
+summary_stats
+```
 
+## Send to nice table
+```{r descriptives, echo = TRUE}
 # Switch around the table
-summary_stats <- as.data.frame(t(summary_stats))      # transpose df direction
-summary_stats <- summary_stats %>%                    # convert into a real df
-  as.data.frame() %>%
-  rownames_to_column(var = "Variable")
-summary_stats <- summary_stats[-c(1, 2), ]            # remove 1st two uneeded rows
+summary_stats <- as.data.frame((summary_stats))
+summary_stats <- cbind(Statistic = rownames(summary_stats), summary_stats)   # need this to keep
 
 # Convert to nice table
 summary_stats_tbl <- summary_stats %>%
@@ -75,12 +72,24 @@ summary_stats_tbl <- summary_stats %>%
 summary_stats_tbl # Display the table
 ```
 
+## Test normality (Ho: data are normal dist)
+```{r descriptives-old, echo = TRUE}
+variable <- c("age")
+ad <- ad.test(df1[[variable]])$p.value      # Anderson-Darling test for normality
+ad <- paste0("p < ", formatC(ad, format = "f", digits = 4))
+ad
+```
 
 ## The old way to do descriptives
 ```{r descriptives-old, echo = TRUE}
+# Select variable from the df to calculate summary statistics
+variable <- c("temp")
+
+# Get summary statistics
 desc_result <- Desc(df1[variable], plotit = TRUE)
 desc_result
 
+# Collect all the values
 mean_var1 <- mean(df$var.1, na.rm = TRUE)
 median_var1 <- median(df$var.1, na.rm = TRUE)
 
@@ -119,17 +128,16 @@ summary_stats <- stats_df %>%
 summary_stats # Show the table
 ```
 
-
 ## Pie Chart 
 ```{r pie, echo = TRUE}
-pie_var <- "age_cat"                                   # Change this to the categorial variable
+pie_var <- "age.cat"                                   # Change this to the categorial variable
 ggplot(df1, aes(x = "", fill = .data[[pie_var]])) +
   geom_bar(width = 1, stat = "count") +
   coord_polar(theta = "y") +
   theme_void() +
   # scale_fill_manual(values = c("lightblue", "lightgreen", "lightcoral", "lightgoldenrodyellow", "lightpink")) +
   labs(
-    title = "Chart of age_cat",
+    title = "Chart of age.cat",
   )
 ```
 
@@ -137,7 +145,7 @@ ggplot(df1, aes(x = "", fill = .data[[pie_var]])) +
 ```{r histogram, echo = TRUE}
 hist_var <- variable
 ggplot(df1, aes(x = get(hist_var))) +
-  geom_histogram(binwidth = 5, fill = "grey", color = "black") +
+  geom_histogram(bins = 10, fill = "grey", color = "black") +
   theme_minimal() +
   labs(
     title = "Histogram of Age",
@@ -146,14 +154,13 @@ ggplot(df1, aes(x = get(hist_var))) +
   )
 ```
 
-
 ## Boxplot
 ```{r boxplot, echo = TRUE}
 x_var <- "cough" # Change this to a categorial variable
 y_var <- "temp" # Change this to a numerical variable
 ggplot(df1, aes(x = get(x_var), y = get(y_var), fill = get(x_var))) +
   geom_boxplot(outlier.shape = NA) +
-  geom_jitter(width = 0.2, alpha = 0.25, size = 0.25, color = "darkgrey") +
+  geom_jitter(width = 0.2, alpha = 0.25, size = 0.25, color = "#000000") +
   theme_minimal() +
   scale_fill_manual(values = c("yes" = "lightblue",
                    "no" = "lightgreen", "unknown" = "lightgray")
@@ -166,7 +173,41 @@ ggplot(df1, aes(x = get(x_var), y = get(y_var), fill = get(x_var))) +
   )
 ```
 
+## Plot the histograms and density functions of the data rom above
+```{r boxplot, echo = TRUE}
+desc_result <- Desc(df1[variables], plotit = TRUE)
+desc_result
+```
 
+## Crosstables / Contigengcy tables
+```{r chi-square, echo = TRUE}
+glimpse(df1)
+# Create contigency table
+contingency_table <- table(df1$fever, df1$outcome)
+contingency_table
+
+# Convert to probabilities
+percent_table <- prop.table(contingency_table, margin = 1)
+percent_table
+
+percent_table <- round(prop.table(contingency_table), 3)      # round to 3 digits
+percent_table
+
+# Chi-Square test
+chisq.test(x = df1$fever, y = df1$outcome)
+
+# Chi-Fisher Exact test
+fisher.test(x = df1$fever, y = df1$outcome)
+
+# Create cross-tabulation with chi-square test
+tbl_cross(data = df1_clean, row = fever, col = outcome,
+          missing = "no",                                               # Ignore missing values
+          percent = "row"                                               # Row percentages (use "column" or "cell" if needed)
+         ) %>%
+         add_p(test = "chisq.test", test.args = list(correct = TRUE),   # Add chi-square test. Replace with fisher.test if needed.
+         pvalue_fun = ~formatC(., digits = 3, format = "f")
+         )
+```
 
 
 
@@ -200,7 +241,7 @@ ggplot(df1, aes(x = get(x_var), y = get(y_var), fill = get(x_var))) +
 
 
 
-### source: https://epirhandbook.com/en/
+### source: https://epirhandbook.com/en/new_pages/data_used.html
 ###         https://github.com/appliedepi/epirhandbook_eng
 
 ## Clean data
@@ -208,6 +249,7 @@ ggplot(df1, aes(x = get(x_var), y = get(y_var), fill = get(x_var))) +
 # Load the data
 file <- "https://github.com/appliedepi/epirhandbook_eng/raw/master/data/case_linelists/linelist_cleaned.rds"
 df1 <- import(file, trust = TRUE)
+write.csv(df1, here("EpiData", "01 ebola.csv"))
 
 # Clean up variable names
 df1 <- clean_names(df1)
@@ -217,6 +259,10 @@ names(df1) <- gsub("_", ".", names(df1))
 df1 <- df1 %>% 
   mutate_if(is.character, as.factor)
 
+# Convert cough NAs to "no"
+df1 <- df1 %>%
+  mutate(cough = replace_na(cough, "no"))
+
 # Calculate BMI
 df1 <- df1 %>%
   mutate(bmi = wt_kg / (ht_cm / 100)^2)
@@ -225,5 +271,5 @@ summary(df1)
 glimpse(df1)
 
 # Save to R data file
-saveRDS(df1, here("EpiData", "01 linelist_cleaned.rds"))
+saveRDS(df1, here("EpiData", "01 ebola.rds"))
 ```

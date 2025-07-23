@@ -20,8 +20,7 @@ q("no")                               # This will completely shutdown R terminal
 ## Load required packages
 ```{r load-packages, include = FALSE}  
 options("install.lock" = FALSE)
-if (!require("pacman")) install.packages("pacman")
-library(pacman)
+if (!require("pacman")) install.packages("pacman") ; library(pacman)
 pacman::p_load(
   Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
   rio, here,              # File import and path support
@@ -29,15 +28,17 @@ pacman::p_load(
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
   gt,                     # Nice beuatiful tables
+  gtsummary,              # summary statistics and tests
   nortest,                # Anderson-Darling test for normality
   ggplot2,                # For creating plots
   ggpubr,                 # For ggplot2 extensions
-  gtsummary,              # summary statistics and tests
   DescTools,              # For statistical functions like skewness and kurtosis
-  psych,                  # to get a table of all summary statistics
-  janitor,                # adding totals and percents to tables
-  car                     # For Levene's test and ANOVA
+  summarytools,           # to get a table of all summary statistics
+  car,                    # For Levene's test and ANOVA
+  dunn.test,              # For a Krutal-Wallis post-hoc test
               )
+# Install/load flexplot
+if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
 ```
 
 ## Access the data
@@ -47,6 +48,24 @@ file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main
 # read the data in a file online
 df_bc <- import(file, trust = TRUE)
 glimpse(df_bc)
+```
+
+## Crosstables, Chi-Square and Fisher Exact tests
+```{r chi-square, echo = TRUE}
+# Create cross-tabulation with chi-square test
+tbl_cross(data = df_bc, row = optimal.systemic.therapy, col = rt,
+          missing = "no",                                               # Ignore missing values
+          percent = "row"                                               # Row percentages (use "column" or "cell" if needed)
+         ) %>%
+         add_p(test = "chisq.test", test.args = list(correct = TRUE),   # Do a chi-square test (replace with fisher.test if needed)
+         pvalue_fun = ~formatC(., digits = 3, format = "f")             # round p-value to 3 digits
+         )
+        
+# Chi-Square test
+chisq.test(x = df_bc$grade, y = df_bc$rt)
+
+# Chi-Fisher Exact test
+fisher.test(x = df_bc$grade, y = df_bc$rt)
 ```
 
 ## T test for independent samples
@@ -61,6 +80,7 @@ levene_test
 # Do the independent samples T test
 t_test_result <- t.test(age.dx.yrs ~ recurrence, data = df_bc, var.equal = FALSE)
 t_test_result
+tidy(t_test_result)
 ```
 
 ## Two-way ANOVA
@@ -83,66 +103,54 @@ tukey_result
 
 ## Mann-Whitney test (a nonparametric "T test")
 ```{r M_U-test, echo = TRUE}
-# Perform Mann-Whitney test (paired = FALSE)
-MW_test <- wilcox.test(nodal.ratio ~ optimal.systemic.therapy, data = df_bc, na.action = na.exclude, paired = FALSE)
+# Perform Mann-Whitney test, comparing numerical variable between two groups
+MW_test <- wilcox.test(nodal.ratio ~ optimal.systemic.therapy, data = df_bc, na.action = na.exclude)
 MW_test
 ```
 
-## Chi-Square and Fisher Exact tests
-```{r chi-square, echo = TRUE}
+## Kruskal-Wallis test (a nonparametric "ANOVA")
+```{r M_U-test, echo = TRUE}
+# Kruskal-Wallis test, comparing numerical variable between three or more groups
+KW_test <- kruskal.test(nodal.ratio ~ grade, data = df_bc, na.action = na.exclude)
+KW_test
 
-# Map character grades to integers
-contingency_table <- table(df_bc$optimal.systemic.therapy, df_bc$rt)
-contingency_table
-
-# Convert to probabilities
-percent_table <- prop.table(contingency_table, margin = 1)
-percent_table
-
-percent_table <- round(prop.table(contingency_table), 3)
-percent_table
-
-# Chi-Square test
-chisq.test(x = df_bc$grade, y = df_bc$rt)
-
-# Chi-Fisher Exact test
-fisher.test(x = df_bc$grade, y = df_bc$rt)
-```
-
-## Spearman regression
-```{r cspearman, echo = TRUE}
-# Lets look at the data
-flexplot(tumor.size.cm ~ grade, data = df_bc)
-
-# Spearmen needs the x axis valuses to be numeric
-df_bc$grade <- as.integer(df_bc$grade)
-
-# Spearman regrssion (better not to use it....)
-#spearman <- cor.test(df_bc$tumor.size.cm, df_bc$grade, method = "spearman", use = "complete.obs")
-#spearman
+# Dunn post-hoc test for Kruskal-Wallis 
+dunn.test(df_bc$nodal.ratio, df_bc$grade, method = "bh")
 ```
 
 # Paired T test or Wilcoxon ranked sum
 ```{r paired-t-test, echo = TRUE}
 ## Lets get some data on anorexia
-df_anorexia <- data.frame(anorexia)
-summary(df_anorexia)
+if (!require("datarium")) install.packages("datarium") ; library(datarium)
+df_anorexia <- anorexia
 glimpse(df_anorexia)
 
 # Do a paired T test
 paired_t_test_result <- t.test(df_anorexia$Prewt, df_anorexia$Postwt, paired = TRUE)
 paired_t_test_result
 
-# Do a paired Wilcoxon test
-wilcox.test(df_anorexia$Prewt, df_anorexia$Postwt, paired = TRUE)
-
 # Plot the data
 ggpaired(df_anorexia, cond1 = "Prewt", cond2 = "Postwt",
          y = "value", x = "variable", fill = "condition",
-         palette = "jco", line.color = "gray", line.size = 0.4)
-         + facet_wrap(~ Treat)
+         palette = "jco", line.color = "gray", line.size = 0.4) +
+         facet_wrap(~ Treat)
+
+# Do a paired Wilcoxon ranked test if data are not normally distributed
+wilcox.test(df_anorexia$Prewt, df_anorexia$Postwt, paired = TRUE)         
 ```
 
+## Spearman regression
+```{r cspearman, echo = TRUE}
+# Lets look at the data
+#flexplot(tumor.size.cm ~ grade, data = df_bc)
+
+# Spearman needs the x axis values to be int
+#df_bc$grade <- as.integer(df_bc$grade)
+
+# Spearman regrssion (better not to use it....)
+#spearman <- cor.test(df_bc$tumor.size.cm, df_bc$grade, method = "spearman", use = "complete.obs")
+#spearman
+```
 
 
 
@@ -182,31 +190,37 @@ ggpaired(df_anorexia, cond1 = "Prewt", cond2 = "Postwt",
 ```{r cleam-data, echo = TRUE}
 # Load the data
 file <- "https://raw.githubusercontent.com/zabore/mmedr/refs/heads/main/data/breastcancer.csv"
-df <- import(file, trust = TRUE)
+df_bc <- import(file, trust = TRUE)
+#write.csv(df_bc, here("EpiData", "02 breastcancer.csv"))
 
 # Clean up variable names
-df <- clean_names(df)
-names(df) <- gsub("_", ".", names(df))
+df_bc <- clean_names(df_bc)
+names(df_bc) <- gsub("_", ".", names(df_bc))
 
 # Recode grade from I,II,III to 1,2,3
-df <- df %>%
+df_bc <- df_bc %>%
   mutate(grade = case_when(
     grade == "I" ~ 1L,
     grade == "II" ~ 2L,
     grade == "III" ~ 3L,
     TRUE ~ as.integer(NA)  # Convert unexpected values to NA
   ))
-df$grade <- factor(df$grade, levels = c("1", "2", "3"), ordered = TRUE)
+df_bc$grade <- factor(df_bc$grade, levels = c("1", "2", "3"), ordered = TRUE)
 
 # Convert to int variable
-df$days.onset.hosp <- as.integer(df$days.onset.hosp)
+df_bc$days.onset.hosp <- as.integer(df_bc$days.onset.hosp)
 
-# rename variables - new_name = old_name
-df <- dplyr::rename(df, recurrence = event)
+# Rename variables - new_name = old_name
+df_bc <- dplyr::rename(df_bc, recurrence = event)
+
+# Convert recurrence to fct
+df <- df %>%
+  mutate(recurrence = factor(recurrence, levels = c(0, 1), labels = c("no", "yes")))
 
 # Check the updated dataset structure
-glimpse(df)
+glimpse(df_bc)
 
 # Save as R data file
-saveRDS(df, here("EpiData", "02 breastcancer.rds"))
+saveRDS(df_bc, here("EpiData", "02 breastcancer.rds"))
+saveRDS(df_anorexia, here("EpiData", "02 anorexia.rds"))
 ```
