@@ -9,10 +9,12 @@
 
 
 ## Reset memory
-```{r setup-packages, include false}
-rm(list = ls(all.names = TRUE))
-lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
-gc()
+```{r setup-packages, include = FALSE}
+rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
+gc()                                  # Clear unused data from memory ("garbage cllection")
+dev.off()                             # Reset the display output of R
+q("no")                               # This will completely shutdown R terminal
 ```
 
 ## Load required packages
@@ -51,8 +53,9 @@ df <- import(file, trust  = TRUE)
 
 ## Check out the variables
 ```{r load data, include false}
-summary(df)
-glimpse(df)
+# show variable translations to Hebrew in lables
+labels <- data.frame(Variable = names(df), Label = unlist(var_label(df)))   ;   gt(labels)
+glimpse(df)               # get an overview of the data
 ```
 
 ## Select numerical variable for analysis
@@ -249,6 +252,7 @@ model_parameters(model_2, standardize = "refit")
 # Load the data
 file <- "https://storage.googleapis.com/kaggle-data-sets/12603/17232/bundle/archive.zip?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=gcp-kaggle-com%40kaggle-161607.iam.gserviceaccount.com%2F20250714%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20250714T092436Z&X-Goog-Expires=259200&X-Goog-SignedHeaders=host&X-Goog-Signature=322c53eaad862597c7dbd89acd0cc6c945d9d24dfaf0830dc5414c566802f515ef63b5d49f07eccb7b149bb54de1e264afdad536d0567a7470868899acd8932fc09e12fa6900dfebf139858709b15b0acc374a215a2901e42664fe6088c32232ecad7b769c03f68499b651d3ef2d36cecc18573e0f5e3ec5884f0a1319b2e6be0b2a40b589fbdd337bebe400ef772c672345e0ae7b1a124e1bc948f12cbb34b5e5950eeb2fd96117d1230dba3b98d3595e07d293da13dcf6f2155eb52252057da12ba82301d7784e5845a13603a4d8b719d731e96498c8c703c6803152fe76d19da988429f7db0e4f89ed1d7a45eed2d1af849a09830bfc01a9f4b71955ac601"
 df <- import(file, trust  = TRUE)
+#write.csv(df, here("EpiData", "HWdata_1.csv"))
 
 # Clean up variable names
 df <- clean_names(df)
@@ -259,4 +263,34 @@ glimpse(df)
 
 # Save as R data file
 saveRDS(df, here("EpiData", "HWdata_1.rds"))
+```
+
+## Give variable explanations in labels
+```{r labels, echo = TRUE}
+attr(df$country, "label") <- "מדינה"
+attr(df$year, "label") <- "שנה"
+attr(df$status, "label") <- "מצב חברתי-כלכלי"
+attr(df$life.expectancy, "label") <- "תוחלת חיים"
+attr(df$adult.mortality, "label") <- "תמותת מבוגרים"
+attr(df$infant.deaths , "label") <- "תומתת תינוקות"
+attr(df$alcohol, "label") <- "צריכת אלכוהול"
+attr(df$percentage.expenditure, "label") <- "אחוז ההוצאה הלאומית לבריאות"
+attr(df$hepatitis.b, "label") <- "צהבת נגיפית"
+attr(df$measles, "label") <- "חצבת"
+attr(df$bmi, "label") <- "BMI"
+attr(df$under.five.deaths, "label") <- "תמותת ילדים מתחת גיל 5"
+attr(df$polio, "label") <- "פולוי"
+attr(df$total.expenditure, "label") <- "הוצאה הלאומית"
+attr(df$diphtheria, "label") <- "דִיפטֶרִיָה"
+attr(df$hiv.aids, "label") <- "מחלה אימונית נרכשת"
+attr(df$gdp, "label") <- "כוח כלכלי"
+attr(df$population, "label") <- "גודל האוכלוסיה"
+attr(df$thinness.1.19.years, "label") <- "רזון בקרב בני 1-19"
+attr(df$thinness.5.9.years, "label") <- "רזון בקרב בני 5-9"
+attr(df$income.composition.of.resources, "label") <- "הרכב הכנסה של משאבים"
+attr(df$schooling, "label") <- "שנות חינוך"
+
+labels <- NULL
+labels <- data.frame(Variable = names(df), Label = unlist(var_label(df)))
+gt(labels)
 ```

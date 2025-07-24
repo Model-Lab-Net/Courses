@@ -9,10 +9,12 @@
 
 
 ## Reset memory
-```{r setup-packages, include false}
-rm(list = ls(all.names = TRUE))
-lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
-gc()
+```{r setup-packages, include = FALSE}
+rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
+gc()                                  # Clear unused data from memory ("garbage cllection")
+dev.off()                             # Reset the display output of R
+q("no")                               # This will completely shutdown R terminal
 ```
 
 ## Load required packages
@@ -58,8 +60,9 @@ pacman::p_load(
 # file <- "./EpiData/HWdata_3.rds"            # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/HWdata_3.rds"
 df <- import(file, trust  = TRUE)
-summary(df)
-glimpse(df)
+# show variable translations to Hebrew in lables
+labels <- data.frame(Variable = names(df), Label = unlist(var_label(df)))   ;   gt(labels)
+glimpse(df)               # get an overview of the data
 ```
 
 ## Survival time statistics
@@ -290,6 +293,7 @@ log_rank_peto_sex
 # Load the data
 file <- "https://raw.githubusercontent.com/vincentarelbundock/Rdatasets/refs/heads/master/csv/survival/cancer.csv"
 df <- import(file)
+#write.csv(df, here("EpiData", "HWdata_3.csv"))
 
 # Clean up variable names
 df <- clean_names(df)
@@ -300,4 +304,23 @@ glimpse(df)
 
 # Save as R data file
 saveRDS(df, here("EpiData", "HWdata_3.rds"))
+```
+
+## Give variable explanations in labels
+```{r labels, echo = TRUE}
+attr(df$rownames, "label") <- "זיהוי מטופל"
+attr(df$inst, "label") <- "שנה"
+attr(df$time, "label") <- "זמן"
+attr(df$status, "label") <- "חי / נפטר"
+attr(df$age, "label") <- "גיל"
+attr(df$sex, "label") <- "מגדר"
+attr(df$ph.ecog, "label") <- "ציון ביצוע פעילויות יומיומיות"
+attr(df$ph.karno, "label") <- "ציון ביצועים של קרנופסקי לפי דעת הרופא"
+attr(df$pat.karno, "label") <- "ציון ביצועים של קרנופסקי לפי דעת המטופל"
+attr(df$meal.cal, "label") <- "קלוריות ביום"
+attr(df$wt.loss, "label") <- "ירידה במשקל ב-6 חודשים הארחואנים"
+
+labels <- NULL
+labels <- data.frame(Variable = names(df), Label = unlist(var_label(df)))
+gt(labels)
 ```

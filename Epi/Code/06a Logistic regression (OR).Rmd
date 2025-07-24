@@ -10,9 +10,9 @@
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))       # 👈 Remove all data objects        👇 Remove packages
+rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
 lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
-gc()                                  # Remove unused data from memory ("garbage cllection")
+gc()                                  # Clear unused data from memory ("garbage cllection")
 dev.off()                             # Reset the display output of R
 q("no")                               # This will completely shutdown R terminal
 ```
@@ -20,27 +20,24 @@ q("no")                               # This will completely shutdown R terminal
 ## Load required packages
 ```{r load-packages, include = FALSE}
 options("install.lock" = FALSE)
-install.packages("pacman")
-if (!require("pacman")) install.packages("pacman")
+if (!require("pacman")) install.packages("pacman") ; library(pacman)
 pacman::p_load(
-  devtools,
   Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
   rio, here,              # File import and path support
+  labelled,               # deal with labels
   tidyverse,              # data management + ggplot2 graphics,
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
   gt,                     # Nice beuatiful tables
-  gtsummary,              # summary statistics and tests in beautiful tables
+  gtsummary,              # summary statistics and tests
   nortest,                # Anderson-Darling test for normality
   ggplot2,                # For creating plots
+  ggpubr,                 # For ggplot2 extensions
   DescTools,              # For statistical functions like skewness and kurtosis
-  psych,                  # to get a table of all summary statistics
-  janitor,                # adding totals and percents to tables
+  summarytools,           # to get a table of all summary statistics
   car,                    # For Levene's test and ANOVA
-  gtsummary,              # summary statistics and tests in beautiful tables
-  corrr,                  # correlation
-  lmtest,                 # linear regression tets
-  parameters,             # calculate standardized parameters/coefficients
+  lmtest,                 # do linear regression tests
+  parameters,             # get standardized parameters/coefficients
   GGally,                 # to make a correlation matrix
   skimr,                  # get overview of data
   pROC,                   # For ROC analysis
@@ -50,7 +47,7 @@ pacman::p_load(
   ResourceSelection       # For Hosmer-Lemeshow test for goodness of fit 
               )
 # Install/load flexplot
-if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
+if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  gt(labels)
 ```
 
 ## Access the data
@@ -58,8 +55,9 @@ if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/f
 # file <- "./EpiData/04 stroke.rds"     # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/04%20stroke.rds"
 df3 <- import(file, trust = TRUE)
-summary(df3)
-glimpse(df3)                        # get an overview of the data
+# show variable translations to Hebrew in lables
+labels <- data.frame(Variable = names(df3), Label = unlist(var_label(df3)))   ;   gt(labels)
+glimpse(df3)               # get an overview of the data
 ```
 
 ## Summary statistics
@@ -247,6 +245,7 @@ auc(roc_obj)
 # Load the data
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/stroke.dta"
 df3 <- import(file, trust = TRUE)
+#write.csv(df3, here("EpiData", "04 stroke.csv"))
 
 # Clean up variable names
 df3 <- clean_names(df3)
@@ -270,4 +269,17 @@ glimpse(df3)
 saveRDS(df3, here("EpiData", "04 stroke.rds"))
 ```
 
+## Give variable explanations in labels
+```{r labels, echo = TRUE}
+attr(df3$sex, "label") <- "מגדר"
+attr(df3$status, "label") <- "מצב (חי / נפטר)"
+attr(df3$gcs, "label") <- "סולם התרדמת של גלאזגו"
+attr(df3$sbp, "label") <- "לחץ דם סיסטולי"
+attr(df3$dm , "label") <- "סוּכֶּרֶת"
+attr(df3$age, "label") <- "גיל"
+attr(df3$stroke.type, "label") <- "סוג שבץ מוח (HS / IS)"
 
+labels <- NULL
+labels <- data.frame(Variable = names(df3), Label = unlist(var_label(df3)))
+gt(labels)
+```

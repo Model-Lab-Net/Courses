@@ -9,9 +9,9 @@
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))       # 👈 Remove all data objects        👇 Remove packages
+rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
 lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
-gc()                                  # Remove unused data from memory ("garbage cllection")
+gc()                                  # Clear unused data from memory ("garbage cllection")
 dev.off()                             # Reset the display output of R
 q("no")                               # This will completely shutdown R terminal
 ```
@@ -19,37 +19,38 @@ q("no")                               # This will completely shutdown R terminal
 ## Load required packages
 ```{r load-packages, include = FALSE}
 options("install.lock"=FALSE)
-if (!require("pacman")) install.packages("pacman")
-library(pacman)
+if (!require("pacman")) install.packages("pacman") ; library(pacman)
 pacman::p_load(
   Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
   rio, here,              # File import and path support
+  labelled, DT,           # deal with labels
   tidyverse,              # data management + ggplot2 graphics,
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
   gt,                     # Nice beuatiful tables
+  gtsummary,              # summary statistics and tests
   nortest,                # Anderson-Darling test for normality
   ggplot2,                # For creating plots
+  ggpubr,                 # For ggplot2 extensions
   DescTools,              # For statistical functions like skewness and kurtosis
-  psych,                  # to get a table of all summary statistics
-  janitor,                # adding totals and percents to tables
+  summarytools,           # to get a table of all summary statistics
   car,                    # For Levene's test and ANOVA
-  gtsummary,              # summary statistics and tests in beautiful tables
-  corrr,                  # correlation
-  lmtest,                 # linear regression tets
-  parameters,             # calculate standardized parameters/coefficients
+  lmtest,                 # do linear regression tests
+  parameters,             # get standardized parameters/coefficients
   GGally,                 # to make a correlation matrix
   skimr,                  # get overview of data
   pROC,                   # For ROC analysis
-  performance,            # For model performance metrics
-   #MASS,                   # For statistical functions (polr for ordinal regression)ordinal
-  ordinal,                # For ordinal regression statistical functions 
   caret,                  # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
+  performance,            # For model performance metrics
+  generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 
+  # MASS,                   # For statistical functions (polr for ordinal regression)ordinal
+  ordinal,                # For ordinal regression statistical functions 
   generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 
   ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit 
   VGAM,                   # for multinomial logistic regression
-  epiDisplay,             # For epi data type handling    
+  cardx,
+  epiDisplay,             # For epi data type handling
   survival,               # For survival analysis
   survminer               # For survival analysis and visualization
            )
@@ -62,15 +63,16 @@ if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/f
 ## read the data in a file online
 # file <- "./EpiData/09 stroke_data.rds"     # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/09%20stroke_data.rds"
-df7 <- import(file, trust  = TRUE)
-summary(df7)
-glimpse(df7)
+df8 <- import(file, trust  = TRUE)
+# show variable translations to Hebrew in lables
+labels <- data.frame(Variable = names(df8), Label = unlist(var_label(df8)))   ;   gt(labels)
+glimpse(df8)               # get an overview of the data
 ```
 
 ## Show the data
 ```{r read-data, echo = TRUE}
 # in a nice table
-df7 %>%
+df8 %>%
   tbl_summary(
     by = status,
     include = -c(doa, dod)  # exclude these two date variables
@@ -78,7 +80,7 @@ df7 %>%
   as_gt()
 
 
-df7 %>%
+df8 %>%
   tbl_summary(
     by = stroke.type,
     include = -c(doa, dod)  # exclude these two date variables
@@ -89,17 +91,17 @@ df7 %>%
 ## Survival time statistics
 ```{r surv-stats, echo = TRUE}
 # Survival time
-mean_survival_time <- mean(df7$time2, na.rm = TRUE)
-sd_survival_time <- sd(df7$time2, na.rm = TRUE)
-CI1 <- MeanCI(df7$time2, na.rm = TRUE)
+mean_survival_time <- mean(df8$time2, na.rm = TRUE)
+sd_survival_time <- sd(df8$time2, na.rm = TRUE)
+CI1 <- MeanCI(df8$time2, na.rm = TRUE)
   lower_meanci_1 <- as.numeric((CI1["lwr.ci"]))
   upper_meanci_1 <- as.numeric((CI1["upr.ci"]))
-median_survival_time <- median(df7$time2, na.rm = TRUE)
-IQR_survival_time <- IQR(df7$time2, na.rm = TRUE)
-q25_survival_time <- as.numeric(Quantile(df7$time2, probs = 0.25, na.rm = TRUE))
-q75_survival_time <- as.numeric(Quantile(df7$time2, probs = 0.75, na.rm = TRUE))
-min_survival_time <- min(df7$time2, na.rm = TRUE)
-max_survival_time <- max(df7$time2, na.rm = TRUE)
+median_survival_time <- median(df8$time2, na.rm = TRUE)
+IQR_survival_time <- IQR(df8$time2, na.rm = TRUE)
+q25_survival_time <- as.numeric(Quantile(df8$time2, probs = 0.25, na.rm = TRUE))
+q75_survival_time <- as.numeric(Quantile(df8$time2, probs = 0.75, na.rm = TRUE))
+min_survival_time <- min(df8$time2, na.rm = TRUE)
+max_survival_time <- max(df8$time2, na.rm = TRUE)
 
 # Create a data frame to neatly display the statistics
 stats_df <- data.frame(
@@ -121,7 +123,7 @@ summary_stats              # Show the table
 # estimate the survival probabilities for all patients
 KM_all <- survfit(Surv(time = time2, 
                        event = status == "dead" ) ~ 1, 
-                       data = df7)
+                       data = df8)
 summary(KM_all)
 ```
 
@@ -129,14 +131,14 @@ summary(KM_all)
 ## Life table
 ```{r life-table, echo = TRUE}
 # Convert status to int
-df7 <- df7 %>%
+df8 <- df8 %>%
   mutate(event = ifelse(status == "dead", 1, 0))
 
 # Fit Kaplan-Meier model stratified by stroke.type (example)
-km_fit <- survfit(Surv(time2, event) ~ 1, data = df7)
+km_fit <- survfit(Surv(time2, event) ~ 1, data = df8)
 
 # Extract survival summary at intervals of 10 units
-km_summary <- summary(km_fit, times = seq(0, max(df7$time2), by = 10))
+km_summary <- summary(km_fit, times = seq(0, max(df8$time2), by = 10))
 
 # Convert to data frame
 km_df <- data.frame(
@@ -172,7 +174,7 @@ km_df %>%
 ```{r read-data, echo = TRUE}
 # estimate the survival probabilities for all patients
 KM_all_plot <- ggsurvplot(KM_all, 
-           data = df7, 
+           data = df8, 
            risk.table = TRUE, 
            linetype = c(1,4),
            tables.height = 0.3,
@@ -191,7 +193,7 @@ KM_all_plot
 # estimate the survival probabilities for stroke type
 KM_str_type <- survfit(Surv(time = time2, 
                              event = status == "dead" ) ~ stroke.type, 
-                        data = df7)
+                        data = df8)
 summary(KM_str_type)
 ```
 
@@ -199,7 +201,7 @@ summary(KM_str_type)
 ```{r read-data, echo = TRUE}
 # estimate the survival probabilities for all patients
 KM_str_plot <- ggsurvplot(KM_str_type, 
-           data = df7, 
+           data = df8, 
            risk.table = TRUE, 
            linetype = c(1,4),
            tables.height = 0.3,
@@ -214,10 +216,10 @@ KM_str_plot
 ```{r life-table, echo = TRUE}
 # Convert status to int
 # Fit Kaplan-Meier model stratified by stroke.type (example)
-km_fit_strat <- survfit(Surv(time2, event) ~ stroke.type, data = df7)
+km_fit_strat <- survfit(Surv(time2, event) ~ stroke.type, data = df8)
 
 # Extract survival summary at intervals of 10 units
-km_summary_strat <- summary(km_fit_strat, times = seq(0, max(df7$time2), by = 10))
+km_summary_strat <- summary(km_fit_strat, times = seq(0, max(df8$time2), by = 10))
 
 # Convert to data frame
 km_df <- data.frame(
@@ -260,7 +262,7 @@ km_df %>%
 # Test if survival estimates are  different between levels/groups
 log_rank_stroke <- survdiff(Surv(time = time2, 
               event = status == "dead") ~ stroke.type, 
-         data = df7,
+         data = df8,
          rho = 0)
 
 log_rank_stroke
@@ -268,7 +270,7 @@ log_rank_stroke
 # Test if survival estimates are  different between levels/groups
 log_rank_diabetes <- survdiff(Surv(time = time2, 
               event = status == "dead") ~ dm, 
-         data = df7,
+         data = df8,
          rho = 0)
 
 log_rank_diabetes
@@ -279,7 +281,7 @@ log_rank_diabetes
 # Test if survival estimates are different between levels/groups
 log_rank_stroke <- survdiff(Surv(time = time2, 
               event = status == "dead") ~ stroke.type, 
-         data = df7,
+         data = df8,
          rho = 1)
 
 log_rank_stroke
@@ -287,7 +289,7 @@ log_rank_stroke
 # Test if survival estimates are different between levels/groups
 log_rank_dm <- survdiff(Surv(time = time2, 
               event = status == "dead") ~ dm, 
-         data = df7,
+         data = df8,
          rho = 1)
 
 log_rank_dm
@@ -332,26 +334,47 @@ log_rank_dm
 ```{r clean-data, echo = TRUE}
 # Load the data
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/stroke_data.csv"
-df7 <- import(file, trust  = TRUE)
+df8 <- import(file, trust  = TRUE)
+#write.csv(df8, here("EpiData", "09 stroke_data.csv"))
 
 # Clean up variable names
-df7 <- clean_names(df7)
-names(df7) <- gsub("_", ".", names(df7))
+df8 <- clean_names(df8)
+names(df8) <- gsub("_", ".", names(df8))
 
 # convert the variable doa and variable doa to a more valid format (date format)
-df7 <- 
-  df7 %>%
+df8 <- 
+  df8 %>%
   mutate(doa = dmy(doa),
          dod = dmy(dod)
         )
 
 # Convert status to fct
-df7 <- df7 %>%
+df8 <- df8 %>%
   mutate(status = fct_relevel(status, "alive"))
 
 # Check the updated dataset structure
-glimpse(df7)
+glimpse(df8)
 
 # Save as R data file
-saveRDS(df7, here("EpiData", "09 stroke_data.rds"))
+saveRDS(df8, here("EpiData", "09 stroke_data.rds"))
+```
+
+## Give variable explanations in labels
+```{r labels, echo = TRUE}
+attr(df8$doa, "label") <- "תאריך אישפוז"
+attr(df8$dod, "label") <- "תאריך שחרור"
+attr(df8$status, "label") <- "מצב (חי / נפטר)"
+attr(df8$sex, "label") <- "מגדר"
+attr(df8$gcs, "label") <- "סולם התרדמת של גלאזגו"
+attr(df8$dm , "label") <- "סוּכֶּרֶת"
+attr(df8$sbp, "label") <- "לחץ דם סיסטולי"
+attr(df8$dbp, "label") <- "לחץ דם דיאסטולי"
+attr(df8$wbc, "label") <- "ספירת תאי דם לבנים"
+attr(df8$time2, "label") <- "הזמן לשרוד"
+attr(df8$stroke.type, "label") <- "סוג שבץ מוח (HS / IS)"
+attr(df8$referral.from, "label") <- "הפניה מ-"
+
+labels <- NULL
+labels <- data.frame(Variable = names(df8), Label = unlist(var_label(df8)))
+gt(labels)
 ```

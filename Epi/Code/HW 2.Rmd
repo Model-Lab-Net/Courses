@@ -9,10 +9,12 @@
 
 
 ## Reset memory
-```{r setup-packages, include false}
-rm(list = ls(all.names = TRUE))
-lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
-gc()
+```{r setup-packages, include = FALSE}
+rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
+gc()                                  # Clear unused data from memory ("garbage cllection")
+dev.off()                             # Reset the display output of R
+q("no")                               # This will completely shutdown R terminal
 ```
 
 ## Load required packages
@@ -54,9 +56,10 @@ if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = 
 ```{r read-data, echo=FALSE}
 # file <- "./EpiData/HWdata_2.rds               # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/HWdata_2.rds"
-df <- import(file)
-summary(df)
-glimpse(df)  # get an overview of the data
+df <- import(file, trust  = TRUE)
+# show variable translations to Hebrew in lables
+labels <- data.frame(Variable = names(df), Label = unlist(var_label(df)))   ;   gt(labels)
+glimpse(df)               # get an overview of the data
 ```
 
 ## Get summary statistics
@@ -205,6 +208,7 @@ estimates(mlog_reg_ia)
 # Load the data
 file <- "https://raw.githubusercontent.com/ThecoderPinar/Diabetes_Health_Prediction_and_Analysis/refs/heads/main/raw/diabetes_data.csv"
 df <- import(file)
+#write.csv(df, here("EpiData", "HWdata_2.csv"))
 
 # Clean up variable names
 df <- clean_names(df)
@@ -215,4 +219,58 @@ glimpse(df)
 
 # Save as R data file
 saveRDS(df, here("EpiData", "HWdata_2.rds"))
+```
+
+## Give variable explanations in labels
+```{r labels, echo = TRUE}
+attr(df$patient.id, "label") <- "זיהוי המטופל"
+attr(df$age, "label") <- "גיל"
+attr(df$gender, "label") <- "מגדר"
+attr(df$ethnicity, "label") <- "אתניות"
+attr(df$socioeconomic.status, "label") <- "מצב חברתי-כלכלי"
+attr(df$education.level, "label") <- "רמת השכלה"
+attr(df$bmi, "label") <- "BMI"
+attr(df$smoking, "label") <- "עישון"
+attr(df$alcohol.consumption, "label") <- "צריכת אלכוהול"
+attr(df$physical.activity, "label") <- "פעילות גופנית"
+attr(df$diet.quality, "label") <- "איכולת התזונה"
+attr(df$sleep.quality, "label") <- "איכות השינה"
+attr(df$family.history.diabetes, "label") <- "היסטריה משפחתית לסוכרת"
+attr(df$gestational.diabetes, "label") <- "סוכרת בהריון"
+attr(df$polycystic.ovary.syndrome, "label") <- "תסמונת שחלות פוליציסטיות"
+attr(df$previous.pre.diabetes, "label") <- "טרום-סוכרת"
+attr(df$hypertension, "label") <- "לחץ דם גבוה"
+attr(df$systolic.bp, "label") <- "לחץ דם סיסטולי"
+attr(df$diastolic.bp, "label") <- "לחץ דם דיאסטולי"
+attr(df$fasting.blood.sugar, "label") <- "רמת סוכר בדם לאחר צום"
+attr(df$hb.a1c, "label") <- "רמת סוכר בדם לאחר צום ב-2,3 חודשים האחרונים"
+attr(df$serum.creatinine , "label") <- "תפקוד כליות"
+attr(df$bun.levels, "label") <- "רמת חנקן בשתן"
+attr(df$cholesterol.total, "label") <- "כולסטרול כללי"
+attr(df$cholesterol.ldl, "label") <- "כולסטרול רע"
+attr(df$cholesterol.hdl, "label") <- "כולסטרול טוב"
+attr(df$cholesterol.triglycerides, "label") <- "טריגליצרידים"
+attr(df$antihypertensive.medications, "label") <- "תרופות ללחץ דם גבוה"
+attr(df$statins, "label") <- "נטילת סטטיטנים"
+attr(df$antidiabetic.medications, "label") <- "תרופות נגד סוכרת"
+attr(df$frequent.urination, "label") <- "מתן שתן תכוף"
+attr(df$excessive.thirst, "label") <- "צמאון מוגזם"
+attr(df$unexplained.weight.loss, "label") <- "ירידה במשקל בלתי-מוסברת"
+attr(df$fatigue.levels, "label") <- "רמת עייפות"
+attr(df$blurred.vision, "label") <- "ראיה מטושטשת"
+attr(df$slow.healing.sores, "label") <- "ריפוי איטי של פצעים" 
+attr(df$tingling.hands.feet, "label") <- "עקצוץ בידיים ו/או ברגליים"
+attr(df$quality.of.life.score, "label") <- "מדד איכות החיים"
+attr(df$heavy.metals.exposure, "label") <- "חשיפה למתכות כבדות"
+attr(df$occupational.exposure.chemicals, "label") <- "חשיפה תעסוקתית לכימיקלים"
+attr(df$water.quality , "label") <- "איכות המים"
+attr(df$medical.checkups.frequency, "label") <- "תדירות בדיקת רופא"
+attr(df$medication.adherence, "label") <- "נטילת תרופות באופן קבוע"
+attr(df$health.literacy, "label") <- "אוריינות לבריאות"
+attr(df$diagnosis, "label") <- "אבחון"
+attr(df$doctor.in.charge, "label") <- "הרופא המטפל"
+
+labels <- NULL
+labels <- data.frame(Variable = names(df), Label = unlist(var_label(df)))
+gt(labels)
 ```

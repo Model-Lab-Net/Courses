@@ -10,9 +10,9 @@
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))       # 👈 Remove all data objects        👇 Remove packages
+rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
 lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
-gc()                                  # Remove unused data from memory ("garbage cllection")
+gc()                                  # Clear unused data from memory ("garbage cllection")
 dev.off()                             # Reset the display output of R
 q("no")                               # This will completely shutdown R terminal
 ```
@@ -20,36 +20,36 @@ q("no")                               # This will completely shutdown R terminal
 ## Load required packages
 ```{r load-packages, include = FALSE}  
 options("install.lock"=FALSE)
-if (!require("pacman")) install.packages("pacman")
-library(pacman)
+if (!require("pacman")) install.packages("pacman") ; library(pacman)
 pacman::p_load(
   Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
   rio, here,              # File import and path support
+  labelled, DT,           # deal with labels
   tidyverse,              # data management + ggplot2 graphics,
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
   gt,                     # Nice beuatiful tables
+  gtsummary,              # summary statistics and tests
   nortest,                # Anderson-Darling test for normality
   ggplot2,                # For creating plots
+  ggpubr,                 # For ggplot2 extensions
   DescTools,              # For statistical functions like skewness and kurtosis
-  psych,                  # to get a table of all summary statistics
-  janitor,                # adding totals and percents to tables
+  summarytools,           # to get a table of all summary statistics
   car,                    # For Levene's test and ANOVA
-  gtsummary,              # summary statistics and tests in beautiful tables
-  corrr,                  # correlation
-  lmtest,                 # linear regression tets
-  parameters,             # calculate standardized parameters/coefficients
+  lmtest,                 # do linear regression tests
+  parameters,             # get standardized parameters/coefficients
   GGally,                 # to make a correlation matrix
   skimr,                  # get overview of data
   pROC,                   # For ROC analysis
-  performance,            # For model performance metrics
-  #MASS,                   # For statistical functions (polr for ordinal regression)ordinal
-  ordinal,                # For ordinal regression statistical functions 
   caret,                  # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
+  performance,            # For model performance metrics
+  generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 
+  # MASS,                   # For statistical functions (polr for ordinal regression)ordinal
+  ordinal,                # For ordinal regression statistical functions 
   generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 
   ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit 
-  VGAM,                    # for multinomial logistic regression
+  VGAM,                   # for multinomial logistic regression
   cardx
               )
 # Install/load flexplot
@@ -61,8 +61,9 @@ if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/f
 # file <- "./EpiData/06 metabolic_syndrome.rds"     # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/06%20metabolic_syndrome.rds"
 df4 <- import(file, trust  = TRUE)
-summary(df4)
-glimpse(df4)  # get an overview of the data
+# show variable translations to Hebrew in lables
+labels <- data.frame(Variable = names(df4), Label = unlist(var_label(df4)))   ;   gt(labels)
+glimpse(df4)               # get an overview of the data
 ```
 
 ## Summary statistics
@@ -279,6 +280,7 @@ hl_test
 # Load the data
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/metabolic_syndrome.dta"
 df4 <- import(file, trust  = TRUE)
+#write.csv(df4, here("EpiData", "06 metabolic_syndrome.csv"))
 
 # Clean up variable names
 df <- clean_names(df)
@@ -314,3 +316,32 @@ glimpse(df4)
 # Save as R data file
 saveRDS(df4, here("EpiData", "06 metabolic_syndrome.rds"))
 ```
+
+## Give variable explanations in labels
+```{r labels, echo = TRUE}
+attr(df4$codesub, "label") <- "קוד"
+attr(df4$age, "label") <- "גיל"
+attr(df4$hpt, "label") <- "היפרפאראתירואידיזם"
+attr(df4$smoking, "label") <- "עישון"
+attr(df4$dmdx, "label") <- "dmdx"
+attr(df4$height, "label") <- "גובה"
+attr(df4$weight, "label") <- "משקל"
+attr(df4$waist, "label") <- "מותניים"
+attr(df4$hip, "label") <- "מותן"
+attr(df4$msbpr, "label") <- "התאוששות לחץ דם סיסטולי"
+attr(df4$mdbpr, "label") <- "התאוששות לחץ דם דיאסטולי"
+attr(df4$hba1c, "label") <- "המוגלובין מסוכרר"
+attr(df4$fbs, "label") <- "רמת סוכר בדם לאחר צום"
+attr(df4$mogtt1h, "label") <- "mogtt1h"
+attr(df4$mogtt2h, "label") <- "mogtt2h"
+attr(df4$totchol, "label") <- "כולסטרול"
+attr(df4$ftrigliz, "label") <- "טריגליצרידים"
+attr(df4$hdl, "label") <- "כולסטרול טוב"
+attr(df4$ldl, "label") <- "כולסטרול רע"
+attr(df4$gender, "label") <- "מגדר"
+attr(df4$crural, "label") <- "crural"
+attr(df4$fbs.cat, "label") <- "fct רמת סוכר בדם לאחר צום"
+
+labels <- data.frame(Variable = names(df4), Label = unlist(var_label(df4)))
+gt(labels)
+```          

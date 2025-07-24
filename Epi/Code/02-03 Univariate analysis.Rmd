@@ -24,6 +24,7 @@ if (!require("pacman")) install.packages("pacman") ; library(pacman)
 pacman::p_load(
   Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
   rio, here,              # File import and path support
+  labelled,               # deal with labels
   tidyverse,              # Data management
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
@@ -41,8 +42,9 @@ pacman::p_load(
 # file <- "./EpiData/01 ebola.rds"     # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/01%20ebola.rds"
 df1 <- import(file, trust = TRUE)
-summary(df1)
-glimpse(df1)
+# show variable translations to Hebrew in lables
+labels <- data.frame(Variable = names(df1), Label = unlist(var_label(df1)))   ;   gt(labels)
+glimpse(df1)               # get an overview of the data
 ```
 
 ## Select numerical variable for analysis
@@ -272,4 +274,42 @@ glimpse(df1)
 
 # Save to R data file
 saveRDS(df1, here("EpiData", "01 ebola.rds"))
+```
+
+## Give variable explanations in labels
+```{r labels, echo = TRUE}
+attr(df1$case.id, "label") <- "קוד מזהה של המטופל"
+attr(df1$generation, "label") <- "דור"
+attr(df1$date.infection, "label") <- "תאריך הדבקה"
+attr(df1$date.onset, "label") <- "תאריך תחילת תסמינים"
+attr(df1$date.hospitalisation, "label") <- "תאריך אישפוז"
+attr(df1$date.outcome, "label") <- "תאריך סיום"
+attr(df1$gender, "label") <- "מגדר"
+attr(df1$outcome, "label") <- "(חי / נפטר) סיום"
+attr(df1$age, "label") <- "גיל"
+attr(df1$age.unit, "label") <- "גיל (יחידות)"
+attr(df1$age.years , "label") <- "גיל בשנים"
+attr(df1$age.cat, "label") <- "גיל קטגוריה"
+attr(df1$age.cat5, "label") <- "גיל קטגוריה 5"
+attr(df1$hospital, "label") <- "בית חולים"
+attr(df1$lon, "label") <- "מיקום קו אורך"
+attr(df1$lat, "label") <- "מיקום קו רוחב"
+attr(df1$infector, "label") <- "קוד מזהה של המדבקה"
+attr(df1$source, "label") <- "מקור"
+attr(df1$wt.kg, "label") <- "משקל ב-ק'ג"
+attr(df1$ht.cm, "label") <- "גובה ב-ס'מ"
+attr(df1$ct.blood, "label") <- "כמות נגיף בדם"
+attr(df1$fever, "label") <- "חום"
+attr(df1$chills, "label") <- "רעידות"
+attr(df1$cough, "label") <- "שיעול"
+attr(df1$aches, "label") <- "כאבים"
+attr(df1$vomit, "label") <- "הקאות"
+attr(df1$temp, "label") <- "טמפרטורת גוף"
+attr(df1$time.admission, "label") <- "זמן אישפוז"
+attr(df1$bmi, "label") <- "BMI"
+attr(df1$days.onset.hosp, "label") <- "מספר ימים בין הופעת תסמינים ועד אישפוז"
+
+labels <- NULL
+labels <- data.frame(Variable = names(df1), Label = unlist(var_label(df1)))
+gt(labels)
 ```

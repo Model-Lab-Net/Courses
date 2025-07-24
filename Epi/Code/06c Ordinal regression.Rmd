@@ -20,33 +20,32 @@ q("no")                               # This will completely shutdown R terminal
 ## Load required packages
 ```{r load-packages, include = FALSE}  
 options("install.lock" = FALSE)
-if (!require("pacman")) install.packages("pacman")
-library(pacman)
+if (!require("pacman")) install.packages("pacman") ; library(pacman)
 pacman::p_load(
   Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
   rio, here,              # File import and path support
+  labelled, DT,           # deal with labels
   tidyverse,              # data management + ggplot2 graphics,
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
   gt,                     # Nice beuatiful tables
+  gtsummary,              # summary statistics and tests
   nortest,                # Anderson-Darling test for normality
   ggplot2,                # For creating plots
+  ggpubr,                 # For ggplot2 extensions
   DescTools,              # For statistical functions like skewness and kurtosis
-  psych,                  # to get a table of all summary statistics
-  janitor,                # adding totals and percents to tables
+  summarytools,           # to get a table of all summary statistics
   car,                    # For Levene's test and ANOVA
-  gtsummary,              # summary statistics and tests
-  corrr,                  # correlation
-  lmtest,                 # linear regression tets
-  parameters,             # calculate standardized parameters/coefficients
+  lmtest,                 # do linear regression tests
+  parameters,             # get standardized parameters/coefficients
   GGally,                 # to make a correlation matrix
   skimr,                  # get overview of data
   pROC,                   # For ROC analysis
-  performance,            # For model performance metrics
   caret,                  # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
+  performance,            # For model performance metrics
   generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 
-  #MASS,                   # For statistical functions (polr for ordinal regression)ordinal
+  # MASS,                   # For statistical functions (polr for ordinal regression)ordinal
   ordinal                 # For ordinal regression statistical functions 
               )
 # Install/load flexplot
@@ -59,8 +58,9 @@ if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = 
 # file <- "./EpiData/05 peptic_ulcer.rds"     # use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/05%20peptic_ulcer.rds"
 df5 <- import(file, trust = TRUE)
-summary(df5)
-glimpse(df5)
+# show variable translations to Hebrew in lables
+labels <- data.frame(Variable = names(df5), Label = unlist(var_label(df5)))   ;   datatable(labels, options = list(pageLength = 100, autoWidth = TRUE, dom = 't'), caption = "Variable Labels for df5", rownames = FALSE)
+glimpse(df5)               # get an overview of the data
 ```
 
 ## Perfrom an ordinal linear regression
@@ -231,6 +231,7 @@ ggplot(preds_systolic, aes(x = x, y = predicted, color = response.level, group =
 # Load the data
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/peptic_ulcer.xlsx"
 df5 <- import(file, trust = TRUE)
+#write.csv(df5, here("EpiData", "05 peptic_ulcer.csv"))
 
 # Clean up variable names
 df5 <- clean_names(df5)
@@ -258,4 +259,48 @@ glimpse(df5)
 
 # Save as R data file
 saveRDS(df5, here("EpiData", "05 peptic_ulcer.rds"))
+```
+
+## Give variable explanations in labels
+```{r labels, echo = TRUE}
+attr(df5$age, "label") <- "גיל"
+attr(df5$gender, "label") <- "מגדר"
+attr(df5$epigastric.pain, "label") <- "כאבי מעיים"
+attr(df5$vomiting, "label") <- "הקאות"
+attr(df5$nausea , "label") <- "בחילות"
+attr(df5$fever, "label") <- "חום"
+attr(df5$diarrhea, "label") <- "שלשול"
+attr(df5$malena, "label") <- "דימום במעיים"
+attr(df5$onset.more.24.hrs, "label") <- "כיב הנמשך יותר מ-24 שעות"
+attr(df5$nsaids, "label") <- "תרופות אנטי-דלקתיות"
+attr(df5$septic.shock, "label") <- "הלם ספטי"
+attr(df5$previous.ogds, "label") <- "בדיקות מעיים"
+attr(df5$asa, "label") <- "נטילת אספירין"
+attr(df5$systolic, "label") <- "לחץ דם סיסטולי"
+attr(df5$diastolic, "label") <- "לחץ דם דיאסטולי"
+attr(df5$inotropes, "label") <- "תרופות למחלות לב"
+attr(df5$pulse, "label") <- "דופק"
+attr(df5$tenderness, "label") <- "רגישות באיזור המעיים"
+attr(df5$guarding, "label") <- "כיווץ שרירי בטן"
+attr(df5$hemoglobin, "label") <- "המוגלובין בדם"
+attr(df5$twc, "label") <- "מדד חומרת הכיב של Truelove-Witts"
+attr(df5$platelet, "label") <- "כמות טסיות דם"
+attr(df5$creatinine, "label") <- "מדד לפעיולת הכליות"
+attr(df5$albumin, "label") <- "מדד לפעיולת הכבד"
+attr(df5$pulp, "label") <- "ניקוב כיב פפטי"
+attr(df5$admission.to.op.hrs , "label") <- "מספר שעות בין אישפוז ובין ניתוח"
+attr(df5$perforation, "label") <- "ניקוד במעיים"
+attr(df5$degree.perforation, "label") <- "חומרת ניקוד במעיים"
+attr(df5$side.perforation, "label") <- "ניקוב צדדי"
+attr(df5$icu, "label") <- "אישפוז בטיפול נמרץ"
+attr(df5$sssi, "label") <- "כיב מודלק"
+attr(df5$anast.leak, "label") <- "כיב הנוצר ליד מקום כירוגי"
+attr(df5$sepsis, "label") <- "אלח דם"
+attr(df5$outcome, "label") <- "חי / נפטר"
+attr(df5$perforation.ord, "label") <- "חומרת ניקוד במעיים (במשתנה אורדינלי)"
+
+
+labels <- NULL
+labels <- data.frame(Variable = names(df5), Label = unlist(var_label(df5)))
+datatable(labels, options = list(pageLength = 100, autoWidth = TRUE, dom = 't'), caption = "Variable Labels for df5", rownames = FALSE)
 ```

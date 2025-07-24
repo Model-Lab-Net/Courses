@@ -10,11 +10,11 @@
 ### source:  https://bookdown.org/drki_musa/dataanalysis/survival-analysis-kaplan-meier-and-cox-proportional-hazard-ph-regression.html#semi-parametric-models-in-survival-analysis
 
 
-## Reset memory 
+## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))       # 👈 Remove all data objects        👇 Remove packages
+rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
 lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
-gc()                                  # Remove unused data from memory ("garbage cllection")
+gc()                                  # Clear unused data from memory ("garbage cllection")
 dev.off()                             # Reset the display output of R
 q("no")                               # This will completely shutdown R terminal
 ```
@@ -22,36 +22,37 @@ q("no")                               # This will completely shutdown R terminal
 ## Load required packages
 ```{r load-packages, include = FALSE}
 options("install.lock"=FALSE)
-if (!require("pacman")) install.packages("pacman")
-library(pacman)
+if (!require("pacman")) install.packages("pacman") ; library(pacman)
 pacman::p_load(
   Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
   rio, here,              # File import and path support
+  labelled, DT,           # deal with labels
   tidyverse,              # data management + ggplot2 graphics,
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
   gt,                     # Nice beuatiful tables
+  gtsummary,              # summary statistics and tests
   nortest,                # Anderson-Darling test for normality
   ggplot2,                # For creating plots
+  ggpubr,                 # For ggplot2 extensions
   DescTools,              # For statistical functions like skewness and kurtosis
-  psych,                  # to get a table of all summary statistics
-  janitor,                # adding totals and percents to tables
+  summarytools,           # to get a table of all summary statistics
   car,                    # For Levene's test and ANOVA
-  gtsummary,              # summary statistics and tests in beautiful tables
-  corrr,                  # correlation
-  lmtest,                 # linear regression tets
-  parameters,             # calculate standardized parameters/coefficients
+  lmtest,                 # do linear regression tests
+  parameters,             # get standardized parameters/coefficients
   GGally,                 # to make a correlation matrix
   skimr,                  # get overview of data
   pROC,                   # For ROC analysis
-  performance,            # For model performance metrics
-  #MASS,                   # For statistical functions (polr for ordinal regression)ordinal
-  ordinal,                # For ordinal regression statistical functions
   caret,                  # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
-  generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit
-  ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit
+  performance,            # For model performance metrics
+  generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 
+  # MASS,                   # For statistical functions (polr for ordinal regression)ordinal
+  ordinal,                # For ordinal regression statistical functions 
+  generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 
+  ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit 
   VGAM,                   # for multinomial logistic regression
+  cardx,
   epiDisplay,             # For epi data type handling
   survival,               # For survival analysis
   survminer,              # For survival analysis and visualization
@@ -66,24 +67,25 @@ if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/f
 # file <- "./EpiData/09 stroke_data.csv"     # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/09%20stroke_data.rds"
       ## read the data in a file online
-df7 <- import(file, trust  = TRUE)
-summary(df7)
-glimpse(df7)
+df8 <- import(file, trust  = TRUE)
+# show variable translations to Hebrew in lables
+labels <- data.frame(Variable = names(df8), Label = unlist(var_label(df8)))   ;   gt(labels)
+glimpse(df8)               # get an overview of the data
 ```
 
 ## Clean the data
 ```{r read-data, echo = TRUE}
 # Clean up variable names
-df7 <- clean_names(df7)
-names(df7) <- gsub("_", ".", names(df7))
+df8 <- clean_names(df8)
+names(df8) <- gsub("_", ".", names(df8))
 
 # convert the variable doa and variable doa to a more valid format (date format)
-df7 <- 
-  df7 %>%
+df8 <- 
+  df8 %>%
   mutate(doa = dmy(doa),
          dod = dmy(dod))
 
-df7 <- df7 %>%
+df8 <- df8 %>%
   mutate(status = fct_relevel(status, "alive"))
 ```
 
@@ -93,7 +95,7 @@ df7 <- df7 %>%
 cox_reg <- 
   coxph(Surv(time = time2, 
              event = status == 'dead') ~ stroke.type,
-                     data = df7)
+                     data = df8)
 summary(cox_reg)
 ```
 
@@ -128,7 +130,7 @@ hz_combined_tbl
 ## Cox hazard plot
 ```{r cox-plot, echo = TRUE}
 # Create a newdata frame with one row per stroke.type level
-newdata <- df7 %>%
+newdata <- df8 %>%
   distinct(stroke.type) %>%
   arrange(stroke.type)
 
@@ -136,17 +138,17 @@ surv_fit <- survfit(cox_reg, newdata = newdata)
 
 ggsurvplot(
   surv_fit,
-  data = df7,
+  data = df8,
   pval = TRUE,
   legend.title = "Stroke Type",
   title = "Survival Curves by Stroke Type"
 )
 
 # Fit the survival object
-#surv_obj <- with(df7, Surv(time2, stroke.type == "dead"))
+#surv_obj <- with(df8, Surv(time2, stroke.type == "dead"))
 
 # Estimate hazard function
-#hz <- muhaz(df7$time2, df7$status == "dead")
+#hz <- muhaz(df8$time2, df8$status == "dead")
 
 # Plot
 #plot(hz, main = "Smoothed Hazard Function", xlab = "Time", ylab = "Hazard")
@@ -162,7 +164,7 @@ ggsurvplot(
 cox_mreg <-
   coxph(Surv(time = time2, 
              event = status == 'dead') ~ stroke.type +  gcs + referral.from, 
-        data = df7)
+        data = df8)
 
 # get results for Crude Hazard
 cox_cr_table <- tbl_regression(cox_mreg)
@@ -183,7 +185,7 @@ combined_tbl
 cox_mreg_test <-
   coxph(Surv(time = time2, 
              event = status == 'dead') ~ stroke.type + referral.from , 
-        data = df7)
+        data = df8)
 
 # Do ANOVA
 anova(cox_mreg_test, cox_mreg, test = 'Chisq')
@@ -212,7 +214,7 @@ plot(schoenfeld_test)
 cox_mreg_ia <-
   coxph(Surv(time = time2, 
              event = status == 'dead') ~ gcs + stroke.type + stroke.type:gcs , 
-        data = df7)
+        data = df8)
 
 cox_mreg_ia_tbl <- tbl_regression(cox_mreg_ia)
 cox_mreg_ia_tbl
@@ -256,26 +258,27 @@ cox_mreg_ia_tbl
 ```{r clean-data, echo = TRUE}
 # Load the data
 file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/stroke_data.csv"
-df7 <- import(file, trust  = TRUE)
+df8 <- import(file, trust  = TRUE)
+#write.csv(df8, here("EpiData", "09 stroke_data.csv"))
 
 # Clean up variable names
-df7 <- clean_names(df7)
-names(df7) <- gsub("_", ".", names(df7))
+df8 <- clean_names(df8)
+names(df8) <- gsub("_", ".", names(df8))
 
-# Convert the variable doa and variable doa to a more valid format (date format)
-df7 <- 
-  df7 %>%
+# Convert the variable doa dod variables to a valid date format
+df8 <- 
+  df8 %>%
   mutate(doa = dmy(doa),
          dod = dmy(dod)
         )
 
 # Convert status to fct
-df7 <- df7 %>%
+df8 <- df8 %>%
   mutate(status = fct_relevel(status, "alive"))
 
 # Check the updated dataset structure
-glimpse(df7)
+glimpse(df8)
 
 # Save as R data file
-saveRDS(df7, here("EpiData", "09 stroke_data.rds"))
+saveRDS(df8, here("EpiData", "09 stroke_data.rds"))
 ```

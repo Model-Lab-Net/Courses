@@ -10,9 +10,9 @@
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))       # 👈 Remove all data objects        👇 Remove packages
+rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
 lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
-gc()                                  # Remove unused data from memory ("garbage cllection")
+gc()                                  # Clear unused data from memory ("garbage cllection")
 dev.off()                             # Reset the display output of R
 q("no")                               # This will completely shutdown R terminal
 ```
@@ -24,6 +24,7 @@ if (!require("pacman")) install.packages("pacman") ; library(pacman)
 pacman::p_load(
   Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
   rio, here,              # File import and path support
+  labelled,               # deal with labels
   tidyverse,              # data management + ggplot2 graphics,
   broom,                  # For tidying model outputs
   dplyr,                  # For data manipulation
@@ -47,7 +48,9 @@ if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/f
 file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/02%20breastcancer.rds"
 # read the data in a file online
 df_bc <- import(file, trust = TRUE)
-glimpse(df_bc)
+# show variable translations to Hebrew in lables
+labels <- data.frame(Variable = names(df_bc), Label = unlist(var_label(df_bc)))   ;   gt(labels)
+glimpse(df_bc)               # get an overview of the data
 ```
 
 ## Crosstables, Chi-Square and Fisher Exact tests
@@ -194,6 +197,7 @@ df_bc <- import(file, trust = TRUE)
 #write.csv(df_bc, here("EpiData", "02 breastcancer.csv"))
 
 # Clean up variable names
+install.packages("janitor")   ;    library(janitor)
 df_bc <- clean_names(df_bc)
 names(df_bc) <- gsub("_", ".", names(df_bc))
 
@@ -223,4 +227,26 @@ glimpse(df_bc)
 # Save as R data file
 saveRDS(df_bc, here("EpiData", "02 breastcancer.rds"))
 saveRDS(df_anorexia, here("EpiData", "02 anorexia.rds"))
+```
+
+## Give variable explanations in labels
+```{r labels, echo = TRUE}
+attr(df_bc$time, "label") <- "זמן"
+attr(df_bc$recurrence, "label") <- "הישנות"
+attr(df_bc$rt, "label") <- "טיפול"
+attr(df_bc$age.dx.yrs, "label") <- "גיל האבחון"
+attr(df_bc$tumor.size.cm , "label") <- "גודל הסגידול ב-ס'מ"
+attr(df_bc$grade, "label") <- "דרגת המחלה"
+attr(df_bc$n.ln.pos.3.vs.1or2, "label") <- "מספר בלוטות לימפה מעורבות"
+attr(df_bc$nodal.ratio, "label") <- "מדד למעורבות עם בלוטות לימפה"
+attr(df_bc$lvi, "label") <- "חדירת תאים סרטניים למערכת הלימפה"
+attr(df_bc$er.or.pr.pos, "label") <- "תאי סרטן עם קולטנים לאסטרוגן וגם לפרוגסטרון"
+attr(df_bc$her2.pos, "label") <- "תאי שרטן עם רמות גבוהות של HER2+"
+attr(df_bc$quadrant.inner.vs.upper, "label") <- "מיקום הסרטן בשד (1=פנימי)"
+attr(df_bc$optimal.systemic.therapy, "label") <- "טיפול אופטימלי"
+
+
+labels <- NULL
+labels <- data.frame(Variable = names(df_bc), Label = unlist(var_label(df_bc)))
+gt(labels)
 ```
