@@ -130,6 +130,9 @@ if (-not (Test-Path -Path "C:\RStudio\rstudio.exe")) {
 # Make folders for RStudio
 New-Item -Path "C:\RStudio\Course" -ItemType Directory -Force
 New-Item -Path "C:\RStudio\user-data" -ItemType Directory -Force
+New-Item -Path "C:\RStudio\resources\stylesheets" -ItemType Directory -Force
+New-Item -Path "C:\RStudio\resources\themes" -ItemType Directory -Force
+
 
 # Copy R to RStudio main folder
 robocopy "C:\RVSCode\R" "C:\RStudio\R" /E /NFL /NDL /NJH /NJS /MT:4
