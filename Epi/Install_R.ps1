@@ -40,9 +40,9 @@ if (-not (Test-Path -Path "C:\temp\r.exe")) {
 if (-not (Test-Path -Path "$env:ProgramFiles\R\R-$R_VERSION\bin")) {
     Start-Process -Verb RunAs -FilePath "C:\temp\r.exe" -ArgumentList "/SILENT", "/NORESTART", "/MERGETASKS=!desktopicon", "/SP-", "/DIR=`"c:\RVScode\R`"" -Wait -Verb RunAs -Wait -PassThru
 }
-Copy-Item -Path "$env:ProgramFiles\R\R-$R_VERSION\bin\x64\Rblas.dll" -Destination "$env:ProgramFiles\R\R-$R_VERSION\library\stats\libs\x64" -Force
-Copy-Item -Path "$env:ProgramFiles\R\R-$R_VERSION\bin\x64\Rlapack.dll" -Destination "$env:ProgramFiles\R\R-$R_VERSION\library\stats\libs\x64" -Force
-Pause
+Copy-Item -Path "c:\RVScode\R\bin\x64\Rblas.dll" -Destination "c:\RVScode\R\library\stats\libs\x64" -Force
+Copy-Item -Path "c:\RVScode\R\bin\x64\Rlapack.dll" -Destination "c:\RVScode\R\library\stats\libs\x64" -Force
+
 # ----------------- Download VSCode --- ZIP for portable ------------------
 Write-Output "Downloading VSCode..."
 if (-not (Test-Path -Path "C:\temp\rvscode.zip")) {
@@ -66,29 +66,29 @@ robocopy "$env:ProgramFiles\R" "C:\RVSCode\R" /E /NFL /NDL /NJH /NJS /MT:4
 if (-not (Test-Path -Path "C:\temp\languageserver.zip")) {
     & "C:\temp\curl.exe" --progress-bar -o "C:\temp\languageserver.zip" "https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_$RLANGSERVER_VERSION.zip"
 }
-& "C:\RVSCode\R\R-$R_VERSION\bin\R.exe" CMD INSTALL "C:\temp\languageserver.zip"
+& "C:\RVSCode\R\bin\R.exe" CMD INSTALL "C:\temp\languageserver.zip"
 
 # Set settings.json for R in VSCode
 $settingsJson = @"
 {
-    "r.rpath.windows": "C:\\RVSCode\\R\\R-$R_VERSION\\bin\\R.exe",
+    "r.rpath.windows": "C:\\RVSCode\\R\bin\\R.exe",
     "editor.dropIntoEditor.preferences": [],
     "r.rterm.option": [
-        "--r-binary=C:\\RVSCode\\R\\R-$R_VERSION\\bin\\R.exe",
+        "--r-binary=C:\\RVSCode\\R\bin\\R.exe",
         "--no-save",
         "--no-restore"
     ],
-    "r.rterm.windows": "C:\\RVSCode\\R\\R-$R_VERSION\\bin\\R.exe",
+    "r.rterm.windows": "C:\\RVSCode\\R\bin\\R.exe",
     "r.bracketedPaste": true,
     "r.sessionWatcher": true,
     "editor.wordSeparators": "`~!@#%$^&*()-=+[{]}\\|;:'\",<>/?",
     "r.plot.useHttpgd": true,
     "terminal.integrated.profiles.windows": {
         "R": {
-            "path": "C:\\RVSCode\\R\\R-$R_VERSION\\bin\\R.exe",
+            "path": "C:\\RVSCode\\R\bin\\R.exe",
             "args": [ "--no-save", "--no-restore" ],
             "env": {
-                "PATH": "C:\\RVSCode\\R\\R-$R_VERSION\\bin"
+                "PATH": "C:\\RVSCode\\R\\bin"
             }
         }
     }
@@ -132,10 +132,10 @@ New-Item -Path "C:\RStudio\Course" -ItemType Directory -Force
 New-Item -Path "C:\RStudio\user-data" -ItemType Directory -Force
 
 # Copy R to RStudio main folder
-robocopy "$env:ProgramFiles\R" "C:\RStudio\R" /E /NFL /NDL /NJH /NJS /MT:4
+robocopy "C:\RVSCode\R" "C:\RStudio\R" /E /NFL /NDL /NJH /NJS /MT:4
 
 # Set environment variables
-$env:RSTUDIO_WHICH_R = ".\R\R-$R_VERSION\bin\x64\R.exe"
+$env:RSTUDIO_WHICH_R = ".\R\bin\x64\R.exe"
 $env:RSTUDIO_CONFIG_HOME = "C:\RStudio\user-data"
 $env:RSTUDIO_DATA_HOME = "C:\RStudio\user-data"
 [Environment]::SetEnvironmentVariable("RSTUDIO_WHICH_R", $env:RSTUDIO_WHICH_R, "User")
@@ -154,15 +154,6 @@ $shortcut.Save()
 
 # -------------------- Uninstall R and cleanup ---------------------------
 Write-Output "Cleaning up..."
-if (Test-Path -Path "$env:ProgramFiles\R\R-$R_VERSION\unins000.exe") {
-    Start-Process -FilePath "$env:ProgramFiles\R\R-$R_VERSION\unins000.exe" -ArgumentList "/verysilent" -Wait
-}
-if (Test-Path -Path "$env:ProgramFiles\R\R-$R_VERSION") {
-    Remove-Item -Path "$env:ProgramFiles\R\R-$R_VERSION" -Recurse -Force
-}
-if (Test-Path -Path "$env:APPDATA\Roaming\R") {
-    Remove-Item -Path "$env:APPDATA\Roaming\R" -Recurse -Force
-}
 if (Test-Path -Path "C:\temp\r.exe") { Remove-Item -Path "C:\temp\r.exe" -Force }
 if (Test-Path -Path "C:\temp\rstudio.zip") { Remove-Item -Path "C:\temp\rstudio.zip" -Force }
 if (Test-Path -Path "C:\temp\rvscode.zip") { Remove-Item -Path "C:\temp\rvscode.zip" -Force }
