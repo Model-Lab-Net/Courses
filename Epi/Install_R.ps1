@@ -107,7 +107,7 @@ $settingsJson | Out-File -FilePath "C:\RVSCode\data\user-data\User\settings.json
 
 # Create shortcut link to Desktop
 $shell = New-Object -ComObject WScript.Shell
-$shortcut = $shell.CreateShortcut("$$env:USERPROFILE\Desktop\RVSCode.lnk")
+$shortcut = $shell.CreateShortcut("$env:USERPROFILE\Desktop\RVSCode.lnk")
 $shortcut.TargetPath = "C:\RVSCode\code.exe"
 $shortcut.Arguments = '"C:\RVScode\Course"'
 $shortcut.IconLocation = "C:\RVSCode\code.exe,0"
