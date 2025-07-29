@@ -1,7 +1,7 @@
 # Title: PowerShell script to install R, RStudio, and R in VSCode
 # Author: David Burg
 # For: R course
-# Date: 20/07/2025
+# Date: 29/07/2025
 # Source: https://www.youtube.com/watch?v=k79H8EeR5Jo
 #         https://www.youtube.com/watch?v=rKPfssR66GM
 #         https://www.datanovia.com/learn/tools/r-in-vscode/recommended-vscode-configurations-for-r-programming.html
@@ -107,7 +107,7 @@ $settingsJson | Out-File -FilePath "C:\RVSCode\data\user-data\User\settings.json
 
 # Create shortcut link to Desktop
 $shell = New-Object -ComObject WScript.Shell
-$shortcut = $shell.CreateShortcut("$env:ALLUSERSPROFILE\Desktop\RVSCode.lnk")
+$shortcut = $shell.CreateShortcut("$env:PUBLIC\Desktop\RVSCode.lnk")
 $shortcut.TargetPath = "C:\RVSCode\code.exe"
 $shortcut.Arguments = '"C:\RVScode\Course"'
 $shortcut.IconLocation = "C:\RVSCode\code.exe,0"
@@ -141,12 +141,12 @@ $env:RSTUDIO_DATA_HOME = "C:\RStudio\user-data"
 [Environment]::SetEnvironmentVariable("RSTUDIO_WHICH_R", $env:RSTUDIO_WHICH_R, "User")
 [Environment]::SetEnvironmentVariable("RSTUDIO_CONFIG_HOME", $env:RSTUDIO_CONFIG_HOME, "User")
 [Environment]::SetEnvironmentVariable("RSTUDIO_DATA_HOME", $env:RSTUDIO_DATA_HOME, "User")
-[Environment]::SetEnvironmentVariable("RSTUDIO_WHICH_R", $env:RSTUDIO_WHICH_R, "Machine")
-[Environment]::SetEnvironmentVariable("RSTUDIO_CONFIG_HOME", $env:RSTUDIO_CONFIG_HOME, "Machine")
-[Environment]::SetEnvironmentVariable("RSTUDIO_DATA_HOME", $env:RSTUDIO_DATA_HOME, "Machine")
+# [Environment]::SetEnvironmentVariable("RSTUDIO_WHICH_R", $env:RSTUDIO_WHICH_R, "Machine")
+#[Environment]::SetEnvironmentVariable("RSTUDIO_CONFIG_HOME", $env:RSTUDIO_CONFIG_HOME, "Machine")
+# [Environment]::SetEnvironmentVariable("RSTUDIO_DATA_HOME", $env:RSTUDIO_DATA_HOME, "Machine")
 
 # Create shortcut link on Desktop
-$shortcut = $shell.CreateShortcut("$env:ALLUSERSPROFILE\Desktop\RStudio.lnk")
+$shortcut = $shell.CreateShortcut("$env:PUBLIC\Desktop\RStudio.lnk")
 $shortcut.TargetPath = "C:\RStudio\rstudio.exe"
 $shortcut.IconLocation = "C:\RStudio\rstudio.exe,0"
 $shortcut.WorkingDirectory = "C:\RStudio"
