@@ -38,7 +38,7 @@ if (-not (Test-Path -Path "C:\temp\r.exe")) {
     & "C:\temp\curl.exe" --progress-bar -o "C:\temp\r.exe" "https://cran.r-project.org/bin/windows/base/R-$R_VERSION-win.exe"
 }
 if (-not (Test-Path -Path "$env:ProgramFiles\R\R-$R_VERSION\bin")) {
-    Start-Process -FilePath "C:\temp\r.exe" -ArgumentList "/VERYSILENT", "/NORESTART", "/MERGETASKS=!desktopicon", "/SP-", "/DIR=`"c:\RVScode\R`"" -Wait -Verb RunAs -Wait -PassThru
+    Start-Process -Verb RunAs -FilePath "C:\temp\r.exe" -ArgumentList "/SILENT", "/NORESTART", "/MERGETASKS=!desktopicon", "/SP-", "/DIR=`"c:\RVScode\R`"" -Wait -Verb RunAs -Wait -PassThru
 }
 Copy-Item -Path "$env:ProgramFiles\R\R-$R_VERSION\bin\x64\Rblas.dll" -Destination "$env:ProgramFiles\R\R-$R_VERSION\library\stats\libs\x64" -Force
 Copy-Item -Path "$env:ProgramFiles\R\R-$R_VERSION\bin\x64\Rlapack.dll" -Destination "$env:ProgramFiles\R\R-$R_VERSION\library\stats\libs\x64" -Force
