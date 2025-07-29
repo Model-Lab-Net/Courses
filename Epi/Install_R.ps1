@@ -107,7 +107,7 @@ $settingsJson | Out-File -FilePath "C:\RVSCode\data\user-data\User\settings.json
 
 # Create shortcut link to Desktop
 $shell = New-Object -ComObject WScript.Shell
-$shortcut = $shell.CreateShortcut("$env:PUBLIC\Desktop\RVSCode.lnk")
+$shortcut = $shell.CreateShortcut("$$env:USERPROFILE\Desktop\RVSCode.lnk")
 $shortcut.TargetPath = "C:\RVSCode\code.exe"
 $shortcut.Arguments = '"C:\RVScode\Course"'
 $shortcut.IconLocation = "C:\RVSCode\code.exe,0"
@@ -146,7 +146,7 @@ $env:RSTUDIO_DATA_HOME = "C:\RStudio\user-data"
 # [Environment]::SetEnvironmentVariable("RSTUDIO_DATA_HOME", $env:RSTUDIO_DATA_HOME, "Machine")
 
 # Create shortcut link on Desktop
-$shortcut = $shell.CreateShortcut("$env:PUBLIC\Desktop\RStudio.lnk")
+$shortcut = $shell.CreateShortcut("$env:USERPROFILE\Desktop\RStudio.lnk")
 $shortcut.TargetPath = "C:\RStudio\rstudio.exe"
 $shortcut.IconLocation = "C:\RStudio\rstudio.exe,0"
 $shortcut.WorkingDirectory = "C:\RStudio"
