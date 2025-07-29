@@ -42,7 +42,7 @@ if (-not (Test-Path -Path "$env:ProgramFiles\R\R-$R_VERSION\bin")) {
 }
 Copy-Item -Path "$env:ProgramFiles\R\R-$R_VERSION\bin\x64\Rblas.dll" -Destination "$env:ProgramFiles\R\R-$R_VERSION\library\stats\libs\x64" -Force
 Copy-Item -Path "$env:ProgramFiles\R\R-$R_VERSION\bin\x64\Rlapack.dll" -Destination "$env:ProgramFiles\R\R-$R_VERSION\library\stats\libs\x64" -Force
-
+Pause
 # ----------------- Download VSCode --- ZIP for portable ------------------
 Write-Output "Downloading VSCode..."
 if (-not (Test-Path -Path "C:\temp\rvscode.zip")) {
