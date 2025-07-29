@@ -37,7 +37,7 @@ Write-Output "Downloading R..."
 if (-not (Test-Path -Path "C:\temp\r.exe")) {
     & "C:\temp\curl.exe" --progress-bar -o "C:\temp\r.exe" "https://cran.r-project.org/bin/windows/base/R-$R_VERSION-win.exe"
 }
-if (-not (Test-Path -Path "$env:ProgramFiles\R\R-$R_VERSION\bin")) {
+if (-not (Test-Path -Path "c:\RVScode\R\bin")) {
     Start-Process -Verb RunAs -FilePath "C:\temp\r.exe" -ArgumentList "/SILENT", "/NORESTART", "/MERGETASKS=!desktopicon", "/SP-", "/DIR=`"c:\RVScode\R`"" -Wait
 }
 Copy-Item -Path "c:\RVScode\R\bin\x64\Rblas.dll" -Destination "c:\RVScode\R\library\stats\libs\x64" -Force
