@@ -99,13 +99,14 @@ flexplot(chol ~ dbp | age + bmi, data = df2, method = "lm", ghost.line = "red")
 visualize(mlr_reduced)
 
 # Q-Q plot
-residuals_mlr <- residuals(mlr_reduced) # Get nmodel residuals
-qqnorm(residuals_mlr)
-qqline(residuals_mlr, col = "red")
-# visualize(chol ~ dbp + bmi + age, data = df2, plot = "qq")    # use flexplot here
+res <- residuals(mlr_reduced) # Get model residuals
+qqnorm(res)
+qqline(res, col = "red")
+# visualize(chol ~ dbp + age, data = df2, plot = "qq")    # use flexplot here
 
 # Kolmogorov-Smirnov test  (Ho: residuals are normal)
-ks_test_result <- ks.test(residuals_mlr, "pnorm", mean = mean(residuals_mlr), sd = sd(residuals_mlr))
+res <- residuals(mlr_reduced) # Get nmodel residuals
+ks_test_result <- ks.test(res, "pnorm", mean = mean(res), sd = sd(res))
 ks_test_result
 ```
 
@@ -135,7 +136,7 @@ mlr_vif
 
 ## Model comparison
 ```{r mdodel-comparison, echo = TRUE}
-# Run VIF colinearity test  (no multicolinearity == VIF ≈ 1)
+# This will test which model is "better"
 model.comparison(mlr, mlr_reduced)
 ```
 

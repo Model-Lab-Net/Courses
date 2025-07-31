@@ -62,7 +62,7 @@ df2_summary_stats <- df2 %>%
     by = gender,                                       # Stratify by gender
     statistic = list(
       all_continuous() ~ "{mean} ({sd})",              # Mean (SD) for continuous variables
-      all_continuous2() ~ "{median} ({p25}, {p75})"    # Median (Q1, Q3) for non-normal
+      #all_continuous2() ~ "{median} ({p25}, {p75})"    # Median (Q1, Q3) for non-normal
     ),
     digits = list(all_continuous() ~ 2),               # Round to 2 decimal places
     # missing = "ifany",                               # Show missing values if any
