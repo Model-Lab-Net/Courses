@@ -11,7 +11,7 @@
 ## Reset memory
 ```{r setup-packages, include = FALSE}
 rm(list = ls(all.names = TRUE))       # 👈 Remove all data objects        👇 Remove packages
-lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Clear packages from memory
 gc()                                  # Remove unused data from memory ("garbage cllection")
 dev.off()                             # Reset the display output of R
 q("no")                               # This will completely shutdown R terminal
@@ -41,7 +41,7 @@ pacman::p_load(
   GGally,                 # to make a correlation matrix
   skimr,                  # get overview of data
   pROC,                   # For ROC analysis
-  caret,                  # For confusion matrix and classification metrics
+  cvms,                   # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
   performance,            # For model performance metrics
   generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 
@@ -66,7 +66,7 @@ glimpse(df5)               # get an overview of the data
 ## Perfrom an ordinal linear regression
 ```{r ord-logisitc-reg, echo = TRUE}
 # Ordinal regression model
-ord_lr <- clm(degree.perforation.ord ~ pulp + hemoglobin + systolic, data = df5, link = "logit")
+ord_lr <- clm(perforation.ord ~ pulp + hemoglobin + systolic, data = df5, link = "logit")
 summary(ord_lr)
 
 # Variance-covariance matraix
@@ -78,11 +78,15 @@ vcov_matrix
 ```{r ord-logisitc-reg, echo = TRUE}
 # Get -2LL and AIC
 minus_2LL_val <- -2 * as.numeric(logLik(ord_lr))
+minus_2LL_val <- round(minus_2LL_val,0)
+
 AIC_val <- AIC(ord_lr)
+AIC_val <- round(AIC_val, 0)
 
 # Get Efron's R²
 Nagelkerke <- r2_nagelkerke(ord_lr)
 r2_val <- as.numeric(Nagelkerke)
+r2_val <- round(r2_val, 3)
 
 # Disiplay the summary of the logistic regression model
 paste("R2= ", r2_val)
@@ -97,9 +101,9 @@ ord_lr_summary <- tbl_regression(
   as_gt() %>%
   tab_source_note(
     source_note = paste0(
-      "R² = ", round(r2_val, 3),
-      ", -2LL = ", round(minus_2LL_val, 0),
-      ", AIC = ", round(AIC_val, 0)
+      "R² = ", r2_val,
+      ", -2LL = ", minus_2LL_val,
+      ", AIC = ", AIC_val
     )
   )
 ord_lr_summary
@@ -107,30 +111,30 @@ ord_lr_summary
 
 ## Classification table
 ```{r predict, echo = TRUE}
-# Create predicted values on df
+# Calculate predicted probabilities and append to df
 df5$predict.prob <- unlist(predict(ord_lr, type = "class"))
 
-
-## Classification table
+# Calculate the "confusion_matrix"
 ```{r matrix, echo=FALSE}
-# Use caret package to get classification table
-confusion_matrix <- caret::confusionMatrix(data = df5$predict.prob, reference = df5$degree.perforation.ord)
-confusion_matrix
+cm <- confusion_matrix(targets = df5$perforation.ord, predictions = df5$predict.prob)
 
-# Extract the confusion matrix table
-cm_table <- as.data.frame(confusion_matrix$table)
-colnames(cm_table) <- c("Predicted", "True", "Count")
-cm_table <- cm_table %>%
-  mutate(Percent = round(Count / sum(Count) * 100, 1))
+# Plot the "confusion_matrix"
+plot_confusion_matrix(cm)
 
-# Plot confusion matrix as a heatmap
-ggplot(data = cm_table, aes(x = Predicted, y = True, fill = Percent)) +
-  geom_tile() +
-  geom_text(aes(label = Percent), vjust = 0.5, color = "black") +
-  scale_fill_gradient(low = "white", high = "blue") +
-  theme_minimal() +
-  labs(title = "Confusion Matrix", x = "Predicted", y = "True") +
-  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+# Display the "classification metrics"
+cm_metrics <- select_metrics(cm)
+cm_metrics <- cm_metrics %>%
+  pivot_longer(cols = everything(),
+               names_to = "Metric",
+               values_to = "Value"
+              )
+cm_metrics <- as.data.frame(cm_metrics)
+cm_metrics <- cm_metrics %>%
+  mutate(across(where(is.numeric), ~ round(., 3)))
+cm_metrics
+
+cm_metrics %>%
+  gt() 
 ```
 
 ## Nominal effects test
@@ -146,18 +150,18 @@ nominal_test(ord_lr)
 ## Create distribution plots
 ```{r predict, echo = TRUE}
 # Distribution of degree_perforation
-flexplot(degree.perforation ~  pulp | hemoglobin + systolic, data = df5, alpha = 0.6, method = "lm")
+flexplot(perforation.ord ~  pulp | hemoglobin + systolic, data = df5, alpha = 0.6, method = "lm")
 
-flexplot(degree.perforation ~ 1, data = df5, alpha = 0.6)
+flexplot(perforation.ord ~ 1, data = df5, alpha = 0.6)
 
 # Distribution of hemoglobin vs degree_perforation
-flexplot(hemoglobin ~ degree.perforation, data = df5, alpha = 0.6)
+flexplot(hemoglobin ~ perforation.ord, data = df5, alpha = 0.6)
 
 # Distribution of systolic vs degree_perforation
-flexplot(systolic ~ degree.perforation, data = df5, alpha = 0.6)
+flexplot(systolic ~ perforation.ord, data = df5, alpha = 0.6)
 
 # # Distribution of PULP vs degree_perforation (assuming numeric)
-p <- flexplot(pulp ~ degree.perforation, data = df5, alpha = 0.6)
+p <- flexplot(pulp ~ perforation.ord, data = df5, alpha = 0.6)
 p <- p + ggtitle("PULP Score by Degree of Perforation")
 p
 ```
@@ -180,6 +184,7 @@ ggplot(preds_pulp, aes(x = x, y = predicted, color = response.level, group = res
     fill = "Outcome"
   ) +
   theme_minimal()
+
 
 # Predicted probabilities for hemoglobin
 preds_hemoglobin <- ggpredict(ord_lr, terms = "hemoglobin")
@@ -221,6 +226,32 @@ ggplot(preds_systolic, aes(x = x, y = predicted, color = response.level, group =
 
 
 
+### -------------------------------------------------
+## תרגול-עצמי
+
+## שאלה 1
+```{r question-1, echo = TRUE}
+# 
+
+```
+
+## שאלה 2
+```{r question-2, echo = TRUE}
+# 
+
+```
+
+## שאלה 3
+```{r question-3, echo = TRUE}
+# 
+
+```
+
+
+
+
+
+
 
 
 
@@ -245,13 +276,6 @@ df5$perforation.ord <- factor(
   ifelse(df5$perforation <= 1.0, 0L, 1L),  # use integer values
   levels = c(0L, 1L),                     # explicitly set levels
   ordered = TRUE                          # make it ordinal
-)
-
-# Replace egree.perforation as an ordinal variable
-df5$degree.perforation <- factor(
-  ifelse(df5$perforation <= 1.0, 0, 1),
-  levels = c(0, 1),
-  ordered = TRUE
 )
 
 # Check the updated dataset structure
@@ -289,15 +313,15 @@ attr(df5$creatinine, "label") <- "מדד לפעיולת הכליות"
 attr(df5$albumin, "label") <- "מדד לפעיולת הכבד"
 attr(df5$pulp, "label") <- "ניקוב כיב פפטי"
 attr(df5$admission.to.op.hrs , "label") <- "מספר שעות בין אישפוז ובין ניתוח"
-attr(df5$perforation, "label") <- "ניקוד במעיים"
-attr(df5$degree.perforation, "label") <- "חומרת ניקוד במעיים"
+attr(df5$perforation, "label") <- "גודל ניקוב במעיים"
+attr(df5$degree.perforation, "label") <- "חומרת ניקוב במעיים"
 attr(df5$side.perforation, "label") <- "ניקוב צדדי"
 attr(df5$icu, "label") <- "אישפוז בטיפול נמרץ"
 attr(df5$sssi, "label") <- "כיב מודלק"
 attr(df5$anast.leak, "label") <- "כיב הנוצר ליד מקום כירוגי"
 attr(df5$sepsis, "label") <- "אלח דם"
 attr(df5$outcome, "label") <- "חי / נפטר"
-attr(df5$perforation.ord, "label") <- "חומרת ניקוד במעיים (במשתנה אורדינלי)"
+attr(df5$perforation.ord, "label") <- "חומרת ניקוב במעיים (במשתנה אורדינלי)"
 
 
 labels <- NULL

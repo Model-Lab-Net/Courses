@@ -11,7 +11,7 @@
 ## Reset memory
 ```{r setup-packages, include = FALSE}
 rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
-lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Clear packages from memory
 gc()                                  # Clear unused data from memory ("garbage cllection")
 dev.off()                             # Reset the display output of R
 q("no")                               # This will completely shutdown R terminal
@@ -61,18 +61,18 @@ df2_summary_stats <- df2 %>%
   tbl_summary(
     by = gender,                                       # Stratify by gender
     statistic = list(
-      all_continuous() ~ "{mean} ({sd})",              # Mean (SD) for continuous variables
+      all_continuous() ~ "{mean} ({sd})"#,              # Mean (SD) for continuous variables
       #all_continuous2() ~ "{median} ({p25}, {p75})"    # Median (Q1, Q3) for non-normal
     ),
-    digits = list(all_continuous() ~ 2),               # Round to 2 decimal places
+    digits = list(all_continuous() ~ 1),               # Round to 2 decimal places
     # missing = "ifany",                               # Show missing values if any
     label = list(                                      # Optional: Customize variable labels
       # Example: age ~ "Age (years)"
     )
   ) %>%
   # add_p() %>%                                        # Add p-values for comparisons
-  add_overall() %>%                                    # Add overall column
-  modify_header(label = "**Variable**")                # Customize header
+  # add_overall() %>%                                    # Add overall column
+  modify_header(label = "**משתנה**")                # Customize header
 
 # Display the summary statistics table
 df2_summary_stats
@@ -122,7 +122,7 @@ slr_summary <- slr %>%
 slr_summary
 ```
 
-## Show the scatter plot with regression model
+## Old way to get scatter plot with regression model
 ```{r polt-regression, echo = TRUE}
 # use ggplot to show the scatter plot with regression line with linear model and confidence interval
 ggplot(df2, aes_string(x = x_var, y = y_var)) +
@@ -151,20 +151,20 @@ estimates(slr)
 ## Test for normal distribution of model residuals
 ```{r residuals, echo = TRUE}
 # Get nmodel residuals
-residuals_slr <- residuals(slr)
+res <- residuals(slr)
 
 # Plot the residuals
-hist(residuals_slr,
+hist(res,
   breaks = 20, main = "Histogram of Residuals",
   xlab = "Residuals", col = "darkgrey"
 )
 
 # Q-Q plot
-qqnorm(residuals_slr)
-qqline(residuals_slr, col = "red")
+qqnorm(res)
+qqline(res, col = "red")
 
 # Kolmogorov-Smirnov test  (Ho: residuals are normal)
-ks_test_result <- ks.test(residuals_slr, "pnorm", mean = mean(residuals_slr), sd = sd(residuals_slr))
+ks_test_result <- ks.test(res, "pnorm", mean = mean(res), sd = sd(res))
 ks_test_result
 ```
 

@@ -11,7 +11,7 @@
 ## Reset memory
 ```{r setup-packages, include = FALSE}
 rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
-lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Clear packages from memory
 gc()                                  # Clear unused data from memory ("garbage cllection")
 dev.off()                             # Reset the display output of R
 q("no")                               # This will completely shutdown R terminal
@@ -59,19 +59,22 @@ summary_stats
 
 ## Send to nice table
 ```{r descriptives, echo = TRUE}
-# Switch around the table
-summary_stats <- as.data.frame((summary_stats))
-summary_stats <- cbind(Statistic = rownames(summary_stats), summary_stats)   # need this to keep
+# Convert to dataframe
+stats <- as.data.frame((summary_stats))
+# Copy stat names to rownames
+stats <- cbind(Statistic = rownames(stats), stats)   # need this to keep
 
 # Convert to nice table
-summary_stats_tbl <- summary_stats %>%
+stats_tbl <- stats %>%
   gt() %>%
   tab_header(title = "Descriptive Statistics⠀⠀⠀⠀סטטיסטיקה תאורית") %>%
   fmt_number(
-    columns = where(is.numeric),
-    decimals = 2
+    #columns = where(is.numeric),
+    decimals = 1
   )
-summary_stats_tbl # Display the table
+
+# Display the table
+stats_tbl <- NULL
 ```
 
 ## Test normality (Ho: data are normal dist)
@@ -130,14 +133,27 @@ summary_stats <- stats_df %>%
 summary_stats # Show the table
 ```
 
-## Pie Chart 
+
+## Bar chart 
+```{r pie, echo = TRUE}
+pie_var <- "age.cat"                                   # Change this to the categorical variable
+ggplot(df1, aes(x = .data[[pie_var]], fill = .data[[pie_var]])) +
+  geom_bar(stat = "count") +
+  theme_minimal() +
+  labs(
+    title = "Bar Chart of age.cat",
+    x = pie_var,
+    y = "Count"
+  )
+```
+
+## Pie chart 
 ```{r pie, echo = TRUE}
 pie_var <- "age.cat"                                   # Change this to the categorial variable
 ggplot(df1, aes(x = "", fill = .data[[pie_var]])) +
-  geom_bar(width = 1, stat = "count") +
+  geom_bar(stat = "count") +
   coord_polar(theta = "y") +
   theme_void() +
-  # scale_fill_manual(values = c("lightblue", "lightgreen", "lightcoral", "lightgoldenrodyellow", "lightpink")) +
   labs(
     title = "Chart of age.cat",
   )
@@ -145,13 +161,13 @@ ggplot(df1, aes(x = "", fill = .data[[pie_var]])) +
 
 ## Histogram
 ```{r histogram, echo = TRUE}
-hist_var <- variable
+hist_var <- "temp"
 ggplot(df1, aes(x = get(hist_var))) +
   geom_histogram(bins = 10, fill = "grey", color = "black") +
   theme_minimal() +
   labs(
-    title = "Histogram of Age",
-    x = "Age (years)",
+    title = "Histogram of body temperature",
+    x = "Temp (°C)",
     y = "Count"
   )
 ```
@@ -183,32 +199,29 @@ desc_result
 
 ## Crosstables / Contigengcy tables
 ```{r chi-square, echo = TRUE}
-glimpse(df1)
-# Create contigency table
-contingency_table <- table(df1$fever, df1$outcome)
-contingency_table
-
-# Convert to probabilities
-percent_table <- prop.table(contingency_table, margin = 1)
-percent_table
-
-percent_table <- round(prop.table(contingency_table), 3)      # round to 3 digits
-percent_table
-
-# Chi-Square test
-chisq.test(x = df1$fever, y = df1$outcome)
-
-# Chi-Fisher Exact test
-fisher.test(x = df1$fever, y = df1$outcome)
-
-# Create cross-tabulation with chi-square test
-tbl_cross(data = df1_clean, row = fever, col = outcome,
-          missing = "no",                                               # Ignore missing values
-          percent = "row"                                               # Row percentages (use "column" or "cell" if needed)
+# Create cross-tabulation/contigency table (with chi-square test)
+tbl_cross(data = df1, row = fever, col = outcome,
+          missing = "no",                                # ignore missing values
+          percent = "row"                                # add row percentages (use "column" or "cell" if needed)
          ) %>%
-         add_p(test = "chisq.test", test.args = list(correct = TRUE),   # Add chi-square test. Replace with fisher.test if needed.
-         pvalue_fun = ~formatC(., digits = 3, format = "f")
+         add_p(test = "chisq.test", test.args = list(correct = TRUE),   # add chi-square test. Replace with fisher.test if needed and remove correct=TRUE.
+         pvalue_fun = ~formatC(., digits = 3, format = "f")             # round the p-value to 3 digits
          )
+
+
+## Create contigency table the old way
+#contingency_table <- table(df1$fever, df1$outcome)
+#contingency_table
+# Convert to probabilities
+#percent_table <- prop.table(contingency_table, margin = 1)
+#percent_table
+#percent_table <- round(prop.table(contingency_table), 3)      # round to 3 digits
+#percent_table
+# Chi-Square test
+#chisq.test(x = df1$fever, y = df1$outcome)
+# Chi-Fisher Exact test
+#fisher.test(x = df1$fever, y = df1$outcome)
+
 ```
 
 

@@ -10,7 +10,7 @@
 ## Reset memory
 ```{r setup-packages, include = FALSE}
 rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
-lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Clear packages from memory
 gc()                                  # Clear unused data from memory ("garbage cllection")
 dev.off()                             # Reset the display output of R
 q("no")                               # This will completely shutdown R terminal
@@ -40,7 +40,7 @@ pacman::p_load(
   GGally,                 # to make a correlation matrix
   skimr,                  # get overview of data
   pROC,                   # For ROC analysis
-  caret,                  # For confusion matrix and classification metrics
+  cvms,                   # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
   performance,            # For model performance metrics
   generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 

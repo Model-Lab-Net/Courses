@@ -11,7 +11,7 @@
 ## Reset memory
 ```{r setup-packages, include = FALSE}
 rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
-lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Clear packages from memory
 gc()                                  # Clear unused data from memory ("garbage cllection")
 dev.off()                             # Reset the display output of R
 q("no")                               # This will completely shutdown R terminal
@@ -41,10 +41,10 @@ pacman::p_load(
   GGally,                 # to make a correlation matrix
   skimr,                  # get overview of data
   pROC,                   # For ROC analysis
-  caret,                  # For confusion matrix and classification metrics
+  cvms, ggimage, rsvg,    # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
   performance,            # For model performance metrics
-  ResourceSelection       # For Hosmer-Lemeshow test for goodness of fit 
+  generalhoslem           # For Hosmer-Lemeshow test for goodness of fit 
               )
 # Install/load flexplot
 if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
@@ -145,47 +145,39 @@ mlog_reg_ia_table <- tbl_regression(
 mlog_reg_ia_table
 ```
 
-## classification table
+## Model comparison
+```{r mdodel-comparison, echo = TRUE}
+# Compare models
+model.comparison(mlog_reg, mlog_reg_ia)
+```
+
+## Classification table
 ```{r , echo=FALSE}
 # Calculate predicted probabilities and append to df
-df3$predicted_prob_multi <- predict(mlog_reg, type = "response")
+df3$predict_prob_multi <- predict(mlog_reg_ia, type = "response")
+df3$predict.prob.multi <- as.integer(df3$predict_prob_multi > 0.5)
+glimpse(df3)
 
-# Use caret package to get classification table
-confusion_matrix <- caret::confusionMatrix(data = as.factor(round(df3$predicted_prob_multi, 0)), reference = as.factor(df3$status))
-confusion_matrix
+# Calculate the "confusion_matrix"
+cm <- confusion_matrix(targets = df3$status, predictions = df3$predict.prob)
 
-# Extract the confusion matrix table
-cm_table <- as.data.frame(confusion_matrix$table)
-colnames(cm_table) <- c("Predicted", "True", "Count")
-cm_table <- cm_table %>%
-  mutate(Percent = round(Count / sum(Count) * 100, 1))
+# Plot the "confusion_matrix"
+plot_confusion_matrix(cm)
 
-# Plot confusion matrix as a heatmap
-ggplot(data = cm_table, aes(x = Predicted, y = True, fill = Percent)) +
-  geom_tile() +
-  geom_text(aes(label = Percent), vjust = 0.5, color = "black") +
-  scale_fill_gradient(low = "white", high = "blue") +
-  theme_minimal() +
-  labs(title = "Confusion Matrix", x = "Predicted", y = "True") +
-  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+# Display the "classification metrics"
+cm_metrics <- select_metrics(cm)
+cm_metrics <- cm_metrics %>%
+  pivot_longer(cols = everything(),
+               names_to = "Metric",
+               values_to = "Value"
+              )
+cm_metrics <- as.data.frame(cm_metrics)
+cm_metrics <- cm_metrics %>%
+  mutate(across(where(is.numeric), ~ round(., 3)))
+cm_metrics
 
-# Get cm metrics
-cm_metrics_df <- data.frame(
-  Metric = c("Accuracy", "PPV", "NPV", "Sensitivity", "Specificity", "Precision", "F1 Score"),
-  Value = round(c(
-    confusion_matrix$overall["Accuracy"],
-    confusion_matrix$byClass["Pos Pred Value"],
-    confusion_matrix$byClass["Neg Pred Value"],
-    confusion_matrix$byClass["Sensitivity"],
-    confusion_matrix$byClass["Specificity"],
-    confusion_matrix$byClass["Precision"],
-    confusion_matrix$byClass["F1"]
-  ), 2)
-)
-cm_metrics_df
-
-cm_metrics_df %>%
-  gt()
+cm_metrics %>%
+  gt() 
 ```
 
 ## Hosmer-Lemeshow test for GOF
@@ -197,23 +189,14 @@ hl_test
 
 ## ROC curve and AUC (area under curve)
 ```{r mlog_reg-ROC,2 echo = TRUE}
-roc_obj <- roc(df3$status, df3$predicted_prob_multi)
-
-# Plot ROC curve
-plot(roc_obj, col = "blue", main = "ROC Curve")
-
-# Print AUC (AUC > 0.7)
-auc(roc_obj)
+roc_obj <- roc(df3$status, df3$predict.prob, levels=c("0", "1"), direction="<", plot=TRUE, col="red", , main="ROC Curve", lwd=2, grid=TRUE, print.auc=TRUE, font=2)
 ```
 
 
 ### ------------------------------------------
 
 
-## Model comparison
-```{r mdodel-comparison, echo = TRUE}
-model.comparison(mlog_reg, mlog_reg_ia)
-```
+
 
 
 ## Get better estimates for best model
