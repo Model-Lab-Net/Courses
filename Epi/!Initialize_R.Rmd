@@ -2,23 +2,26 @@
 ### name  : דוד בורג
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: 0   
-### date  : 20/07/2025
+### date  : 14/07/2025
 ###  
 ###  VSCode-זה קוד שיוריד את כל החבילות והקבצים כדי לעבוד ב
 ###
 ### source: https://www.datanovia.com/learn/tools/r-in-vscode/recommended-vscode-configurations-for-r-programming.html
-###         https://community.r-multiverse.org/httpgd
 
 
-## Install required packages  (you might need to run this twice, sorry....)
+# Reset memory
+```{r setup-packages, include false}
+rm(list = ls(all.names = TRUE))       # Remove all data objects from memory
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
+gc()                                  # Remove unused data from memory ("garbage cllection")
+dev.off()                             # Reset the display output of R
+q("no")                               # This will completely shutdown R terminal
+```
+
+
+## Install required packages
 ```{r load-packages, include false}  
 options("install.lock"=FALSE)
-
-if (!require("languageserver", quietly = TRUE)) install.packages("languageserver")
-if (!require("httpgd", quietly = TRUE)) install.packages('httpgd', repos = c('https://community.r-multiverse.org', 'https://cloud.r-project.org'))
-if (!require("vscDebugger", quietly = TRUE)) install.packages("vscDebugger", repos = "https://manuelhentschel.r-universe.dev")
-if (!require("devtools", quietly = TRUE)) install.packages("devtools")
-
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
 pacman::p_load(
@@ -44,7 +47,7 @@ pacman::p_load(
   performance,            # For model performance metrics
   #MASS,                   # For statistical functions (polr for ordinal regression)ordinal
   ordinal,                # For ordinal regression statistical functions
-  caret,                  # For confusion matrix and classification metrics
+  cvms, ggimage, rsvg,    # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
   generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit
   ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit
@@ -64,9 +67,13 @@ if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/f
 # This will install the LogisticDx package from the archive
 # Note: The package is not be available on CRAN anymore, so
 # the URL is used
-if (!require("LogisticDx", quietly = TRUE)) install.packages(c('rms', 'statmod', 'speedglm', 'pROC', 'aod'))
-if (!require("LogisticDx", quietly = TRUE)) install.packages(
-    "https://cran.r-project.org/src/contrib/Archive/LogisticDx/LogisticDx_0.3.tar.gz",
-    dependencies = TRUE
-   )
+install.packages(c('rms', 'statmod', 'speedglm', 'pROC', 'aod'))
+install.packages(
+  "https://cran.r-project.org/src/contrib/Archive/LogisticDx/LogisticDx_0.3.tar.gz",
+dependencies = TRUE
+)
+
+install.packages('languageserver')
+install.packages('httpgd', repos = c('https://community.r-multiverse.org', 'https://cloud.r-project.org'))
+install.packages("vscDebugger", repos = "https://manuelhentschel.r-universe.dev")
 ```
