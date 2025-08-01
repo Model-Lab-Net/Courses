@@ -101,6 +101,7 @@ echo }
 ::Add extensions to VSCode
 call C:\RVSCode\bin\code.cmd --install-extension github.copilot
 call C:\RVSCode\bin\code.cmd --install-extension github.copilot-chat
+call C:\RVSCode\bin\code.cmd --install-extension mechatroner.rainbow-csv
 call C:\RVSCode\bin\code.cmd --install-extension reditorsupport.r
 call C:\RVSCode\bin\code.cmd --install-extension rdebugger.r-debugger
 
