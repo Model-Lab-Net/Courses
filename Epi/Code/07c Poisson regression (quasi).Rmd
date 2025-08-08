@@ -1,14 +1,11 @@
 ###
-### name  : דוד בורג
+### name  : __________________
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: סיכון יחסי 07  RR 
 ### date  : 13/07/2025
 ###  
 ###  quasi רגרסיית פאוסון  
-###
-### source:  https://bookdown.org/drki_musa/dataanalysis/poisson-regression.html#quasi-poisson-regression-for-overdispersed-data
-###          https://github.com/drkamarul/multivar_data_analysis/tree/main/data
 
 
 ## Reset memory
@@ -108,3 +105,13 @@ tidy(qpr, conf.int = TRUE)
 # 
 
 ```
+
+
+
+
+
+
+
+
+### source:  https://bookdown.org/drki_musa/dataanalysis/poisson-regression.html#quasi-poisson-regression-for-overdispersed-data
+###          https://github.com/drkamarul/multivar_data_analysis/tree/main/data

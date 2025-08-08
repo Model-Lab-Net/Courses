@@ -1,5 +1,5 @@
 ###
-### name  : דוד בורג
+### name  : __________________
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: בדיקת השערות 02-04   
@@ -56,9 +56,9 @@ glimpse(df_bc)               # get an overview of the data
 ## Crosstables, Chi-Square and Fisher Exact tests
 ```{r chi-square, echo = TRUE}
 # Create cross-tabulation with chi-square test
-tbl_cross(data = df_bc, row = optimal.systemic.therapy, col = rt,
+tbl_cross(data = df_bc, row = rt, col = lvi,
           missing = "no",                                               # Ignore missing values
-          percent = "row"                                               # Row percentages (use "column" or "cell" if needed)
+          percent = "cell"                                               # Row percentages (use "column" or "cell" if needed)
          ) %>%
          add_p(test = "chisq.test", test.args = list(correct = TRUE),   # do a chi-square test (replace with fisher.test if needed)
          pvalue_fun = ~formatC(., digits = 3, format = "f")             # round p-value to 3 digits
@@ -70,7 +70,7 @@ tbl_cross(data = df_bc, row = optimal.systemic.therapy, col = rt,
 # Plot the data
 flexplot(age.dx.yrs ~ recurrence, data = df_bc)
 
-# Test for variance homogeneity
+# Test for variance homogeneity (שיוויון שונויות)
 levene_test <- leveneTest(age.dx.yrs ~ recurrence, data = df_bc)
 levene_test
 
@@ -82,9 +82,9 @@ t_test_result
 ## Two-way ANOVA
 ```{r ANOVA, echo = TRUE}
 # Plot the data
-flexplot(tumor.size.cm  ~ grade, data = df_bc)
+flexplot(age.dx.yrs ~ grade, data = df_bc)
 
-# Test for variance homogeneity of variances
+# Test for variance homogeneity of variances (שיוויון שונויות)
 bartlett_test <- bartlett.test(tumor.size.cm ~ grade, data = df_bc)
 bartlett_test
 
@@ -117,8 +117,9 @@ dunn.test(df_bc$nodal.ratio, df_bc$grade, method = "bh")
 # Paired T test or Wilcoxon ranked sum
 ```{r paired-t-test, echo = TRUE}
 ## Lets get some data on anorexia
-if (!require("datarium")) install.packages("datarium")  ;  library(datarium)
-df_anorexia <- anorexia
+file <- "https://raw.githubusercontent.com/mark-andrews/ntupsychology-data/main/data-sets/anorexia.csv"
+# read the data in a file online
+df_anorexia <- import(file, trust = TRUE)
 glimpse(df_anorexia)
 
 # Do a paired T test
@@ -128,11 +129,12 @@ paired_t_test_result
 # Plot the data
 ggpaired(df_anorexia, cond1 = "Prewt", cond2 = "Postwt",
          y = "value", x = "variable", fill = "condition",
-         palette = "jco", line.color = "gray", line.size = 0.4) +
-         facet_wrap(~ Treat)
+         palette = "jco", line.color = "gray", line.size = 0.4
+         ) #+
+         #facet_wrap(~ Treat)
 
 # Do a paired Wilcoxon ranked test if data are not normally distributed
-wilcox.test(df_anorexia$Prewt, df_anorexia$Postwt, paired = TRUE)         
+wilcox.test(df_anorexia$Prewt, df_anorexia$Postwt, paired = TRUE)
 ```
 
 ## Spearman regression

@@ -1,14 +1,11 @@
 ###
-### name  : דוד בורג
+### name  : __________________
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: סרגרסיה לינארית 05   
 ### date  : 13/07/2025
 ###  
 ###  נלמד לעשות רגסיה מרובה
-###
-### source: https://bookdown.org/drki_musa/dataanalysis/linear-regression.html#multiple-linear-regression
-###         https://github.com/drkamarul/multivar_data_analysis/tree/main/data
 
 
 ## Reset memory
