@@ -77,10 +77,13 @@ stats_tbl <- stats %>%
 stats_tbl <- NULL
 ```
 
-## Test normality (Ho: data are normal dist)
+## Test normality on the raw data (Ho: data are normal dist)
 ```{r descriptives-old, echo = TRUE}
+# Seleect which variable to test
 variable <- c("age")
-ad <- ad.test(df1[[variable]])$p.value      # Anderson-Darling test for normality
+
+# Do an Anderson-Darling test for normality
+ad <- ad.test(df1[[variable]])$p.value      
 ad <- paste0("p < ", formatC(ad, format = "f", digits = 4))
 ad
 ```
