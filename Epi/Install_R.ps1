@@ -71,21 +71,21 @@ if (-not (Test-Path -Path "C:\temp\languageserver.zip")) {
 # Set settings.json for R in VSCode
 $settingsJson = @"
 {
-    "r.rpath.windows": "C:\\RVSCode\\R\bin\\R.exe",
+    "r.rpath.windows": "C:\\RVSCode\\R\\bin\\R.exe",
     "editor.dropIntoEditor.preferences": [],
     "r.rterm.option": [
-        "--r-binary=C:\\RVSCode\\R\bin\\R.exe",
+        "--r-binary=C:\\RVSCode\\R\\bin\\R.exe",
         "--no-save",
         "--no-restore"
     ],
-    "r.rterm.windows": "C:\\RVSCode\\R\bin\\R.exe",
+    "r.rterm.windows": "C:\\RVSCode\\R\\bin\\R.exe",
     "r.bracketedPaste": true,
     "r.sessionWatcher": true,
     "editor.wordSeparators": "`~!@#%$^&*()-=+[{]}\\|;:'\",<>/?",
     "r.plot.useHttpgd": true,
     "terminal.integrated.profiles.windows": {
         "R": {
-            "path": "C:\\RVSCode\\R\bin\\R.exe",
+            "path": "C:\\RVSCode\\R\\bin\\R.exe",
             "args": [ "--no-save", "--no-restore" ],
             "env": {
                 "PATH": "C:\\RVSCode\\R\\bin"
