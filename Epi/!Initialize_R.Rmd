@@ -15,7 +15,7 @@ rm(list = ls(all.names = TRUE))       # Remove all data objects from memory
 lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Remove packages from memory
 gc()                                  # Remove unused data from memory ("garbage cllection")
 dev.off()                             # Reset the display output of R
-q("no")                               # This will completely shutdown R terminal
+#q("no")                              # This will completely shutdown R terminal
 ```
 
 
@@ -77,3 +77,4 @@ install.packages('languageserver')
 install.packages('httpgd', repos = c('https://community.r-multiverse.org', 'https://cloud.r-project.org'))
 install.packages("vscDebugger", repos = "https://manuelhentschel.r-universe.dev")
 ```
+
