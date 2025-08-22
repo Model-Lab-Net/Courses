@@ -46,8 +46,8 @@ if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/f
 
 ## Access the data
 ```{r read-data, echo = TRUE}
-file <- "./EpiData/03 covid.rds"     # 👈 use this if the file is on your computer
-#file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/03%20covid.rds"
+#file <- "./EpiData/03 covid.rds"     # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/03%20covid.rds"
 df_covid <- import(file, trust = TRUE)
 # show variable translations to Hebrew in lables
 labels <- data.frame(Variable = names(df_covid), Label = unlist(var_label(df_covid)))   ;   gt(labels)
@@ -83,7 +83,7 @@ slr_summary
 # Lets check out the plot
 flexplot(symptoms ~ bmi | age , data = df_covid, method = "lm")
 
-# Do a reduced linear regression (SLR) with chol as the dependent variable
+# Do a MLR with interaction
 mlr1 <- lm(symptoms ~ bmi:age, data = df_covid)
 
 # Show results in a nice table
@@ -173,18 +173,17 @@ dw_result <- dwtest(mlr3)
 dw_result
 
 # Plot ACF residuals
-acf(residuals(mlr2), main = "ACF of Residuals")
+# acf(residuals(mlr2), main = "ACF of Residuals")
 
 # Run VIF colinearity test  (no multicolinearity == VIF ≈ 1)
-mlr_vif <- vif(mlr3)
+mlr_vif <- vif(mlr3, type = 'predictor')
 mlr_vif
 ```
-
+glimpse(df_covid)
 ## Show full regression model summary table
 ```{r mlr-summary, echo = TRUE}
 full_model <- tbl_regression(mlr3,
   conf.int = TRUE,
-  show_single_row = "symptoms",
   intercept = TRUE
 ) %>%
   modify_header(
