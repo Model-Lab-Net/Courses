@@ -139,7 +139,7 @@ ggplot(df2, aes_string(x = x_var, y = y_var)) +
 ## Flexplot scatter plot and analysis
 ```{r polt-regression, echo = TRUE}
 # Plot the regression
-flexplot(f, data = df2, method = "lm", se = TRUE, ghost.line = "red")
+flexplot(f, data = df2, method = "lm", se = TRUE)
 
 # Analyze the residuals
 visualize(slr)

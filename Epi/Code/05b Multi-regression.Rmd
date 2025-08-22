@@ -2,10 +2,10 @@
 ### name  : __________________
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
-### lesson: סרגרסיה לינארית 05   
+### lesson: רגרסיה לינארית 05   
 ### date  : 13/07/2025
 ###  
-###  נלמד לעשות רגסיה מרובה
+###  נלמד לעשות רגסיה רבת משתנים - multi-variate regression
 
 
 ## Reset memory
@@ -55,10 +55,10 @@ glimpse(df2)               # get an overview of the data
 ```
 
 # Multi-variate regression model
-```{r nmulti-reg, echo = TRUE}
+```{r multi-reg, echo = TRUE}
 # Do a reduced linear regression (SLR) with chol as the dependent variable
 mlr <- lm(chol ~ sbp + dbp + bmi + age + race, data = df2)
-tidy(mlr, conf.int = TRUE)
+summary(mlr)
 ```
 
 ## Present multi-regression parameter values in a nice table
@@ -66,7 +66,7 @@ tidy(mlr, conf.int = TRUE)
 # Show results
 mlr_summary <- tbl_regression(
   mlr,
-  intercept = TRUE,
+  # intercept = TRUE,
   estimate_fun = ~ round(.x, 2)
 ) %>%
   add_glance_source_note(
@@ -83,8 +83,8 @@ ggcorr(df2, label = TRUE)
 
 ## Perform a reduced multiple linear regression model
 ```{r reduced-multi-reg, echo = TRUE}
-mlr_reduced <- lm(chol ~ dbp + age, data = df2)
-tidy(mlr_reduced, conf.int = TRUE)
+mlr_reduced <- lm(chol ~ dbp + cad, data = df2)
+summary(mlr_reduced)
 ```
 
 ## Test for normal distribution of model residuals
@@ -96,9 +96,9 @@ flexplot(chol ~ dbp | age + bmi, data = df2, method = "lm", ghost.line = "red")
 visualize(mlr_reduced)
 
 # Q-Q plot
-res <- residuals(mlr_reduced) # Get model residuals
-qqnorm(res)
-qqline(res, col = "red")
+# res <- residuals(mlr_reduced) # Get model residuals
+# qqnorm(res)
+# qqline(res, col = "red")
 # visualize(chol ~ dbp + age, data = df2, plot = "qq")    # use flexplot here
 
 # Kolmogorov-Smirnov test  (Ho: residuals are normal)
@@ -256,3 +256,4 @@ glimpse(df2)
 # Save as R data file
 saveRDS(df2, here("EpiData", "03 coronary.rds"))
 ```
+

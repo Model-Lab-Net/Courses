@@ -1,0 +1,435 @@
+###
+### name  : __________________
+### ID    : [מספר תעודת זהות]
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: רגרסיה לינארית 05   
+### date  : 19/08/2025
+###  
+###  נלמד לעשות רגסיה עם אינטראקציה
+
+
+## Reset memory
+```{r setup-packages, include = FALSE}
+rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Clear packages from memory
+gc()                                  # Clear unused data from memory ("garbage cllection")
+dev.off()                             # Reset the display output of R
+q("no")                               # This will completely shutdown R terminal
+```
+
+## Load required packages
+```{r setup-packages, include = FALSE}
+options("install.lock" = FALSE)
+if (!require("pacman")) install.packages("pacman") ; library(pacman)
+pacman::p_load(
+  Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
+  rio, here,              # File import and path support
+  labelled,               # deal with labels
+  tidyverse,              # data management + ggplot2 graphics,
+  broom,                  # For tidying model outputs
+  dplyr,                  # For data manipulation
+  gt,                     # Nice beuatiful tables
+  gtsummary,              # summary statistics and tests
+  nortest,                # Anderson-Darling test for normality
+  ggplot2,                # For creating plots
+  ggpubr,                 # For ggplot2 extensions
+  DescTools,              # For statistical functions like skewness and kurtosis
+  summarytools,           # to get a table of all summary statistics
+  car,                    # For Levene's test and ANOVA
+  lmtest,                 # do linear regression tests
+  parameters,             # get standardized parameters/coefficients
+  GGally                  # to make a correlation matrix
+              )
+# Install/load flexplot
+if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
+```
+
+## Access the data
+```{r read-data, echo = TRUE}
+file <- "./EpiData/03 covid.rds"     # 👈 use this if the file is on your computer
+#file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/03%20covid.rds"
+df_covid <- import(file, trust = TRUE)
+# show variable translations to Hebrew in lables
+labels <- data.frame(Variable = names(df_covid), Label = unlist(var_label(df_covid)))   ;   gt(labels)
+glimpse(df_covid)               # get an overview of the data
+```
+## Histogram of sympotms
+```{r read-data, echo = TRUE}
+flexplot(symptoms ~ 1, data = df_covid)
+```
+
+# Simple regression model
+```{r multi-reg, echo = TRUE}
+# Lets check out the plot
+flexplot(symptoms ~ bmi, data = df_covid, method = "lm")
+
+# Do a reduced linear regression (SLR) with chol as the dependent variable
+slr <- lm(symptoms ~ bmi, data = df_covid)
+
+# Show results in a nice table
+slr_summary <- tbl_regression(
+  slr,
+  # intercept = TRUE,
+  estimate_fun = ~ round(.x, 2)
+) %>%
+  add_glance_source_note(
+    include = c(r.squared, adj.r.squared, AIC, p.value)
+  )
+slr_summary
+```
+
+# Multi-variate regression model with interaction /1/
+```{r multi-reg, echo = TRUE}
+# Lets check out the plot
+flexplot(symptoms ~ bmi | age , data = df_covid, method = "lm")
+
+# Do a reduced linear regression (SLR) with chol as the dependent variable
+mlr1 <- lm(symptoms ~ bmi:age, data = df_covid)
+
+# Show results in a nice table
+mlr_summary <- tbl_regression(
+  mlr1,
+  # intercept = TRUE,
+  estimate_fun = ~ round(.x, 2)
+) %>%
+  add_glance_source_note(
+    include = c(r.squared, adj.r.squared, AIC, p.value)
+  )
+mlr_summary
+```
+
+
+
+# Multi-variate regression model with interaction /2/
+```{r multi-reg, echo = TRUE}
+# Lets check out the plot
+flexplot(symptoms ~ bmi | copd , data = df_covid, method = "lm")
+
+# Do a reduced linear regression (SLR) with chol as the dependent variable
+mlr2 <- lm(symptoms ~ bmi:copd, data = df_covid)
+
+# Show results in a nice table
+mlr_summary <- tbl_regression(
+  mlr2,
+  # intercept = TRUE,
+  estimate_fun = ~ round(.x, 2)
+) %>%
+  add_glance_source_note(
+    include = c(r.squared, adj.r.squared, AIC, p.value)
+  )
+mlr_summary
+```
+
+
+# Multi-variate regression model with interaction /3/
+```{r multi-reg, echo = TRUE}
+# Lets check out the plot
+flexplot(symptoms ~ bmi | copd + age , data = df_covid, method = "lm")
+
+# Do a reduced linear regression (SLR) with chol as the dependent variable
+mlr3 <- lm(symptoms ~ bmi:copd:age, data = df_covid)
+
+# Show results in a nice table
+mlr_summary <- tbl_regression(
+  mlr3,
+  # intercept = TRUE,
+  estimate_fun = ~ round(.x, 2)
+) %>%
+  add_glance_source_note(
+    include = c(r.squared, adj.r.squared, AIC, p.value)
+  )
+mlr_summary
+```
+
+
+## Model comparison
+```{r mdodel-comparison, echo = TRUE}
+# Check all combinations to select "best" model
+model.comparison(slr, mlr3)
+model.comparison(mlr1, mlr3)
+model.comparison(mlr2, mlr3)
+```
+
+
+## Test model diagnostics
+```{r residuals, echo = TRUE}
+# Get model residuals
+res <- residuals(mlr3) 
+df_res <- data.frame(res)
+
+# Analyze the residuals
+flexplot(res ~ 1, data=df_res) 
+
+# Run Kolmogorov-Smirnov test  (Ho: residuals are normal)
+ks_test_result <- ks.test(res, "pnorm", mean = mean(res), sd = sd(res))
+ks_test_result
+ 
+# Run Breusch-Pagan test  (Ho: no heteroscedacity)
+bp_test <- bptest(mlr3)
+bp_test
+
+# Run Durbin-Watson test  (Ho: no autocorelation)
+dw_result <- dwtest(mlr3)
+dw_result
+
+# Plot ACF residuals
+acf(residuals(mlr2), main = "ACF of Residuals")
+
+# Run VIF colinearity test  (no multicolinearity == VIF ≈ 1)
+mlr_vif <- vif(mlr3)
+mlr_vif
+```
+
+## Show full regression model summary table
+```{r mlr-summary, echo = TRUE}
+full_model <- tbl_regression(mlr3,
+  conf.int = TRUE,
+  show_single_row = "symptoms",
+  intercept = TRUE
+) %>%
+  modify_header(
+    label = "**coeff**",
+    estimate = "**beta**",
+    std.error = "**SE**",
+    statistic = "**F**",
+    p.value = "**p**",
+    conf.low = "**CI<sub>95%**"
+  ) %>%
+  # modify_table_body(~ .x %>% filter(label != "Abbreviations")) %>%
+  add_glance_source_note(
+    include = c(
+      r.squared,
+      adj.r.squared,
+      statistic,
+      p.value,
+      # logLik,
+      AIC
+      # sigma
+    ),
+    label = list(
+      r.squared = "R²",
+      adj.r.squared = "Adj.R²",
+      statistic = "F",
+      p.value = "p",
+      logLik = "log-L",
+      sigma = "\U03C3",
+      AIC = "AIC"
+    )
+  ) %>%
+  modify_caption("**Table 2: Model Coefficients<br>(fit statistics)**")
+
+full_model
+```
+
+
+
+
+
+### -------------------------------------------------
+## תרגול-עצמי
+
+## שאלה 1
+```{r question-1, echo = TRUE}
+# 
+
+```
+
+## שאלה 2
+```{r question-2, echo = TRUE}
+# 
+
+```
+
+## שאלה 3
+```{r question-3, echo = TRUE}
+# 
+
+```
+
+
+
+
+
+
+
+
+
+### source: 
+###         
+
+## Make party enjoyment data
+```{r make-data, echo = TRUE}
+set.seed(123)
+n <- 200  
+
+# personality
+personality <- sample(c("introvert", "extrovert"), n, replace = TRUE, prob = c(0.4, 0.6))
+
+# party size
+party.size <- ifelse(personality == "introvert",
+                     rpois(n, lambda = 5) + 2,
+                     rpois(n, lambda = 15) + 5)
+
+# music
+# music <- ifelse(runif(n) < plogis((party.size - 8)/3 + ifelse(party.size=="extrovert", 0.5, -0.5)), "yes", "no")
+music <- sample(c("yes", "no"), n, replace = TRUE)
+music <- factor(music, levels = c("no", "yes"))
+
+# enjoyment (dependent variable)
+enjoyment <- ifelse(personality == "introvert",
+                    8 - 0.3 * (party.size - 5),   # introverts: lower enjoyment as size ↑
+                    5 + 0.3 * (party.size - 10))  # extroverts: higher enjoyment as size ↑
+
+# music effect: +1 if yes
+enjoyment <- enjoyment + ifelse(music == "yes", 1, -0.5)
+
+# add random noise
+enjoyment <- enjoyment + rnorm(n, mean = 0, sd = 1)
+
+# keep within 1–10 range
+enjoyment <- pmin(pmax(enjoyment, 1), 10)
+
+# dataframe
+df_party <- data.frame(
+  party.size = party.size,
+  personality = factor(personality),
+  music = factor(music),
+  enjoyment = enjoyment
+)
+
+df_party <- df_party %>% filter(enjoyment < 10)
+
+glimpse(df_party)
+```
+
+flexplot(enjoyment ~ 1, data = df_party, method = "lm")
+flexplot(enjoyment ~ party.size, data = df_party, method = "lm")
+flexplot(enjoyment ~ party.size | music , data = df_party, method = "lm")
+flexplot(enjoyment ~ party.size | personality + music , data = df_party, method = "lm")
+
+slr <- lm(enjoyment ~ party.size, data = df_party)
+summary(slr)
+
+mlr1 <- lm(enjoyment ~ party.size + music, data = df_party)
+summary(mlr1)
+
+mlr2 <- lm(enjoyment ~ party.size + music + personality, data = df_party)
+summary(mlr2)
+
+mlr3 <- lm(enjoyment ~ music + party.size:personality, data = df_party)
+summary(mlr3)
+
+
+
+TABLE <- mlr3 %>%
+  tbl_regression(intercept = T,
+                 estimate_fun = function(x) style_sigfig(x, digits = 3),
+                 pvalue_fun   = function(x) style_pvalue(x, digits = 3),
+                               ) %>%
+  #add_global_p(keep = T) %>% 
+  modify_caption("Interaction effect on enjoyment")
+TABLE
+
+
+#write.csv(df_party, here("EpiData", "03 party.csv"))
+
+## Cleanup data
+```{r clean-data, echo = TRUE}
+# Clean up variable names
+install.packages("janitor")   ;    library(janitor)
+df_party <- clean_names(df_party)
+names(df_party) <- gsub("_", ".", names(df_party))
+
+glimpse(df_party)
+
+saveRDS(df_party, here("EpiData", "03 party.rds"))
+```
+
+## Give variable explanations in labels
+```{r labels, echo = TRUE}
+attr(df_party$party.size, "label") <- "מספר חוגגים במסיבה"
+attr(df_party$personality, "label") <- "מאפיין אישיות"
+attr(df_party$music, "label") <- "האם הייתה מוסיקה במסיבה"
+attr(df_party$enjoyment, "label") <- "מידת ההנאה במסביה"
+
+labels <- NULL
+labels <- data.frame(Variable = names(df_party), Label = unlist(var_label(df_party)))
+gt(labels)
+```
+
+
+## Make covid data
+```{r analysis, echo = TRUE}
+flexplot(symptoms ~ 1, data = df_covid)
+flexplot(symptoms ~ bmi, data = df_covid, method = "lm")
+flexplot(symptoms ~ bmi | age , data = df_covid, method = "lm")
+flexplot(symptoms ~ bmi | copd , data = df_covid, method = "lm")
+flexplot(symptoms ~ bmi | copd + age , data = df_covid, method = "lm")
+
+
+slr <- lm(symptoms ~ bmi, data = df_covid)
+summary(slr)
+
+mlr1 <- lm(symptoms ~ bmi + music, data = df_covid)
+summary(mlr1)
+
+mlr2 <- lm(symptoms ~ bmi + music + personality, data = df_covid)
+summary(mlr2)
+
+mlr3 <- lm(symptoms ~ age + bmi:copd, data = df_covid)
+summary(mlr3)
+
+
+
+TABLE <- mlr3 %>%
+  tbl_regression(intercept = T,
+                 estimate_fun = function(x) style_sigfig(x, digits = 3),
+                 pvalue_fun   = function(x) style_pvalue(x, digits = 3),
+                               ) %>%
+  #add_global_p(keep = T) %>% 
+  modify_caption("Interaction effect on enjoyment")
+TABLE
+
+
+#write.csv(df_party, here("EpiData", "03 party.csv"))
+```
+
+## Make covid data
+```{r covid-data, echo = TRUE}
+# Copy
+df_covid <- df_party
+
+# Remane variables
+df_covid <- df_covid %>%
+  rename(
+    bmi = party.size,
+    copd = personality,
+    age = music,
+    symptoms = enjoyment
+  )
+
+df_covid <- df_covid %>%
+  mutate(copd = ifelse(copd == "extrovert", "yes", "no")) %>%
+  mutate(copd = factor(copd, levels = c("yes", "no")))
+
+df_covid <- df_covid %>%
+  mutate(age = ifelse(age == "no", "<60", "60+")) %>%
+  mutate(age = factor(age, levels = c("<60", "60+")))
+
+glimpse(df_covid)
+
+saveRDS(df_covid, here("EpiData", "03 covid.rds"))
+```
+
+
+## Give variable explanations in labels
+```{r labels, echo = TRUE}
+attr(df_covid$bmi, "label") <- "עודף משקל"
+attr(df_covid$copd, "label") <- "מחלת ראיה חסימתית"
+attr(df_covid$age, "label") <- "גיל"
+attr(df_covid$symptoms, "label") <- "עוצמת סימפטומים"
+
+labels <- NULL
+labels <- data.frame(Variable = names(df_covid), Label = unlist(var_label(df_covid)))
+gt(labels)
+```
