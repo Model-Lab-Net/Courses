@@ -1,0 +1,330 @@
+###
+### name  : __________________
+### ID  : [מספר תעודת זהות]
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: רגרסיה אורדינלית 06   
+### date  : 13/07/2025
+###  
+###  נלמד לעשות רגרסיה לוגיסטי מרובה על משתנים אורדינליים
+
+
+## Reset memory
+```{r setup-packages, include = FALSE}
+rm(list = ls(all.names = TRUE))          # 👈 Clear all data objects        👇 Clear packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
+gc()                                     # Clear unused data from memory ("garbage cllection")
+dev.off()                                # Reset the display output of R
+system("powershell -Command Clear-Host") # This will clear the terminal in VScode
+```
+
+## Load required packages
+```{r load-packages, include = FALSE}  
+options("install.lock" = FALSE)
+if (!require("pacman")) install.packages("pacman") ; library(pacman)
+pacman::p_load(
+  Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
+  rio, here,              # File import and path support
+  labelled, DT,           # deal with labels
+  tidyverse,              # data management + ggplot2 graphics,
+  broom,                  # For tidying model outputs
+  dplyr,                  # For data manipulation
+  gt,                     # Nice beuatiful tables
+  gtsummary,              # summary statistics and tests
+  nortest,                # Anderson-Darling test for normality
+  ggplot2,                # For creating plots
+  ggpubr,                 # For ggplot2 extensions
+  DescTools,              # For statistical functions like skewness and kurtosis
+  summarytools,           # to get a table of all summary statistics
+  car,                    # For Levene's test and ANOVA
+  lmtest,                 # do linear regression tests
+  parameters,             # get standardized parameters/coefficients
+  GGally,                 # to make a correlation matrix
+  skimr,                  # get overview of data
+  pROC,                   # For ROC analysis
+  cvms,                   # For confusion matrix and classification metrics
+  ggeffects,              # To display the confusion matrix
+  performance,            # For model performance metrics
+  generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 
+  # MASS,                   # For statistical functions (polr for ordinal regression)ordinal
+  ordinal                 # For ordinal regression statistical functions 
+              )
+# Install/load flexplot
+if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
+```
+
+## Access the data
+```{r read-data, echo = TRUE}
+## read the data in a file online
+# file <- "./EpiData/05 peptic_ulcer.rds"     # use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/05%20peptic_ulcer.rds"
+df5 <- import(file, trust = TRUE)
+# show variable translations to Hebrew in lables
+labels <- data.frame(Variable = names(df5), Label = unlist(var_label(df5)))   ;   datatable(labels, options = list(pageLength = 100, autoWidth = TRUE, dom = 't'), caption = "Variable Labels for df5", rownames = FALSE)
+glimpse(df5)               # get an overview of the data
+```
+
+## Perfrom an ordinal linear regression
+```{r ord-logisitc-reg, echo = TRUE}
+# Ordinal regression model
+ord_lr <- clm(perforation.ord ~ pulp + hemoglobin + systolic, data = df5, link = "logit")
+summary(ord_lr)
+
+# Variance-covariance matrix
+vcov_matrix <- vcov(ord_lr)
+vcov_matrix
+```
+
+## Model performance
+```{r ord-logisitc-reg, echo = TRUE}
+# Get -2LL and AIC
+minus_2LL_val <- -2 * as.numeric(logLik(ord_lr))
+minus_2LL_val <- round(minus_2LL_val,0)
+
+AIC_val <- AIC(ord_lr)
+AIC_val <- round(AIC_val, 0)
+
+# Get R²
+Nagelkerke <- r2_nagelkerke(ord_lr)
+r2_val <- as.numeric(Nagelkerke)
+r2_val <- round(r2_val, 3)
+
+# Disiplay the summary of the logistic regression model
+paste("R2= ", r2_val)
+```
+
+# Display regression results
+```{r ord-logisitc-reg, echo = TRUE}
+ord_lr_summary <- tbl_regression(
+  ord_lr,
+  exponentiate = TRUE # Gives odds ratios instead of log-odds
+) %>%
+  as_gt() %>%
+  tab_source_note(
+    source_note = paste0(
+      "R² = ", r2_val,
+      ", -2LL = ", minus_2LL_val,
+      ", AIC = ", AIC_val
+    )
+  )
+ord_lr_summary
+```
+
+## Classification table
+```{r predict, echo = TRUE}
+# Calculate predicted probabilities and append to df
+df5$predict.prob <- unlist(predict(ord_lr, type = "class"))
+
+# Calculate the "confusion_matrix"
+```{r matrix, echo=FALSE}
+cm <- confusion_matrix(targets = df5$perforation.ord, predictions = df5$predict.prob)
+
+# Plot the "confusion_matrix"
+plot_confusion_matrix(cm)
+
+# Display the "classification metrics"
+cm_metrics <- select_metrics(cm)
+cm_metrics <- cm_metrics %>%
+  pivot_longer(cols = everything(),
+               names_to = "Metric",
+               values_to = "Value"
+              )
+cm_metrics <- as.data.frame(cm_metrics)
+cm_metrics <- cm_metrics %>%
+  mutate(across(where(is.numeric), ~ round(., 3)))
+cm_metrics
+
+cm_metrics %>%
+  gt() 
+```
+
+## Nominal effects test
+```{r , echo=FALSE}
+# Test to make sure model assumption are not violated
+nominal_test(ord_lr)
+          # Note: If p<0.05 for all variables then fit is good.
+          ### ------------------------------------------------
+          ### Important: Hosmer–Lemeshow only works for binary 
+          ### this is more genralizable logistic regression
+```
+
+## Create distribution plots
+```{r predict, echo = TRUE}
+# Distribution of degree_perforation
+flexplot(perforation.ord ~  pulp | hemoglobin + systolic, data = df5, alpha = 0.6, method = "lm")
+
+flexplot(perforation.ord ~ 1, data = df5, alpha = 0.6)
+
+# Distribution of hemoglobin vs degree_perforation
+flexplot(hemoglobin ~ perforation.ord, data = df5, alpha = 0.6)
+
+# Distribution of systolic vs degree_perforation
+flexplot(systolic ~ perforation.ord, data = df5, alpha = 0.6)
+
+# # Distribution of PULP vs degree_perforation (assuming numeric)
+p <- flexplot(pulp ~ perforation.ord, data = df5, alpha = 0.6)
+p <- p + ggtitle("PULP Score by Degree of Perforation")
+p
+```
+
+### Create prediction plots
+```{r predict, echo = TRUE}
+# Predicted probabilities for pulp
+preds_pulp <- ggpredict(ord_lr, terms = "pulp")
+# Build the plot with ggplot2 directly
+ggplot(preds_pulp, aes(x = x, y = predicted, color = response.level, group = response.level)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = response.level, group = response.level),
+              alpha = 0.2,
+              color = NA) +
+  labs(
+    title = "Predicted Probability of Degree of Perforation by pulp",
+    x = "pulp",
+    y = "Predicted Probability",
+    color = "Outcome",
+    fill = "Outcome"
+  ) +
+  theme_minimal()
+
+
+# Predicted probabilities for hemoglobin
+preds_hemoglobin <- ggpredict(ord_lr, terms = "hemoglobin")
+# Build the plot with ggplot2 directly
+ggplot(preds_hemoglobin, aes(x = x, y = predicted, color = response.level, group = response.level)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = response.level, group = response.level),
+              alpha = 0.2,
+              color = NA) +
+  labs(
+    title = "Predicted Probability of Degree of Perforation by pulp",
+    x = "pulp",
+    y = "Predicted Probability",
+    color = "Outcome",
+    fill = "Outcome"
+  ) +
+  theme_minimal()
+
+
+# Predicted probabilities for systolic
+preds_systolic <- ggpredict(ord_lr, terms = "systolic")
+# Build the plot with ggplot2 directly
+ggplot(preds_systolic, aes(x = x, y = predicted, color = response.level, group = response.level)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = response.level, group = response.level),
+              alpha = 0.2,
+              color = NA) +
+  labs(
+    title = "Predicted Probability of Degree of Perforation by pulp",
+    x = "pulp",
+    y = "Predicted Probability",
+    color = "Outcome",
+    fill = "Outcome"
+  ) +
+  theme_minimal()
+```
+
+
+
+
+
+### -------------------------------------------------
+## תרגול-עצמי
+
+## שאלה 1
+```{r question-1, echo = TRUE}
+# 
+
+```
+
+## שאלה 2
+```{r question-2, echo = TRUE}
+# 
+
+```
+
+## שאלה 3
+```{r question-3, echo = TRUE}
+# 
+
+```
+
+
+
+
+
+
+
+
+
+### source: https://www.scielosp.org/pdf/rsp/2009.v43n1/183-194/en
+
+## Clean the data
+```{r clean-data, echo = TRUE}
+# Load the data
+file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/peptic_ulcer.xlsx"
+df5 <- import(file, trust = TRUE)
+#write.csv(df5, here("EpiData", "05 peptic_ulcer.csv"))
+
+# Clean up variable names
+df5 <- clean_names(df5)
+names(df5) <- gsub("_", ".", names(df5))
+
+# Swap all char variables to fct
+df5 <- mutate_if(df5, is.character, as.factor)
+
+# Create an ordinal variable from perforation
+df5$perforation.ord <- factor(
+  ifelse(df5$perforation <= 1.0, 0L, 1L),  # use integer values
+  levels = c(0L, 1L),                     # explicitly set levels
+  ordered = TRUE                          # make it ordinal
+)
+
+# Check the updated dataset structure
+glimpse(df5)
+
+# Save as R data file
+saveRDS(df5, here("EpiData", "05 peptic_ulcer.rds"))
+```
+
+## Give variable explanations in labels
+```{r labels, echo = TRUE}
+attr(df5$age, "label") <- "גיל"
+attr(df5$gender, "label") <- "מגדר"
+attr(df5$epigastric.pain, "label") <- "כאבי מעיים"
+attr(df5$vomiting, "label") <- "הקאות"
+attr(df5$nausea , "label") <- "בחילות"
+attr(df5$fever, "label") <- "חום"
+attr(df5$diarrhea, "label") <- "שלשול"
+attr(df5$malena, "label") <- "דימום במעיים"
+attr(df5$onset.more.24.hrs, "label") <- "כיב הנמשך יותר מ-24 שעות"
+attr(df5$nsaids, "label") <- "תרופות אנטי-דלקתיות"
+attr(df5$septic.shock, "label") <- "הלם ספטי"
+attr(df5$previous.ogds, "label") <- "בדיקות מעיים"
+attr(df5$asa, "label") <- "נטילת אספירין"
+attr(df5$systolic, "label") <- "לחץ דם סיסטולי"
+attr(df5$diastolic, "label") <- "לחץ דם דיאסטולי"
+attr(df5$inotropes, "label") <- "תרופות למחלות לב"
+attr(df5$pulse, "label") <- "דופק"
+attr(df5$tenderness, "label") <- "רגישות באיזור המעיים"
+attr(df5$guarding, "label") <- "כיווץ שרירי בטן"
+attr(df5$hemoglobin, "label") <- "המוגלובין בדם"
+attr(df5$twc, "label") <- "מדד חומרת הכיב של Truelove-Witts"
+attr(df5$platelet, "label") <- "כמות טסיות דם"
+attr(df5$creatinine, "label") <- "מדד לפעיולת הכליות"
+attr(df5$albumin, "label") <- "מדד לפעיולת הכבד"
+attr(df5$pulp, "label") <- "ניקוב כיב פפטי"
+attr(df5$admission.to.op.hrs , "label") <- "מספר שעות בין אישפוז ובין ניתוח"
+attr(df5$perforation, "label") <- "גודל ניקוב במעיים"
+attr(df5$degree.perforation, "label") <- "חומרת ניקוב במעיים"
+attr(df5$side.perforation, "label") <- "ניקוב צדדי"
+attr(df5$icu, "label") <- "אישפוז בטיפול נמרץ"
+attr(df5$sssi, "label") <- "כיב מודלק"
+attr(df5$anast.leak, "label") <- "כיב הנוצר ליד מקום כירוגי"
+attr(df5$sepsis, "label") <- "אלח דם"
+attr(df5$outcome, "label") <- "חי / נפטר"
+attr(df5$perforation.ord, "label") <- "חומרת ניקוב במעיים (במשתנה אורדינלי)"
+
+
+labels <- NULL
+labels <- data.frame(Variable = names(df5), Label = unlist(var_label(df5)))
+datatable(labels, options = list(pageLength = 100, autoWidth = TRUE, dom = 't'), caption = "Variable Labels for df5", rownames = FALSE)
+```
