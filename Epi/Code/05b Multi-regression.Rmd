@@ -10,11 +10,11 @@
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
-lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Clear packages from memory
-gc()                                  # Clear unused data from memory ("garbage cllection")
-dev.off()                             # Reset the display output of R
-q("no")                               # This will completely shutdown R terminal
+rm(list = ls(all.names = TRUE))          # 👈 Clear all data objects        👇 Clear packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
+gc()                                     # Clear unused data from memory ("garbage cllection")
+dev.off()                                # Reset the display output of R
+system("powershell -Command Clear-Host") # This will clear the terminal in VScode
 ```
 
 ## Load required packages
@@ -83,15 +83,12 @@ ggcorr(df2, label = TRUE)
 
 ## Perform a reduced multiple linear regression model
 ```{r reduced-multi-reg, echo = TRUE}
-mlr_reduced <- lm(chol ~ dbp + cad, data = df2)
+mlr_reduced <- lm(sbp ~ chol + cad, data = df2)
 summary(mlr_reduced)
 ```
 
 ## Test for normal distribution of model residuals
 ```{r residuals, echo = TRUE}
-# Residuals analysis
-flexplot(chol ~ dbp | age + bmi, data = df2, method = "lm", ghost.line = "red")
-
 # Analyze the residuals
 visualize(mlr_reduced)
 

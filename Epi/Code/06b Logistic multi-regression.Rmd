@@ -10,11 +10,11 @@
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
-lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Clear packages from memory
-gc()                                  # Clear unused data from memory ("garbage cllection")
-dev.off()                             # Reset the display output of R
-q("no")                               # This will completely shutdown R terminal
+rm(list = ls(all.names = TRUE))          # 👈 Clear all data objects        👇 Clear packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
+gc()                                     # Clear unused data from memory ("garbage cllection")
+dev.off()                                # Reset the display output of R
+system("powershell -Command Clear-Host") # This will clear the terminal in VScode
 ```
 
 ## Load required packages
@@ -44,7 +44,8 @@ pacman::p_load(
   cvms, ggimage, rsvg,    # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
   performance,            # For model performance metrics
-  generalhoslem           # For Hosmer-Lemeshow test for goodness of fit 
+  generalhoslem,           # For Hosmer-Lemeshow test for goodness of fit 
+  rms
               )
 # Install/load flexplot
 if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
@@ -59,10 +60,15 @@ df3 <- import(file, trust = TRUE)
 labels <- data.frame(Variable = names(df3), Label = unlist(var_label(df3)))   ;   gt(labels)
 glimpse(df3)               # get an overview of the data
 ```
+
 ## Multivariate logistic regression
 ```{r logistic_multi-reg, echo=FALSE}
-# Perform logistic regression
-mlog_reg <- glm(status ~ gcs + stroke.type + sex + dm + sbp + age, data = df3, family = binomial(link = "logit"))
+# Perform a multivariate logistic regression
+mlog_reg <- glm(status ~ gcs + stroke.type + sex + age, data = df3, family = binomial(link = "logit"))
+summary(log_reg)
+
+dd <- datadist(df3)   ;   options(datadist = "dd")
+mlog_reg_ <- lrm(status ~ gcs, data = df3)     # need this for model diagnostics. sorry.
 ```
 
 ## Plot data and model
@@ -79,29 +85,21 @@ visualize(mlog_reg)
 
 ## Model performance measures
 ```{r logistic_multi-reg, echo=FALSE}
-# Get -2LL and AIC
-minus_2LL_mlog_reg <- -2 * as.numeric(logLik(mlog_reg))
-AIC_valm <- AIC(mlog_reg)
-
-# Calculate Nagelkerke's R²
-r2_valm <- PseudoR2(mlog_reg, which = "Nagelkerke")
-
-# Chi-square statistic for the omnibus test
-null_model <- glm(status ~ 1, data = df3, family = binomial(link = "logit")) # null model (intercept-only model)
-model_perf <- anova(null_model, mlog_reg, test = "Chisq")
-chi_sq <- model_perf$Deviance[2] # Chi-square statistic
-p_val <- model_perf$`Pr(>Chi)`[2] # p-value
-
-# Disiplay the summary of the logistic regression model
-summary(mlog_reg)
-paste("R²= ", r2_valm)
+# NEW way
+minus2LL <- -2 * as.numeric(logLik(mlog_reg))  # -2 Log Likelihood
+AIC_val  <- AIC(mlog_reg)                      # AIC
+r2_val   <- mlog_reg_$stats["R2"]               # R² (is multiple R², usually "R²" is Nagelkerke)
+chi_sq   <- mlog_reg_$stats["Model L.R."]       # Omnibus Chi-square (Likelihood Ratio Chi²)
+p_val    <- mlog_reg_$stats["P"]                # Omnibus test p-value (Likelihood Ratio Test)
 ```
 
 ## Calculate log Odds and Odds Ratio
 ```{r OR, include=FALSE}
 # Recalculate logistic regression for OR
-mlog_reg_OR <- tbl_regression(mlog_reg, exponentiate = TRUE)
-mlog_reg_summary <- tbl_regression(mlog_reg, exponentiate = FALSE)
+mlog_reg_OR <- tbl_regression(mlog_reg, exponentiate = TRUE) %>%
+  modify_header(estimate ~ "**Odds ratio**")
+mlog_reg_summary <- tbl_regression(mlog_reg, exponentiate = FALSE) %>%
+  modify_header(estimate ~ "**log Odds**")
 
 mlog_combined_tbl <- tbl_merge(
   tbls = list(mlog_reg_summary, mlog_reg_OR),
@@ -110,9 +108,9 @@ mlog_combined_tbl <- tbl_merge(
   as_gt() %>%
   tab_source_note(
     source_note = md(paste0(
-      "R² = ", round(r2_valm, 3),
-      ",  -2LL = ", round(minus_2LL_mlog_reg, 0),
-      ",  AIC = ", round(AIC(mlog_reg), 0), "<br>",
+      "R² = ", round(r2_val, 3),
+      ",  -2LL = ", round(minus2LL, 0),
+      ",  AIC = ", round(AIC_val, 0), "<br>",
       "  χ² = ", round(chi_sq, 0),
       ",  p = ", round(p_val, 3), "<br>"
     ))
@@ -128,19 +126,17 @@ mlog_combined_tbl
 ## Add inreaction term
 ```{r OR, include=FALSE}
 # Recalculate logistic regression for OR
-mlog_reg_ia <- glm(status ~ gcs + stroke.type + gcs:stroke.type, data = df3, family = binomial(link = "logit"))
-mlog_reg_ia
-tidy(mlog_reg_ia)
+mlog_reg_ia <- glm(status ~ gcs + stroke.type:sex, data = df3, family = binomial(link = "logit"))
+summary(mlog_reg_ia)
+
+mlog_reg_ia_ <- lrm(status ~ gcs + stroke.type*sex, data = df3)
 
 mlog_reg_ia_table <- tbl_regression(
   mlog_reg_ia,
-  exponentiate = TRUE # show odds ratios instead of log-odds
-  #  label = list(
-  #    gcs ~ "GCS",
-  #    stroke.type ~ "Stroke Type",
-  #    gcs:stroke.type ~ "GCS × Stroke Type"
-  #  )
-)
+  exponentiate = TRUE, # show odds ratios instead of log-odds
+  tidy_fun = broom.helpers::tidy_parameters
+) %>%
+  modify_header(estimate ~ "**Odds ratio**")
 
 mlog_reg_ia_table
 ```
@@ -154,45 +150,56 @@ model.comparison(mlog_reg, mlog_reg_ia)
 ## Classification table
 ```{r , echo=FALSE}
 # Calculate predicted probabilities and append to df
-df3$predict_prob_multi <- predict(mlog_reg_ia, type = "response")
-df3$predict.prob.multi <- as.integer(df3$predict_prob_multi > 0.5)
-glimpse(df3)
+df3$predict.prob.multi <- predict(mlog_reg_ia, type = "response")
+df3$predict.class.multi <- as.integer(df3$predict.prob.multi > 0.5)
+glimpse(df3) 
 
 # Calculate the "confusion_matrix"
-cm <- confusion_matrix(targets = df3$status, predictions = df3$predict.prob)
+cm <- confusion_matrix(targets = df3$status, predictions = df3$predict.class.multi)
 
 # Plot the "confusion_matrix"
 plot_confusion_matrix(cm)
 
-# Display the "classification metrics"
-cm_metrics <- select_metrics(cm)
-cm_metrics <- cm_metrics %>%
-  pivot_longer(cols = everything(),
-               names_to = "Metric",
-               values_to = "Value"
-              )
-cm_metrics <- as.data.frame(cm_metrics)
-cm_metrics <- cm_metrics %>%
-  mutate(across(where(is.numeric), ~ round(., 3)))
+# Get the "classification metrics"
+cm_metrics <- select_metrics(cm) %>%
+  # convert all columns to numeric (if needed)
+  mutate(across(everything(), as.numeric)) %>%
+  # pivot to long format directly
+  pivot_longer(
+    cols = everything(),
+    names_to = "Metric",
+    values_to = "Value"
+  ) %>%
+  # round numeric values
+  mutate(Value = round(Value, 3))
+
 cm_metrics
 
+# Display in a nice table
 cm_metrics %>%
   gt() 
 ```
 
 ## Hosmer-Lemeshow test for GOF
 ```{r , echo=FALSE}
-# Use ResourceSelection to get the Hosmer–Lemeshow test result
-hl_test <- hoslem.test(df3$status, df3$predicted_prob_multi, g = 10)
+# Get the Hosmer–Lemeshow test using generalhoslem
+hl_test <- logitgof(df3$status, df3$predict.prob, g=10)
 hl_test
 ```
 
 ## ROC curve and AUC (area under curve)
 ```{r mlog_reg-ROC,2 echo = TRUE}
-roc_obj <- roc(df3$status, df3$predict.prob, levels=c("0", "1"), direction="<", plot=TRUE, col="red", , main="ROC Curve", lwd=2, grid=TRUE, print.auc=TRUE, font=2)
+roc_obj <- roc(response = df3$status, 
+               predictor = df3$predict.prob,
+               direction = "<", 
+               plot = TRUE, 
+               col = "red",
+               lwd = 2,
+               grid = TRUE,
+               print.auc = TRUE,
+               main = "ROC Curve",
+               font = 2)
 ```
-
-
 ### ------------------------------------------
 
 

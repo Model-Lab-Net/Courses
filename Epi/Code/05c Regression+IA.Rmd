@@ -10,11 +10,11 @@
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
-lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Clear packages from memory
-gc()                                  # Clear unused data from memory ("garbage cllection")
-dev.off()                             # Reset the display output of R
-q("no")                               # This will completely shutdown R terminal
+rm(list = ls(all.names = TRUE))          # 👈 Clear all data objects        👇 Clear packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
+gc()                                     # Clear unused data from memory ("garbage cllection")
+dev.off()                                # Reset the display output of R
+system("powershell -Command Clear-Host") # This will clear the terminal in VScode
 ```
 
 ## Load required packages
@@ -179,7 +179,7 @@ dw_result
 mlr_vif <- vif(mlr3, type = 'predictor')
 mlr_vif
 ```
-glimpse(df_covid)
+
 ## Show full regression model summary table
 ```{r mlr-summary, echo = TRUE}
 full_model <- tbl_regression(mlr3,

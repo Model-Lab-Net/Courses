@@ -10,11 +10,11 @@
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
-lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Clear packages from memory
-gc()                                  # Clear unused data from memory ("garbage cllection")
-dev.off()                             # Reset the display output of R
-q("no")                               # This will completely shutdown R terminal
+rm(list = ls(all.names = TRUE))          # 👈 Clear all data objects        👇 Clear packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
+gc()                                     # Clear unused data from memory ("garbage cllection")
+dev.off()                                # Reset the display output of R
+system("powershell -Command Clear-Host") # This will clear the terminal in VScode
 ```
 
 ## Load required packages
@@ -93,7 +93,6 @@ slr <- lm(f, data = df2)                            # useful for later down.....
 
 # print the summary of the simple linear regression
 summary(slr)
-tidy(slr)
 ```
 
 ## Calculate pearson correlation coefficient
@@ -173,12 +172,12 @@ ks_test_result
 # Plot Residuals vs. Fitted Values Plot
 # (homoscedacity = scattered randomly around the horizontal line)
 # (heteroscedacity = Patterns like a funnel shape (wider spread at higher/lower fitted values), curves, or systematic trends)
-plot(slr$fitted.values, residuals(slr),
-  main = "Residuals vs. Fitted Values",
-  xlab = "Fitted Values",
-  ylab = "Residuals"
-)
-abline(h = 0, col = "red", lty = 2) # Add horizontal line at y = 0
+# plot(slr$fitted.values, residuals(slr),
+#  main = "Residuals vs. Fitted Values",
+#  xlab = "Fitted Values",
+#  ylab = "Residuals"
+#)
+# abline(h = 0, col = "red", lty = 2) # Add horizontal line at y = 0
 
 # Run Breusch-Pagan test  (Ho: no heteroscedacity)
 bp_test <- bptest(slr)

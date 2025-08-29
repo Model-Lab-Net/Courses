@@ -10,11 +10,11 @@
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
-lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Clear packages from memory
-gc()                                  # Clear unused data from memory ("garbage cllection")
-dev.off()                             # Reset the display output of R
-q("no")                               # This will completely shutdown R terminal
+rm(list = ls(all.names = TRUE))          # 👈 Clear all data objects        👇 Clear packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
+gc()                                     # Clear unused data from memory ("garbage cllection")
+dev.off()                                # Reset the display output of R
+system("powershell -Command Clear-Host") # This will clear the terminal in VScode
 ```
 
 ## Load required packages
@@ -58,7 +58,7 @@ glimpse(df_bc)               # get an overview of the data
 # Create cross-tabulation with chi-square test
 tbl_cross(data = df_bc, row = rt, col = lvi,
           missing = "no",                                               # Ignore missing values
-          percent = "cell"                                               # Row percentages (use "column" or "cell" if needed)
+          percent = "cell"                                              # Row percentages (use "column" or "cell" if needed)
          ) %>%
          add_p(test = "chisq.test", test.args = list(correct = TRUE),   # do a chi-square test (replace with fisher.test if needed)
          pvalue_fun = ~formatC(., digits = 3, format = "f")             # round p-value to 3 digits

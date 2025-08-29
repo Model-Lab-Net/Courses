@@ -10,11 +10,11 @@
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))       # 👈 Clear all data objects        👇 Clear packages
-lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Clear packages from memory
-gc()                                  # Clear unused data from memory ("garbage cllection")
-dev.off()                             # Reset the display output of R
-q("no")                               # This will completely shutdown R terminal
+rm(list = ls(all.names = TRUE))          # 👈 Clear all data objects        👇 Clear packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
+gc()                                     # Clear unused data from memory ("garbage cllection")
+dev.off()                                # Reset the display output of R
+system("powershell -Command Clear-Host") # This will clear the terminal in VScode
 ```
 
 ## Load required packages
@@ -42,12 +42,14 @@ pacman::p_load(
   skimr,                  # get overview of data
   pROC,                   # For ROC analysis
   cvms,                   # For confusion matrix and classification metrics
+  #caret,                  # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
   performance,            # For model performance metrics
-  generalhoslem            # For Hosmer-Lemeshow test for goodness of fit 
+  generalhoslem,           # For Hosmer-Lemeshow test for goodness of fit
+  rms 
               )
 # Install/load flexplot
-if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  gt(labels)
+if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")
 ```
 
 ## Access the data
@@ -72,7 +74,24 @@ df3 %>%
 ```{r logistic-reg, echo = TRUE}
 # Perform logistic regression
 log_reg <- glm(status ~ gcs, data = df3, family = binomial(link = "logit"))
-summary(log_reg, conf.int = TRUE)
+summary(log_reg)
+
+dd <- datadist(df3)   ;   options(datadist = "dd")
+log_reg_ <- lrm(status ~ gcs, data = df3)     # need this for model diagnostics. sorry.
+```
+
+# Calculate log(Odds Ratio)
+```{r calc-log_OR, echo = TRUE}
+log_reg_tbl <- tbl_regression(log_reg, exponentiate = FALSE) %>%
+  modify_header(estimate ~ "**log Odds**")
+log_reg_tbl
+```
+
+# Calculate Odds Ratio
+```{r calc-OR, include=FALSE}
+log_reg_OR <- tbl_regression(log_reg, exponentiate = TRUE) %>%
+  modify_header(estimate ~ "**Odds Ratio**")
+log_reg_OR
 ```
 
 ## Plot data and model
@@ -83,39 +102,17 @@ magnet_plot(status ~ gcs, data = df3, dot_size=3)
 logistic_overlay(status ~ gcs, data = df3, n_bins=13)
 ```
 
-## Model performance measures
+## Model diagnostics
 ```{r model-performance, echo = TRUE}
-# Get -2LL and AIC
-minus_2LL_log_reg <- -2 * as.numeric(logLik(log_reg))
-AIC_val <- AIC(log_reg)
-
-# Calculate Nagelkerke's R²
-r2_val <- PseudoR2(log_reg, which = "Nagelkerke")
-
-# Chi-square statistic for the omnibus test
-null_model <- glm(status ~ 1, data = df3, family = binomial(link = "logit")) # null model (intercept-only model)
-model_perf <- anova(null_model, log_reg, test = "Chisq")
-chi_sq <- model_perf$Deviance[2] # Chi-square statistic
-p_val <- model_perf$`Pr(>Chi)`[2] # p-value
-
-# Disiplay the summary of the logistic regression model
-summary(log_reg)
-paste("R²= ", r2_val)
+# NEW way
+minus2LL <- -2 * as.numeric(logLik(log_reg))   # -2 Log Likelihood
+AIC_val  <- AIC(log_reg)                       # AIC
+r2_val   <- log_reg_$stats["R2"]               # R² (is multiple R², usually "R²" is Nagelkerke)
+chi_sq   <- log_reg_$stats["Model L.R."]       # Omnibus Chi-square (Likelihood Ratio Chi²)
+p_val    <- log_reg_$stats["P"]                # Omnibus test p-value (Likelihood Ratio Test)
 ```
 
-# Calculate log OR
-```{r calc-log_OR, echo = TRUE}
-log_reg_tbl <- tbl_regression(log_reg, exponentiate = FALSE)
-log_reg_tbl
-```
-
-# Calculate OR
-```{r calc-OR, include=FALSE}
-log_reg_OR <- tbl_regression(log_reg, exponentiate = TRUE)
-log_reg_OR
-```
-
-# Combine logOR and OR results with model performance 
+# Combine logOR and OR results with model diagnostics 
 ```{r log_reg_tbl, echo = TRUE}
 combined_tbl <- tbl_merge(
   tbls = list(log_reg_tbl, log_reg_OR),
@@ -125,9 +122,9 @@ combined_tbl <- tbl_merge(
   tab_source_note(
     source_note = paste0(
       "R² = ", round(r2_val, 3),
-      ", -2LL = ", round(minus_2LL_log_reg, 0),
+      ", -2LL = ", round(minus2LL, 0),
       ",  AIC = ", round(AIC_val, 0),
-      ",  χ² = ", round(chi_sq, 0)#,
+      ",  χ² = ", round(chi_sq, 0),
       ",  p = ", round(p_val, 5)
     )
   )
@@ -144,26 +141,27 @@ estimates(log_reg)
 ## Evalute model prediction
 ```{r log_reg-eval, echo = TRUE}
 # Calculate predicted probabilities and append to the df
-df3$predict_prob <- predict(log_reg, type = "response")
-df3$predict.prob <- as.integer(df3$predict_prob > 0.5)
+df3$predict.prob <- predict(log_reg, type="response")
+df3$predict.class <- as.integer(df3$predict.prob > 0.5)
 glimpse(df3)
 
-# Calculate the "confusion_matrix"
-cm <- confusion_matrix(targets = df3$status, predictions = df3$predict.prob)
-
-# Plot the "confusion_matrix"
-plot_confusion_matrix(cm)
+# Get the "confusion_matrix"
+cm <- confusion_matrix(targets = df3$status, predictions = df3$predict.class)
+plot_confusion_matrix(cm)    # Plot the "confusion_matrix"
 
 # Get the "classification metrics"
-cm_metrics <- select_metrics(cm)     # get metrics
-cm_metrics <- cm_metrics %>%
-  pivot_longer(cols = everything(),  # change direction
-               names_to = "Metric",
-               values_to = "Value"
-              )
-cm_metrics <- as.data.frame(cm_metrics)   # convert to df
-cm_metrics <- cm_metrics %>%              # round 3 digits
-  mutate(across(where(is.numeric), ~ round(., 3)))
+cm_metrics <- select_metrics(cm) %>%
+  # convert all columns to numeric (if needed)
+  mutate(across(everything(), as.numeric)) %>%
+  # pivot to long format directly
+  pivot_longer(
+    cols = everything(),
+    names_to = "Metric",
+    values_to = "Value"
+  ) %>%
+  # round numeric values
+  mutate(Value = round(Value, 3))
+
 cm_metrics
 
 # Display in a nice table
@@ -172,16 +170,25 @@ cm_metrics %>%
 ```
 
 ## Hosmer-Lemeshow test for GOF
-```{r , echo=FALSE}
+```{r HL-test, echo=FALSE}
 # Get the Hosmer–Lemeshow test using generalhoslem
-hl_test <- hoslem.test(df3$status, df3$predict_prob, g=3)
+hl_test <- logitgof(df3$status, df3$predict.prob, g=10)
 hl_test
 ```
 
 ## ROC curve and AUC
-```{r logistic_regression,2 echo = TRUE}
+```{r roc-curve, echo = TRUE}
 # Calculates the ROC curve
-roc_obj <- roc(df3$status, df3$predict.prob, levels=c("0", "1"), direction="<", plot=TRUE, col="red", , main="ROC Curve", lwd=2, grid=TRUE, print.auc=TRUE, font=2)
+roc_obj <- roc(response = df3$status, 
+               predictor = df3$predict.prob,
+               direction = "<", 
+               plot = TRUE, 
+               col = "red",
+               lwd = 2,
+               grid = TRUE,
+               print.auc = TRUE,
+               main = "ROC Curve",
+               font = 2)
 ```
 
 

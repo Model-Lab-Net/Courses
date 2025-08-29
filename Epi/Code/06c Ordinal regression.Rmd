@@ -10,11 +10,11 @@
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}
-rm(list = ls(all.names = TRUE))       # 👈 Remove all data objects        👇 Remove packages
-lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)           # Clear packages from memory
-gc()                                  # Remove unused data from memory ("garbage cllection")
-dev.off()                             # Reset the display output of R
-q("no")                               # This will completely shutdown R terminal
+rm(list = ls(all.names = TRUE))          # 👈 Clear all data objects        👇 Clear packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
+gc()                                     # Clear unused data from memory ("garbage cllection")
+dev.off()                                # Reset the display output of R
+system("powershell -Command Clear-Host") # This will clear the terminal in VScode
 ```
 
 ## Load required packages
@@ -69,7 +69,7 @@ glimpse(df5)               # get an overview of the data
 ord_lr <- clm(perforation.ord ~ pulp + hemoglobin + systolic, data = df5, link = "logit")
 summary(ord_lr)
 
-# Variance-covariance matraix
+# Variance-covariance matrix
 vcov_matrix <- vcov(ord_lr)
 vcov_matrix
 ```
@@ -83,7 +83,7 @@ minus_2LL_val <- round(minus_2LL_val,0)
 AIC_val <- AIC(ord_lr)
 AIC_val <- round(AIC_val, 0)
 
-# Get Efron's R²
+# Get R²
 Nagelkerke <- r2_nagelkerke(ord_lr)
 r2_val <- as.numeric(Nagelkerke)
 r2_val <- round(r2_val, 3)
