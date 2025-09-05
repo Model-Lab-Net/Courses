@@ -44,7 +44,7 @@ pacman::p_load(
   cvms, ggimage, rsvg,    # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
   performance,            # For model performance metrics
-  generalhoslem,           # For Hosmer-Lemeshow test for goodness of fit 
+  generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 
   rms
               )
 # Install/load flexplot
@@ -65,7 +65,7 @@ glimpse(df3)               # get an overview of the data
 ```{r logistic_multi-reg, echo=FALSE}
 # Perform a multivariate logistic regression
 mlog_reg <- glm(status ~ gcs + stroke.type + sex + age, data = df3, family = binomial(link = "logit"))
-summary(log_reg)
+summary(mlog_reg)
 
 dd <- datadist(df3)   ;   options(datadist = "dd")
 mlog_reg_ <- lrm(status ~ gcs, data = df3)     # need this for model diagnostics. sorry.
@@ -200,10 +200,6 @@ roc_obj <- roc(response = df3$status,
                main = "ROC Curve",
                font = 2)
 ```
-### ------------------------------------------
-
-
-
 
 
 ## Get better estimates for best model

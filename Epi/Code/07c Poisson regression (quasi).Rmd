@@ -74,12 +74,32 @@ glimpse(df6)               # get an overview of the data
 epiDisplay::codebook(df6)
 ```
 
-## Simple Poisson regression multivariate model for quasi (when “mean equals variance” assumption is violated)
+## Poisson regression multivariate model for quasi (when “mean equals variance” assumption is violated)
 ```{r read-data, echo=FALSE}
 ## Perform a "quasi"-poisson model
 qpr <- glm(attack ~ ., data = df6, family = "quasipoisson")
-tidy(qpr, conf.int = TRUE)
+summary(qpr)
+qpr_tbl <- tbl_regression(qpr, exponentiate = TRUE)
+qpr_tbl
 ```
+
+
+
+## Compare to simple Poisson regression
+```{r simple-poisson-reg, echo = TRUE}
+# Do a univrariate Poisson regression - attack vs gender
+spr <- glm(ghq12 ~ ., data = df6, family = "poisson")
+spr_tbl <- tbl_regression(spr, exponentiate = TRUE)
+
+combined_tbl <- tbl_merge(
+  tbls = list(spr_tbl, qpr_tbl),
+  tab_spanner  = c("**SPR**", "**QPR**")
+) %>%
+  as_gt()
+combined_tbl
+```
+
+
 
 
 

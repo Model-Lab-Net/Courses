@@ -45,7 +45,7 @@ pacman::p_load(
   #caret,                  # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
   performance,            # For model performance metrics
-  generalhoslem,           # For Hosmer-Lemeshow test for goodness of fit
+  generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit
   rms 
               )
 # Install/load flexplot
@@ -80,6 +80,14 @@ dd <- datadist(df3)   ;   options(datadist = "dd")
 log_reg_ <- lrm(status ~ gcs, data = df3)     # need this for model diagnostics. sorry.
 ```
 
+## Plot data and model
+```{r flexplot, echo = TRUE}
+# use flexplot
+flexplot(status ~ gcs, data = df3, method = "logistic", se = TRUE, jitter = c(0.1, 0.1))
+magnet_plot(status ~ gcs, data = df3, dot_size=3)
+logistic_overlay(status ~ gcs, data = df3, n_bins=13)
+```
+
 # Calculate log(Odds Ratio)
 ```{r calc-log_OR, echo = TRUE}
 log_reg_tbl <- tbl_regression(log_reg, exponentiate = FALSE) %>%
@@ -94,14 +102,6 @@ log_reg_OR <- tbl_regression(log_reg, exponentiate = TRUE) %>%
 log_reg_OR
 ```
 
-## Plot data and model
-```{r flexplot, echo = TRUE}
-# use flexplot
-flexplot(status ~ gcs, data = df3, method = "logistic", se = TRUE, jitter = c(0.1, 0.1))
-magnet_plot(status ~ gcs, data = df3, dot_size=3)
-logistic_overlay(status ~ gcs, data = df3, n_bins=13)
-```
-
 ## Model diagnostics
 ```{r model-performance, echo = TRUE}
 # NEW way
@@ -110,6 +110,24 @@ AIC_val  <- AIC(log_reg)                       # AIC
 r2_val   <- log_reg_$stats["R2"]               # R² (is multiple R², usually "R²" is Nagelkerke)
 chi_sq   <- log_reg_$stats["Model L.R."]       # Omnibus Chi-square (Likelihood Ratio Chi²)
 p_val    <- log_reg_$stats["P"]                # Omnibus test p-value (Likelihood Ratio Test)
+
+#reg_summary_df <- data.frame(
+#  minus2LL = as.numeric(minus2LL),
+#  AIC      = as.numeric(AIC_val),
+#  R2       = as.numeric(r2_val),
+#  ChiSq    = as.numeric(chi_sq),
+#  p_value  = as.numeric(p_val)
+#)
+#reg_summary_df %>% gt()
+#
+#reg_summary_long <- reg_summary_df %>%
+#  pivot_longer(
+#    cols = everything(),
+#    names_to = "Metric",
+#    values_to = "Value"
+#  ) %>%
+#  mutate(Value = round(Value, 3))  # optional rounding
+#reg_summary_long %>% gt()
 ```
 
 # Combine logOR and OR results with model diagnostics 
@@ -138,6 +156,18 @@ combined_tbl
 estimates(log_reg)
 ```
 
+## Analyze the distribution of residuals
+```{r residuals, echo = TRUE}
+# Residuals analysis
+visualize(log_reg)
+```
+
+## Get better estimates
+```{r residuals, echo = TRUE}
+# Residuals analysis
+estimates(log_reg)
+```
+
 ## Evalute model prediction
 ```{r log_reg-eval, echo = TRUE}
 # Calculate predicted probabilities and append to the df
@@ -152,7 +182,7 @@ plot_confusion_matrix(cm)    # Plot the "confusion_matrix"
 # Get the "classification metrics"
 cm_metrics <- select_metrics(cm) %>%
   # convert all columns to numeric (if needed)
-  mutate(across(everything(), as.numeric)) %>%
+  #mutate(across(everything(), as.numeric)) %>%
   # pivot to long format directly
   pivot_longer(
     cols = everything(),

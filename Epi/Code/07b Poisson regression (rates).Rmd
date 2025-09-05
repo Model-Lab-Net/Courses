@@ -84,7 +84,7 @@ flexplot(case ~ 1, data = df7)
 ## A simple Poisson regression univariate model for rates
 ```{r read-data, echo = TRUE}
 # read the data in a file online
-spr <- glm(rate ~ cigar.day, data = df7, family = "poisson", offset = log(person.yrs))
+spr <- glm(case ~ cigar.day, data = df7, family = "poisson", offset = log(person.yrs))
 summary(spr)
 ```
 
@@ -110,6 +110,14 @@ summary(mpr_ia)
 epiDisplay::poisgof(mpr)
 # AIC
 AIC(mpr)
+```
+
+
+## Model comparison
+```{r mdodel-comparison, echo = TRUE}
+# Compare models
+model.comparison(spr, mpr)
+model.comparison(mpr, mpr_ia)
 ```
 
 ## Show summary

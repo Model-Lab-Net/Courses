@@ -91,31 +91,25 @@ flexplot(attack ~ ghq12, data = df6, method = "poisson", ghost.line = "red", jit
 ```{r poisson-multi-reg, echo = TRUE}
 # Do a multivariate Poisson regression - attack vs everything
 mpr <- glm(ghq12 ~ attack + res.inf, data = df6, family = "poisson")
-summary(spr3)
+summary(mpr)
 flexplot(attack ~ ghq12 | res.inf, data = df6, method = "poisson", ghost.line = "red", jitter=c(0,0.05))
+flexplot(attack ~ ghq12 + res.inf, data = df6, method = "poisson", ghost.line = "red", jitter=c(0,0.05))
 ```
 
 ## Model comparison
 ```{r model-comparison, echo = TRUE}
 # Uaing just flexplot
 model.comparison(spr1, mpr)
-summary(mpr)
-
-visualize(mpr)
-flexplot(attack ~ ghq12 + res.inf, data = df6, method = "poisson", ghost.line = "red", jitter=c(0,0.05))
 ```
 
 ## Model fit and performance
 ```{r model-comparison, echo = TRUE}
-estimates(mpr)
-
-# Uaing just flexplot
 visualize(mpr)
-
-# Scaled Pearson chi-square statistic
 
 # Chi-square goodness-of-fit
 epiDisplay::poisgof(mpr)
+
+# Scaled Pearson chi-square statistic
 
 # AIC
 AIC(mpr)
@@ -192,7 +186,7 @@ saveRDS(df6, here("EpiData", "07 asthma.rds"))
 ```{r labels, echo = TRUE}
 attr(df6$gender, "label") <- "מגדר"
 attr(df6$res.inf, "label") <- "דלקת בדרכי הנשימה"
-attr(df6$ghq12, "label") <- "מדד פסיכולוגי (יש קשר בין מצוקה נפשית והתקפי אסתמה)"
+attr(df6$ghq12, "label") <- "מדד פסיכולוגי"
 attr(df6$attack, "label") <- "התקף"
 
 labels <- NULL
