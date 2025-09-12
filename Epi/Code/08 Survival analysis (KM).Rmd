@@ -53,7 +53,7 @@ pacman::p_load(
   epiDisplay,             # For epi data type handling
   survival,               # For survival analysis
   survminer               # For survival analysis and visualization
-           )
+             )
 # Install/load flexplot
 if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
 ```
@@ -109,6 +109,7 @@ stats_df <- data.frame(
   , Value = c(mean_survival_time, sd_survival_time, lower_meanci_1, upper_meanci_1, median_survival_time, q25_survival_time, q75_survival_time, IQR_survival_time, min_survival_time, max_survival_time)
   , סטטיסטי = c("ממוצע", "ס'ת", "⠀⠀רווח סמך", "⠀⠀רווח סמך", "חציון", "⠀⠀רבעון 1", "⠀⠀רבעון 3", "⠀⠀מרווח בין רבועני", "מינימום", "מקסימום")
 )
+glimpse(stats_df)
 
 # Clean, simple table
 summary_stats <- stats_df %>% 
@@ -118,7 +119,7 @@ summary_stats <- stats_df %>%
 summary_stats              # Show the table
 ```
 
-## Do a Kaplan-Meyer survival analayis
+## Do a Kaplan-Meier survival analayis
 ```{r km-surv, echo = TRUE}
 # estimate the survival probabilities for all patients
 KM_all <- survfit(Surv(time = time2, 
@@ -130,30 +131,25 @@ summary(KM_all)
 
 ## Life table
 ```{r life-table, echo = TRUE}
-# Convert status to int
-df8 <- df8 %>%
-  mutate(event = ifelse(status == "dead", 1, 0))
-
-# Fit Kaplan-Meier model stratified by stroke.type (example)
-km_fit <- survfit(Surv(time2, event) ~ 1, data = df8)
-
-# Extract survival summary at intervals of 10 units
-km_summary <- summary(km_fit, times = seq(0, max(df8$time2), by = 10))
-
-# Convert to data frame
-km_df <- data.frame(
-  time = km_summary$time,
-  #strata = km_summary$strata,
-  n_risk = km_summary$n.risk,
-  n_event = km_summary$n.event,
-  surv = km_summary$surv,
-  std_err = km_summary$std.err,
-  lower_ci = km_summary$lower,
-  upper_ci = km_summary$upper
-)
+KM_table <- with(summary(KM_all),
+                 data.frame(
+                   time = time,
+                   n_risk = n.risk,
+                   n_event = n.event,
+                   n_censor = n.censor,
+                   surv = surv,
+                   std_err = std.err,
+                   lower_ci = lower,
+                   upper_ci = upper
+                 ))
+KM_table
+KM_table <- KM_table %>%
+  mutate(across(c(surv, std_err, lower_ci, upper_ci),
+         ~ round(.x, 2))
+         )
 
 # Display with gt
-km_df %>%
+KM_table %>%
   gt() %>%
   tab_header(title = "Survival analysis") %>%
     cols_label(
@@ -166,11 +162,10 @@ km_df %>%
     upper_ci  = "Upper CI"
   ) %>%
   fmt_percent(columns = c(surv, lower_ci, upper_ci), decimals = 1) %>%
-  fmt_number(columns = std_err, decimals = 3) 
-  
+  fmt_number(columns = std_err, decimals = 3)
 ```
 
-## Kaplan-Meyer survival analayis plot
+## Kaplan-Meier survival curve
 ```{r read-data, echo = TRUE}
 # estimate the survival probabilities for all patients
 KM_all_plot <- ggsurvplot(KM_all, 
@@ -188,86 +183,41 @@ KM_all_plot
 ### ----------------------------------------------------------
 
 
-## Do a Kaplan-Meyer survival analayis - stratified
+## Do a Kaplan-Meier survival analayis - stratified
 ```{r km-surv-strat, echo = TRUE}
 # estimate the survival probabilities for stroke type
-KM_str_type <- survfit(Surv(time = time2, 
+KM_str <- survfit(Surv(time = time2, 
                              event = status == "dead" ) ~ stroke.type, 
                         data = df8)
-summary(KM_str_type)
+summary(KM_str)
 ```
 
 ## Survival curve
 ```{r read-data, echo = TRUE}
 # estimate the survival probabilities for all patients
-KM_str_plot <- ggsurvplot(KM_str_type, 
+KM_str_plot <- ggsurvplot(KM_str, 
            data = df8, 
            risk.table = TRUE, 
            linetype = c(1,4),
            tables.height = 0.3,
-           conf.int = 0.95,
+           #conf.int = 0.95,
            pval = TRUE)
 
 KM_str_plot
 # *** You may need to zoom out ***
 ```
 
-## Life table
-```{r life-table, echo = TRUE}
-# Convert status to int
-# Fit Kaplan-Meier model stratified by stroke.type (example)
-km_fit_strat <- survfit(Surv(time2, event) ~ stroke.type, data = df8)
-
-# Extract survival summary at intervals of 10 units
-km_summary_strat <- summary(km_fit_strat, times = seq(0, max(df8$time2), by = 10))
-
-# Convert to data frame
-km_df <- data.frame(
-  time = km_summary_strat$time,
-  strata = km_summary_strat$strata,
-  n_risk = km_summary_strat$n.risk,
-  n_event = km_summary_strat$n.event,
-  surv = km_summary_strat$surv,
-  std_err = km_summary_strat$std.err,
-  lower_ci = km_summary_strat$lower,
-  upper_ci = km_summary_strat$upper,
-  n_censor = km_summary$n.censor
-)
-
-# Display with gt
-km_df %>%
-  gt() %>%
-  tab_header(title = "Survival analysis") %>%
-    cols_label(
-    time      = "Time",
-    strata    = "Group",
-    n_risk    = "At Risk",
-    n_event   = "Deaths",
-    surv      = "Survival %",
-    std_err   = "Std. Error",
-    lower_ci  = "Lower CI",
-    upper_ci  = "Upper CI",
-    n_censor  = "Censoerd"
-  ) %>%
-  fmt_percent(columns = c(surv, lower_ci, upper_ci), decimals = 1) %>%
-  fmt_number(columns = std_err, decimals = 3) 
-```
-
-
-### ----------------------------------
-### Compare strata
-
-## Log-rank test
+## Compare strata
 ```{r read-data, echo = TRUE}
+# Log-rank test
 # Test if survival estimates are  different between levels/groups
 log_rank_stroke <- survdiff(Surv(time = time2, 
               event = status == "dead") ~ stroke.type, 
          data = df8,
          rho = 0)
-
 log_rank_stroke
 
-# Test if survival estimates are  different between levels/groups
+
 log_rank_diabetes <- survdiff(Surv(time = time2, 
               event = status == "dead") ~ dm, 
          data = df8,
@@ -276,14 +226,14 @@ log_rank_diabetes <- survdiff(Surv(time = time2,
 log_rank_diabetes
 ```
 
-## Peto's log-rank test
+## Compare strata another way
 ```{r read-data, echo = TRUE}
+# Peto's log-rank test
 # Test if survival estimates are different between levels/groups
 log_rank_stroke <- survdiff(Surv(time = time2, 
               event = status == "dead") ~ stroke.type, 
          data = df8,
          rho = 1)
-
 log_rank_stroke
 
 # Test if survival estimates are different between levels/groups
