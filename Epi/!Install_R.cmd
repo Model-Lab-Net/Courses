@@ -2,15 +2,15 @@
 :: Title -- Code to install R, RStudio and R in VSCode
 :: Author -- David Burg
 :: For -- R course
-:: Date -- 20/07/2025
+:: Date -- 15/10/2025
 :: source -- https://www.youtube.com/watch?v=k79H8EeR5Jo
 ::           https://www.youtube.com/watch?v=rKPfssR66GM
 ::           https://www.datanovia.com/learn/tools/r-in-vscode/recommended-vscode-configurations-for-r-programming.html
 
 ::----------------------Get everything ready-------------------------------
 set R_VERSION=4.5.1
-set RSTUDIO_VERSION=2025.05.0-496
-set VSCODE_VERSION=2901c5ac6db8a986a5666c3af51ff804d05af0d4/VSCode-win32-x64-1.101.2.zip
+set RSTUDIO_VERSION=2025.09.1-401
+set VSCODE_VERSION=03c265b1adee71ac88f833e065f7bb956b60550a/VSCode-win32-x64-1.105.0.zip
 set RLANGSERVER_VERSION=0.3.16
 set CURL_VERSION=8.14.1_2
 
