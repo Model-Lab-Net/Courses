@@ -103,7 +103,7 @@ $settingsJson | Out-File -FilePath "C:\RVSCode\data\user-data\User\settings.json
 & "C:\RVSCode\bin\code.cmd" --install-extension rdebugger.r-debugger
 
 # Download first script to initialize for course
-& "C:\temp\curl.exe" --progress-bar -o "C:\RVSCode\Course\Initialize_R.Rmd" "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/!Initialize_R.Rmd"
+& "C:\temp\curl.exe" --progress-bar -o "C:\RVSCode\Course\Initialize_R.Rmd" "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Econ/!Initialize_R_for_Econ.Rmd"
 
 # Create shortcut link to Desktop
 $shell = New-Object -ComObject WScript.Shell
