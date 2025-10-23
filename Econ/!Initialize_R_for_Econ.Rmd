@@ -8,18 +8,6 @@
 
 ### https://www.datanovia.com/learn/tools/r-in-vscode/recommended-vscode-configurations-for-r-programming.html
 
-
-# Reset memory
-```{r setup-packages, include false}
-rm(list = ls(all.names = TRUE))
-lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
-gc()
-```
-
-
-### ------------------------------------------------
-
-
 ## Install required packages
 ```{r load-packages, include false}
 options("install.lock"=FALSE)
@@ -143,3 +131,4 @@ download.file("https://raw.githubusercontent.com/Model-Lab-Net/Courses/main/Epi/
 
 
 ### ------------------------------------------------
+
