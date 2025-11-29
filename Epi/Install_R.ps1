@@ -7,11 +7,11 @@
 #         https://www.datanovia.com/learn/tools/r-in-vscode/recommended-vscode-configurations-for-r-programming.html
 
 # ---------------------- Get everything ready -------------------------------
-$R_VERSION = "4.5.1"
-$RSTUDIO_VERSION = "2025.09.1-401"
-$VSCODE_VERSION = "03c265b1adee71ac88f833e065f7bb956b60550a/VSCode-win32-x64-1.105.0.zip"
+$R_VERSION = "4.5.2"
+$RSTUDIO_VERSION = "2025.09.2-418"
+$VSCODE_VERSION = "bf9252a2fb45be6893dd8870c0bf37e2e1766d61/VSCode-win32-x64-1.106.3.zip"
 $RLANGSERVER_VERSION = "0.3.16"
-$CURL_VERSION = "8.14.1_2"
+$CURL_VERSION = "8.17.0"
 
 Set-Location -Path "C:\"
 if (-not (Test-Path -Path "C:\temp")) { New-Item -Path "C:\temp" -ItemType Directory }
@@ -107,7 +107,8 @@ $settingsJson | Out-File -FilePath "C:\RVSCode\data\user-data\User\settings.json
 
 # Create shortcut link to Desktop
 $shell = New-Object -ComObject WScript.Shell
-$desktop = [Environment]::GetFolderPath('Desktop')
+# $desktop = [Environment]::GetFolderPath('Desktop')
+$desktop = 'C:\Users\Public\Desktop'
 # VSCode shortcut
 $vs = $shell.CreateShortcut("$desktop\RVSCode.lnk")
 $vs.TargetPath = "C:\RVSCode\code.exe"
@@ -153,7 +154,8 @@ $env:RSTUDIO_DATA_HOME = "C:\RStudio\user-data"
 
 # Create shortcut link on Desktop
 $shell = New-Object -ComObject WScript.Shell
-$desktop = [Environment]::GetFolderPath('Desktop')
+#$desktop = [Environment]::GetFolderPath('Desktop')
+$desktop = 'C:\Users\Public\Desktop'
 # RStudio shortcut
 $rs = $shell.CreateShortcut("$desktop\RStudio.lnk")
 $rs.TargetPath = "C:\RStudio\rstudio.exe"
