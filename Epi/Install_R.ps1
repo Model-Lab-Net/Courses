@@ -11,7 +11,7 @@ $R_VERSION = "4.5.2"
 $RSTUDIO_VERSION = "2025.09.2-418"
 $VSCODE_VERSION = "bf9252a2fb45be6893dd8870c0bf37e2e1766d61/VSCode-win32-x64-1.106.3.zip"
 $RLANGSERVER_VERSION = "0.3.16"
-$CURL_VERSION = "8.17.0"
+$CURL_VERSION = "8.17.0_4"
 
 Set-Location -Path "C:\"
 if (-not (Test-Path -Path "C:\temp")) { New-Item -Path "C:\temp" -ItemType Directory }
