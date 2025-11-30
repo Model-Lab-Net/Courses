@@ -64,7 +64,7 @@ if (-not (Test-Path -Path "C:\temp\rvscode.zip")) {
 if (-not (Test-Path -Path "C:\RVSCode\code.zip")) {
     New-Item -Path "C:\RVSCode" -ItemType Directory -Force
     # Expand-Archive -Path "C:\temp\rvscode.zip" -DestinationPath "C:\RVSCode"
-    & "C:\temp\7za\7za.exe" x "C:\temp\vscode.zip" -o"C:\RVScode" -y -mmt=on
+    & "C:\temp\7za.exe" x "C:\temp\vscode.zip" -o"C:\RVScode" -y -mmt=on
 }
 
 # Make folders for main course files
@@ -112,10 +112,10 @@ $settingsJson = @"
 $settingsJson | Out-File -FilePath "C:\RVSCode\data\user-data\User\settings.json" -Encoding UTF8
 
 # Add extensions to VSCode
-& "C:\RVSCode\bin\code.cmd" --install-extension github.copilot
-# & "C:\RVSCode\bin\code.cmd" --install-extension github.copilot-chat
-& "C:\RVSCode\bin\code.cmd" --install-extension reditorsupport.r
-& "C:\RVSCode\bin\code.cmd" --install-extension rdebugger.r-debugger
+& "C:\RVSCode\bin\code.exe" --install-extension github.copilot
+# & "C:\RVSCode\bin\code.exe" --install-extension github.copilot-chat
+& "C:\RVSCode\bin\code.exe" --install-extension reditorsupport.r
+& "C:\RVSCode\bin\code.exe" --install-extension rdebugger.r-debugger
 
 # Download first script to initialize for course
 # & "C:\temp\curl.exe" --progress-bar -o "C:\RVSCode\Course\Initialize_R.Rmd" "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/!Initialize_R.Rmd"
@@ -142,7 +142,7 @@ if (-not (Test-Path -Path "C:\temp\rstudio.zip")) {
 if (-not (Test-Path -Path "C:\RStudio\rstudio.exe")) {
     New-Item -Path "C:\RStudio" -ItemType Directory -Force
     # Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\RStudio"
-    & "C:\temp\7za\7za.exe" x "C:\temp\rstudio.zip" -o"C:\RStudio" -y -mmt=on
+    & "C:\temp\7za.exe" x "C:\temp\rstudio.zip" -o"C:\RStudio" -y -mmt=on
 }
 
 # Download settings for RStudio
