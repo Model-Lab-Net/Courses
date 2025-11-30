@@ -1,7 +1,7 @@
 # Title: PowerShell script to install R, RStudio, and R in VSCode
 # Author: David Burg
 # For: R course
-# Date: 15/10/2025
+# Date: 30/11/2025
 # Source: https://www.youtube.com/watch?v=k79H8EeR5Jo
 #         https://www.youtube.com/watch?v=rKPfssR66GM
 #         https://www.datanovia.com/learn/tools/r-in-vscode/recommended-vscode-configurations-for-r-programming.html
