@@ -35,11 +35,12 @@ if (-not (Test-Path -Path "C:\temp\wget.exe")) {
 }
 
 if (-not (Test-Path -Path "C:\temp\7.zip")) {
-    & "C:\temp\curl.exe" --progress-bar -o "C:\temp\7.zip" "https://www.7-zip.org/a/7za920.zip"
+    & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\7za.zip" "https://www.7-zip.org/a/7za920.zip"
     & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\7zip.7z" "https://www.7-zip.org/a/7z2501-extra.7z"
 }
-if (-not (Test-Path -Path "C:\temp\7z.exe")) {
-    Expand-Archive -Path "C:\temp\7.zip" -DestinationPath "C:\temp"
+if (-not (Test-Path -Path "C:\temp\7za.zip")) {
+    Expand-Archive -Path "C:\temp\7za.zip" -DestinationPath "C:\temp\7za"
+    & "C:\temp\7za\7za.exe" x "C:\temp\7zip.7z" -o "C:\Temp" -y -mmt=on
 }
 
 # -------------------------- Download R ---------------------------
@@ -60,9 +61,10 @@ if (-not (Test-Path -Path "C:\temp\rvscode.zip")) {
     # & "C:\temp\curl.exe" --progress-bar -o "C:\temp\rvscode.zip" "https://vscode.download.prss.microsoft.com/dbazure/download/stable/$VSCODE_VERSION"
     & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\rvscode.zip" "https://vscode.download.prss.microsoft.com/dbazure/download/stable/$VSCODE_VERSION"
 }
-if (-not (Test-Path -Path "C:\RVSCode\code.exe")) {
+if (-not (Test-Path -Path "C:\RVSCode\code.zip")) {
     New-Item -Path "C:\RVSCode" -ItemType Directory -Force
-    Expand-Archive -Path "C:\temp\rvscode.zip" -DestinationPath "C:\RVSCode"
+    # Expand-Archive -Path "C:\temp\rvscode.zip" -DestinationPath "C:\RVSCode"
+    "C:\temp\7za\7za.exe" x "C:\temp\vscode.zip" -o"C:\RVScode" -y =mmt=on
 }
 
 # Make folders for main course files
@@ -139,7 +141,8 @@ if (-not (Test-Path -Path "C:\temp\rstudio.zip")) {
 }
 if (-not (Test-Path -Path "C:\RStudio\rstudio.exe")) {
     New-Item -Path "C:\RStudio" -ItemType Directory -Force
-    Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\RStudio"
+    # Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\RStudio"
+    "C:\temp\7za\7za.exe" x "C:\temp\rstudio.zip" -o"C:\RStudio" -y =mmt=on
 }
 
 # Download settings for RStudio
