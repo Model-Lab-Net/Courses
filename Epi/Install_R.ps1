@@ -64,7 +64,7 @@ if (-not (Test-Path -Path "C:\temp\rvscode.zip")) {
 if (-not (Test-Path -Path "C:\RVSCode\code.zip")) {
     New-Item -Path "C:\RVSCode" -ItemType Directory -Force
     # Expand-Archive -Path "C:\temp\rvscode.zip" -DestinationPath "C:\RVSCode"
-    "C:\temp\7za\7za.exe" x "C:\temp\vscode.zip" -o"C:\RVScode" -y =mmt=on
+    & "C:\temp\7za\7za.exe" x "C:\temp\vscode.zip" -o"C:\RVScode" -y =mmt=on
 }
 
 # Make folders for main course files
@@ -142,7 +142,7 @@ if (-not (Test-Path -Path "C:\temp\rstudio.zip")) {
 if (-not (Test-Path -Path "C:\RStudio\rstudio.exe")) {
     New-Item -Path "C:\RStudio" -ItemType Directory -Force
     # Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\RStudio"
-    "C:\temp\7za\7za.exe" x "C:\temp\rstudio.zip" -o"C:\RStudio" -y =mmt=on
+    & "C:\temp\7za\7za.exe" x "C:\temp\rstudio.zip" -o"C:\RStudio" -y =mmt=on
 }
 
 # Download settings for RStudio
