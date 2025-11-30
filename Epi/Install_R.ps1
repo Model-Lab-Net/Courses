@@ -36,6 +36,7 @@ if (-not (Test-Path -Path "C:\temp\wget.exe")) {
 
 if (-not (Test-Path -Path "C:\temp\7.zip")) {
     & "C:\temp\curl.exe" --progress-bar -o "C:\temp\7.zip" "https://www.7-zip.org/a/7za920.zip"
+    & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\7zip.7z" "https://www.7-zip.org/a/7z2501-extra.7z"
 }
 if (-not (Test-Path -Path "C:\temp\7z.exe")) {
     Expand-Archive -Path "C:\temp\7.zip" -DestinationPath "C:\temp"
