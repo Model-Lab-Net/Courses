@@ -50,22 +50,23 @@ if (-not (Test-Path -Path "C:\temp\r.exe")) {
     # & "C:\temp\curl.exe" --progress-bar -o "C:\temp\r.exe" "https://cran.r-project.org/bin/windows/base/R-$R_VERSION-win.exe"
     & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\r.exe" "https://cran.r-project.org/bin/windows/base/R-$R_VERSION-win.exe"
 }
-if (-not (Test-Path -Path "c:\RVScode\R\bin")) {
-    Start-Process -Verb RunAs -FilePath "C:\temp\r.exe" -ArgumentList "/SILENT", "/NORESTART", "/MERGETASKS=!desktopicon", "/SP-", "/DIR=`"c:\RVScode\R`"" -Wait
+if (-not (Test-Path -Path "c:\RVSCode\R\bin")) {
+    Start-Process -Verb RunAs -FilePath "C:\temp\r.exe" -ArgumentList "/SILENT", "/NORESTART", "/MERGETASKS=!desktopicon", "/SP-", "/DIR=`"c:\RVSCode\R`"" -Wait
 }
-Copy-Item -Path "c:\RVScode\R\bin\x64\Rblas.dll" -Destination "c:\RVScode\R\library\stats\libs\x64" -Force
-Copy-Item -Path "c:\RVScode\R\bin\x64\Rlapack.dll" -Destination "c:\RVScode\R\library\stats\libs\x64" -Force
+Copy-Item -Path "c:\RVSCode\R\bin\x64\Rblas.dll" -Destination "c:\RVSCode\R\library\stats\libs\x64" -Force
+Copy-Item -Path "c:\RVSCode\R\bin\x64\Rlapack.dll" -Destination "c:\RVSCode\R\library\stats\libs\x64" -Force
 
 # ----------------- Download VSCode --- ZIP for portable ------------------
 Write-Output "Downloading VSCode..."
-if (-not (Test-Path -Path "C:\temp\rvscode.zip")) {
-    # & "C:\temp\curl.exe" --progress-bar -o "C:\temp\rvscode.zip" "https://vscode.download.prss.microsoft.com/dbazure/download/stable/$VSCODE_VERSION"
-    & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\rvscode.zip" "https://vscode.download.prss.microsoft.com/dbazure/download/stable/$VSCODE_VERSION"
+if (-not (Test-Path -Path "C:\temp\RVSCode.zip")) {
+    # & "C:\temp\curl.exe" --progress-bar -o "C:\temp\RVSCode.zip" "https://vscode.download.prss.microsoft.com/dbazure/download/stable/$VSCODE_VERSION"
+    & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\vscode.zip" "https://vscode.download.prss.microsoft.com/dbazure/download/stable/$VSCODE_VERSION"
 }
+
 if (-not (Test-Path -Path "C:\RVSCode\code.zip")) {
     New-Item -Path "C:\RVSCode" -ItemType Directory -Force
-    # Expand-Archive -Path "C:\temp\rvscode.zip" -DestinationPath "C:\RVSCode"
-    & "C:\temp\7za.exe" x "C:\temp\vscode.zip" -o"C:\RVScode" -y -mmt=on
+    # Expand-Archive -Path "C:\temp\vscode.zip" -DestinationPath "C:\RVSCode"
+    & "C:\temp\7za.exe" x "C:\temp\vscode.zip" -o"C:\RVSCode" -y -mmt=on
 }
 
 # Make folders for main course files
@@ -184,9 +185,9 @@ $rs.Save()
 
 # -------------------- Uninstall R and cleanup ---------------------------
 Write-Output "Cleaning up..."
-if (Test-Path -Path "C:\temp\r.exe") { Remove-Item -Path "C:\temp\r.exe" -Force }
-if (Test-Path -Path "C:\temp\rstudio.zip") { Remove-Item -Path "C:\temp\rstudio.zip" -Force }
-if (Test-Path -Path "C:\temp\rvscode.zip") { Remove-Item -Path "C:\temp\rvscode.zip" -Force }
+# if (Test-Path -Path "C:\temp\r.exe") { Remove-Item -Path "C:\temp\r.exe" -Force }
+# if (Test-Path -Path "C:\temp\rstudio.zip") { Remove-Item -Path "C:\temp\rstudio.zip" -Force }
+# if (Test-Path -Path "C:\temp\RVSCode.zip") { Remove-Item -Path "C:\temp\RVSCode.zip" -Force }
 
 # Pause for 15 seconds before exiting
 Start-Sleep -Seconds 15
