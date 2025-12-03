@@ -21,7 +21,7 @@ Set-Location -Path "C:\temp"
 if (-not (Test-Path -Path "C:\temp\curl.zip")) {
     Invoke-WebRequest -Uri "https://curl.se/windows/dl-$CURL_VERSION/curl-$CURL_VERSION-win64-mingw.zip" -OutFile "C:\temp\curl.zip"
 }
-if (-not (Test-Path -Path "C:\temp\curl.exe")) {
+if (-not (Test-Path -Path "C:\temp\curl.zip")) {
     Expand-Archive -Path "C:\temp\curl.zip" -DestinationPath "C:\temp" -Force
     Move-Item -Path "C:\temp\curl-$CURL_VERSION-win64-mingw\bin\*.*" -Destination "C:\temp" -Force
 }
@@ -29,13 +29,13 @@ if (-not (Test-Path -Path "C:\temp\curl.exe")) {
 if (-not (Test-Path -Path "C:\temp\wget.zip")) {
     Invoke-WebRequest -Uri "https://eternallybored.org/misc/wget/releases/wget-$WGET_VERSION-win64.zip" -O "C:\temp\wget.zip"
 }
-if (-not (Test-Path -Path "C:\temp\wget.exe")) {
+if (-not (Test-Path -Path "C:\temp\wget.zip")) {
     Expand-Archive -Path "C:\temp\wget.zip" -DestinationPath "C:\temp" -Force
     #Move-Item -Path "C:\temp\curl-$CURL_VERSION-win64-mingw\bin\*.*" -Destination "C:\temp" -Force
 }
 
 if (-not (Test-Path -Path "C:\temp\7.zip")) {
-    & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\7za.zip" "https://www.7-zip.org/a/7za920.zip"
+    "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\7za.zip" "https://www.7-zip.org/a/7za920.zip"
     & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\7zip.7z" "https://www.7-zip.org/a/7z2501-extra.7z"
 }
 if (-not (Test-Path -Path "C:\temp\7za.zip")) {
