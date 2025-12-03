@@ -21,7 +21,8 @@ Set-Location -Path "C:\temp"
 if (-not (Test-Path -Path "C:\temp\curl.zip")) {
     Invoke-WebRequest -Uri "https://curl.se/windows/dl-$CURL_VERSION/curl-$CURL_VERSION-win64-mingw.zip" -OutFile "C:\temp\curl.zip"
 }
-if (-not (Test-Path -Path "C:\temp\curl.zip")) {
+
+if (-not (Test-Path -Path "C:\temp\curl.exe")) {
     Expand-Archive -Path "C:\temp\curl.zip" -DestinationPath "C:\temp" -Force
     Move-Item -Path "C:\temp\curl-$CURL_VERSION-win64-mingw\bin\*.*" -Destination "C:\temp" -Force
 }
@@ -29,7 +30,8 @@ if (-not (Test-Path -Path "C:\temp\curl.zip")) {
 if (-not (Test-Path -Path "C:\temp\wget.zip")) {
     Invoke-WebRequest -Uri "https://eternallybored.org/misc/wget/releases/wget-$WGET_VERSION-win64.zip" -O "C:\temp\wget.zip"
 }
-if (-not (Test-Path -Path "C:\temp\wget.zip")) {
+
+if (-not (Test-Path -Path "C:\temp\wget.exe")) {
     Expand-Archive -Path "C:\temp\wget.zip" -DestinationPath "C:\temp" -Force
     #Move-Item -Path "C:\temp\curl-$CURL_VERSION-win64-mingw\bin\*.*" -Destination "C:\temp" -Force
 }
@@ -39,9 +41,9 @@ if (-not (Test-Path -Path "C:\temp\7.zip")) {
     & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\7zip.7z" "https://www.7-zip.org/a/7z2501-extra.7z"
 }
 
-if (-not (Test-Path -Path "C:\temp\7za.zip")) {
-    Expand-Archive -Path "C:\temp\7za.zip" -DestinationPath "C:\temp\7za"
-    & "C:\temp\7za\7za.exe" x "C:\temp\7zip.7z" -o "C:\Temp" -y -mmt=on
+if (-not (Test-Path -Path "C:\temp\7za.exe")) {
+    & Expand-Archive -Path "C:\temp\7za.zip" -DestinationPath "C:\temp\7za" -Force
+    & "C:\temp\7za\7za.exe" x "C:\temp\7zip.7z" -o"C:\Temp" -y -mmt=on
 }
 
 # -------------------------- Download R ---------------------------
@@ -50,9 +52,11 @@ if (-not (Test-Path -Path "C:\temp\r.exe")) {
     # & "C:\temp\curl.exe" --progress-bar -o "C:\temp\r.exe" "https://cran.r-project.org/bin/windows/base/R-$R_VERSION-win.exe"
     & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\r.exe" "https://cran.r-project.org/bin/windows/base/R-$R_VERSION-win.exe"
 }
+
 if (-not (Test-Path -Path "c:\RVSCode\R\bin")) {
     Start-Process -Verb RunAs -FilePath "C:\temp\r.exe" -ArgumentList "/SILENT", "/NORESTART", "/MERGETASKS=!desktopicon", "/SP-", "/DIR=`"c:\RVSCode\R`"" -Wait
 }
+
 Copy-Item -Path "c:\RVSCode\R\bin\x64\Rblas.dll" -Destination "c:\RVSCode\R\library\stats\libs\x64" -Force
 Copy-Item -Path "c:\RVSCode\R\bin\x64\Rlapack.dll" -Destination "c:\RVSCode\R\library\stats\libs\x64" -Force
 
@@ -63,7 +67,7 @@ if (-not (Test-Path -Path "C:\temp\RVSCode.zip")) {
     & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\vscode.zip" "https://vscode.download.prss.microsoft.com/dbazure/download/stable/$VSCODE_VERSION"
 }
 
-if (-not (Test-Path -Path "C:\RVSCode\code.zip")) {
+if (-not (Test-Path -Path "C:\RVSCode\code.exe")) {
     New-Item -Path "C:\RVSCode" -ItemType Directory -Force
     # Expand-Archive -Path "C:\temp\vscode.zip" -DestinationPath "C:\RVSCode"
     & "C:\temp\7za.exe" x "C:\temp\vscode.zip" -o"C:\RVSCode" -y -mmt=on
@@ -76,14 +80,14 @@ New-Item -Path "C:\RVSCode\Course\EpiCode" -ItemType Directory -Force
 New-Item -Path "C:\RVSCode\Course\EpiData" -ItemType Directory -Force
 
 # Copy R to VSCode main folder
-robocopy "$env:ProgramFiles\R" "C:\RVSCode\R" /E /NFL /NDL /NJH /NJS /MT:4
+#robocopy "$env:ProgramFiles\R" "C:\RVSCode\R" /E /NFL /NDL /NJH /NJS /MT:4
 
 # Install R languageserver package
 if (-not (Test-Path -Path "C:\temp\languageserver.zip")) {
     # & "C:\temp\curl.exe" --progress-bar -o "C:\temp\languageserver.zip" "https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_$RLANGSERVER_VERSION.zip"
     & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\languageserver.zip" "https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_$RLANGSERVER_VERSION.zip"
+    & "C:\RVSCode\R\bin\R.exe" CMD INSTALL "C:\temp\languageserver.zip"
 }
-& "C:\RVSCode\R\bin\R.exe" CMD INSTALL "C:\temp\languageserver.zip"
 
 # Set settings.json for R in VSCode
 $settingsJson = @"
@@ -114,10 +118,10 @@ $settingsJson = @"
 $settingsJson | Out-File -FilePath "C:\RVSCode\data\user-data\User\settings.json" -Encoding UTF8
 
 # Add extensions to VSCode
-& "C:\RVSCode\bin\code.exe" --install-extension github.copilot
+& "C:\RVSCode\code.exe" --install-extension github.copilot --force > $null 2>&1
 # & "C:\RVSCode\bin\code.exe" --install-extension github.copilot-chat
-& "C:\RVSCode\bin\code.exe" --install-extension reditorsupport.r
-& "C:\RVSCode\bin\code.exe" --install-extension rdebugger.r-debugger
+& "C:\RVSCode\code.exe" --install-extension reditorsupport.r --force > $null 2>&1
+& "C:\RVSCode\code.exe" --install-extension rdebugger.r-debugger --force > $null 2>&1
 
 # Download first script to initialize for course
 # & "C:\temp\curl.exe" --progress-bar -o "C:\RVSCode\Course\Initialize_R.Rmd" "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/!Initialize_R.Rmd"
