@@ -60,6 +60,8 @@ if (-not (Test-Path -Path "c:\RVSCode\R\bin")) {
 Copy-Item -Path "c:\RVSCode\R\bin\x64\Rblas.dll" -Destination "c:\RVSCode\R\library\stats\libs\x64" -Force
 Copy-Item -Path "c:\RVSCode\R\bin\x64\Rlapack.dll" -Destination "c:\RVSCode\R\library\stats\libs\x64" -Force
 
+& "C:\RVSCode\R\bin\R.exe" -s -e "install.packages('languageserver', repos='https://cloud.r-project.org')"
+
 # ----------------- Download VSCode --- ZIP for portable ------------------
 Write-Output "Downloading VSCode..."
 if (-not (Test-Path -Path "C:\temp\RVSCode.zip")) {
@@ -81,13 +83,6 @@ New-Item -Path "C:\RVSCode\Course\EpiData" -ItemType Directory -Force
 
 # Copy R to VSCode main folder
 #robocopy "$env:ProgramFiles\R" "C:\RVSCode\R" /E /NFL /NDL /NJH /NJS /MT:4
-
-# Install R languageserver package
-if (-not (Test-Path -Path "C:\temp\languageserver.zip")) {
-    # & "C:\temp\curl.exe" --progress-bar -o "C:\temp\languageserver.zip" "https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_$RLANGSERVER_VERSION.zip"
-    & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\languageserver.zip" "https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_$RLANGSERVER_VERSION.zip"
-    & "C:\RVSCode\R\bin\R.exe" CMD INSTALL "C:\temp\languageserver.zip"
-}
 
 # Set settings.json for R in VSCode
 $settingsJson = @"
@@ -118,10 +113,10 @@ $settingsJson = @"
 $settingsJson | Out-File -FilePath "C:\RVSCode\data\user-data\User\settings.json" -Encoding UTF8
 
 # Add extensions to VSCode
-& "C:\RVSCode\code.exe" --install-extension github.copilot --force > $null 2>&1
+& "C:\RVSCode\bin\code.cmd" --install-extension github.copilot --force > $null 2>&1
 # & "C:\RVSCode\bin\code.exe" --install-extension github.copilot-chat
-& "C:\RVSCode\code.exe" --install-extension reditorsupport.r --force > $null 2>&1
-& "C:\RVSCode\code.exe" --install-extension rdebugger.r-debugger --force > $null 2>&1
+& "C:\RVSCode\bin\code.cmd" --install-extension reditorsupport.r --force > $null 2>&1
+& "C:\RVSCode\bin\code.cmd" --install-extension rdebugger.r-debugger --force > $null 2>&1
 
 # Download first script to initialize for course
 # & "C:\temp\curl.exe" --progress-bar -o "C:\RVSCode\Course\Initialize_R.Rmd" "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/!Initialize_R.Rmd"
