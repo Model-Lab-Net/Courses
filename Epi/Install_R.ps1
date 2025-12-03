@@ -35,8 +35,8 @@ if (-not (Test-Path -Path "C:\temp\wget.zip")) {
 }
 
 if (-not (Test-Path -Path "C:\temp\7.zip")) {
-    "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\7za.zip" "https://www.7-zip.org/a/7za920.zip"
-    & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\7zip.7z" "https://www.7-zip.org/a/7z2501-extra.7z"
+    "C:\temp\wget.exe" -no-verbose -show-progress -O "C:\temp\7za.zip" "https://www.7-zip.org/a/7za920.zip"
+    & "C:\temp\wget.exe" -no-verbose -show-progress -O "C:\temp\7zip.7z" "https://www.7-zip.org/a/7z2501-extra.7z"
 }
 if (-not (Test-Path -Path "C:\temp\7za.zip")) {
     Expand-Archive -Path "C:\temp\7za.zip" -DestinationPath "C:\temp\7za"
