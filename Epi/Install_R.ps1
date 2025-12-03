@@ -163,7 +163,7 @@ New-Item -Path "C:\RStudio\resources\themes" -ItemType Directory -Force
 
 
 # Copy R to RStudio main folder
-robocopy "C:\RVSCode\R" "C:\RStudio\R" /E /NFL /NDL /NJH /NJS /MT:4
+& robocopy "C:\RVSCode\R" "C:\RStudio\R" /E /NFL /NDL /NJH /NJS /MT:4
 
 # Set environment variables
 $env:RSTUDIO_WHICH_R = ".\R\bin\x64\R.exe"
