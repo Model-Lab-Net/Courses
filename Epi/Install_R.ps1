@@ -8,10 +8,10 @@
 
 # ---------------------- Get everything ready -------------------------------
 $R_VERSION = "4.5.2"
-$RSTUDIO_VERSION = "2025.09.2-418"
-$VSCODE_VERSION = "bf9252a2fb45be6893dd8870c0bf37e2e1766d61/VSCode-win32-x64-1.106.3.zip"
+$RSTUDIO_VERSION = "2026.01.0-392"
+$VSCODE_VERSION = "c3a26841a84f20dfe0850d0a5a9bd01da4f003ea/VSCode-win32-x64-1.109.4.zip"
 $RLANGSERVER_VERSION = "0.3.16"
-$CURL_VERSION = "8.17.0_4"
+$CURL_VERSION = "8.18.0_4"
 $WGET_VERSION = "1.21.4"
 
 Set-Location -Path "C:\"
