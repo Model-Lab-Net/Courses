@@ -2,19 +2,11 @@
 ### name  : דוד בורג
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: 0   
-### date  : 06/07/2025
+### date  : 18/02/2026
 ###  
 ###  זה קוד שיוריד את כל החבילות והקבצים שנצטרך בקורס הזה
 
 ### https://www.datanovia.com/learn/tools/r-in-vscode/recommended-vscode-configurations-for-r-programming.html
-
-
-# Reset memory
-```{r setup-packages, include false}
-rm(list = ls(all.names = TRUE))
-lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE,force=TRUE)
-gc()
-```
 
 
 ### ------------------------------------------------
@@ -198,3 +190,4 @@ for (url in files_misc) {
      download.file(url, destfile)
     }
 ```
+
