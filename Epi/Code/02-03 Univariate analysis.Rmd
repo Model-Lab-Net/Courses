@@ -33,7 +33,8 @@ pacman::p_load(
   nortest,                # Anderson-Darling test for normality
   ggplot2,                # For creating plots
   DescTools,              # For statistical functions like skewness and kurtosis
-  summarytools            # to get a table of all summary statistics
+  summarytools,           # to get a table of all summary statistics
+  finalfit                # to get 2x2 crosstables and calculations
               )
 ```
 
@@ -203,14 +204,11 @@ desc_result
 ## Crosstables / Contigengcy tables
 ```{r chi-square, echo = TRUE}
 # Create cross-tabulation/contigency table (with chi-square test)
-tbl_cross(data = df1, row = fever, col = outcome,
-          missing = "no",                                # ignore missing values
-          percent = "row"                                # add row percentages (use "column" or "cell" if needed)
-         ) %>%
-         add_p(test = "chisq.test", test.args = list(correct = TRUE),   # add chi-square test. Replace with fisher.test if needed and remove correct=TRUE.
-         pvalue_fun = ~formatC(., digits = 3, format = "f")             # round the p-value to 3 digits
-         )
+crosstable <- df1 %>%
+  finalfit("outcome", "fever")
 
+crosstable %>%
+  gt()
 
 ## Create contigency table the old way
 #contingency_table <- table(df1$fever, df1$outcome)
