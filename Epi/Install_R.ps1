@@ -50,7 +50,7 @@ if (-not (Test-Path -Path "C:\temp\7za.exe")) {
 Write-Output "Downloading R..."
 if (-not (Test-Path -Path "C:\temp\r.exe")) {
     # & "C:\temp\curl.exe" --progress-bar -o "C:\temp\r.exe" "https://cran.r-project.org/bin/windows/base/R-$R_VERSION-win.exe"
-    & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\r.exe" "https://cran.r-project.org/bin/windows/base/R-$R_VERSION-win.exe"
+    & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\r.exe" "https://cran.r-project.org/bin/windows/base/old/$R_VERSION/R-$R_VERSION-win.exe"
 }
 
 if (-not (Test-Path -Path "c:\RVSCode\R\bin")) {
