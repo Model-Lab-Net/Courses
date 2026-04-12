@@ -57,33 +57,16 @@ labels <- data.frame(Variable = names(df2), Label = unlist(var_label(df2)))   ; 
 glimpse(df2)               # get an overview of the data
 ```
 
-## Summary statistics for numerical variables
-```{r summary-stats, echo = TRUE}
-# Create summary statistics for all numerical variables grouped by "race"
-summary_stats <- df2 %>%
-  select(where(is.numeric), gender) %>%                # Select all numeric columns and gender
-  tbl_summary(
-    by = gender,                                       # Stratify by gender
-    statistic = list(
-      all_continuous() ~ "{mean} ({sd})"#,              # Mean (SD) for continuous variables
-      #all_continuous2() ~ "{median} ({p25}, {p75})"    # Median (Q1, Q3) for non-normal
-    ),
-    digits = list(all_continuous() ~ 1),               # Round to 2 decimal places
-    # missing = "ifany",                               # Show missing values if any
-    label = list(                                      # Optional: Customize variable labels
-      # Example: age ~ "Age (years)"
-    )
-  ) %>%
-  # add_p() %>%                                        # Add p-values for comparisons
-  # add_overall() %>%                                    # Add overall column
-  modify_header(label = "**משתנה**")                # Customize header
-
-# Display the summary statistics table
-summary_stats
+## Simple linear regression model
+```{r slr, echo = TRUE}
+# Perform a Simple Linear Regression
+slr <- lm(chol ~ sbp, data = df2)
+# print the summary of the simple linear regression
+summary(slr)
 ```
 
-## Multivarieta linear regression model
-```{r slr, echo = TRUE}
+## Multivariate linear regression model
+```{r mlr, echo = TRUE}
 # Perform a Simple Linear Regression
 mlr <- lm(chol ~ sbp + race + bmi + age + dbp, data = df2)
 # print the summary of the simple linear regression
@@ -94,16 +77,9 @@ summary(mlr)
 ```{r slr-model, echo = TRUE}
 mlr_model <- mlr %>%
   tbl_regression(intercept = TRUE) %>%
-  add_glance_table(include = c(
-    nobs,
-    r.squared,
-    adj.r.squared,
-    statistic,
-    sigma,
-    logLik,
-    AIC,
-    p.value
-  ))
+  add_glance_source_note(
+    include = c(r.squared, adj.r.squared, AIC, p.value)
+  )
 
 mlr_model
 ```
@@ -131,15 +107,17 @@ bp_test <- bptest(mlr)$p.value                        # Breusch-Pagan for hetero
 dw_test <- dwtest(mlr)$p.value                      # Durbin-Watson test for autocorelation
 
 # Add these to the model summary table
-slr_model %>%
-   modify_table_styling(
-    column = label,
-    rows = row_type == "glance_statistic",
-    footnote = sprintf("Diagnostics:<br> Shapiro-Wilk (normality) = %.3f <br>Breusch-Pagan (heteroscedcity) = %.3f <br>Durbin-Watson (autocorrelation) = %.3f", 
-                       sw_test, bp_test, dw_test)
+mlr_model %>%
+  as_gt() %>% # Convert to gt engine first
+  tab_source_note(
+    source_note = html(sprintf(
+      "Shapiro-Wilk (Normality): p = %.3f <br>
+       Breusch-Pagan (Heteroscedasticity): p = %.3f <br>
+       Durbin-Watson (Autocorrelation): p = %.3f", 
+      sw_test, bp_test, dw_test
+    ))
   )
 ```
-
 
 
 

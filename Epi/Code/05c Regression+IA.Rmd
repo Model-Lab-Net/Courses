@@ -95,10 +95,8 @@ mlr_model <- mlr %>%
 mlr_model
 
 # Lets check out the plot
-# flexplot(symptoms ~ bmi + copd + age , data = df_covid, method = "lm")
+flexplot(symptoms ~ bmi + copd + age , data = df_covid, method = "lm")
 ```
-
-
 
 # Multi-variate regression model with interaction /2/
 ```{r multi-reg, echo = TRUE}
@@ -140,11 +138,14 @@ dw_test <- dwtest(mlr)$p.value                      # Durbin-Watson test for aut
 
 # Add these to the model summary table
 mlrIA_model %>%
-   modify_table_styling(
-    column = label,
-    rows = row_type == "glance_statistic",
-    footnote = sprintf("Diagnostics:<br> Shapiro-Wilk (normality) = %.3f <br>Breusch-Pagan (heteroscedcity) = %.3f <br>Durbin-Watson (autocorrelation) = %.3f", 
-                       sw_test, bp_test, dw_test)
+  as_gt() %>% # Convert to gt engine first
+  tab_source_note(
+    source_note = html(sprintf(
+      "Shapiro-Wilk (Normality): p = %.3f <br>
+       Breusch-Pagan (Heteroscedasticity): p = %.3f <br>
+       Durbin-Watson (Autocorrelation): p = %.3f", 
+      sw_test, bp_test, dw_test
+    ))
   )
 ```
 
