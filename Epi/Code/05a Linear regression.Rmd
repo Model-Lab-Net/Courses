@@ -3,9 +3,11 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה לינארית 05   
-### date  : 13/07/2025
+### date  : 12/04/2026
 ###  
 ### נלמד לעשות רגרסיה לינארית פשוטה
+###
+### source: https://bookdown.org/drki_musa/dataanalysis/linear-regression.html#simple-linear-regression
 
 
 ## Reset memory
@@ -37,7 +39,8 @@ pacman::p_load(
   summarytools,           # to get a table of all summary statistics
   car,                    # For Levene's test and ANOVA
   lmtest,                 # do linear regression tests
-  parameters              # get standardized parameters/coefficients
+  parameters,             # get standardized parameters/coefficients
+  performance
               )
 # Install/load flexplot
 if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
@@ -56,7 +59,7 @@ glimpse(df2)               # get an overview of the data
 ## Summary statistics for numerical variables
 ```{r summary-stats, echo = TRUE}
 # Create summary statistics for all numerical variables grouped by "race"
-df2_summary_stats <- df2 %>%
+summary_stats <- df2 %>%
   select(where(is.numeric), gender) %>%                # Select all numeric columns and gender
   tbl_summary(
     by = gender,                                       # Stratify by gender
@@ -75,21 +78,13 @@ df2_summary_stats <- df2 %>%
   modify_header(label = "**משתנה**")                # Customize header
 
 # Display the summary statistics table
-df2_summary_stats
-```
-
-## Choose variables
-```{r choose-vars, echo = TRUE}
-x_var <- "chol"   # Change this to the categorial variable
-y_var <- "sbp"    # Change this to the numerical variable
-f <- as.formula(paste(y_var, "~", x_var))     # This just helps further down....
+summary_stats
 ```
 
 ## Simple linear regression model
 ```{r slr, echo = TRUE}
 # Perform a Simple Linear Regression
-slr <- lm(df2[[y_var]] ~ df2[[x_var]], data = df2)
-slr <- lm(f, data = df2)                            # useful for later down.....
+slr <- lm(chol ~ sbp, data = df2)
 
 # print the summary of the simple linear regression
 summary(slr)
@@ -98,14 +93,13 @@ summary(slr)
 ## Calculate pearson correlation coefficient
 ```{r pearson, echo = TRUE}
 # Calculate the pearson coefficient
-pearson_result <- cor.test(df2[[x_var]], df2[[y_var]], method = "pearson", use = "complete.obs")
+pearson_result <- cor.test(df2$chol, df2$sbp, method = "pearson", use = "complete.obs")
 pearson_result
 ```
 
 ## Linear regression parameter values with nice output
-```{r slr-summary, echo = TRUE}
-# use gtsummary to create a nice table
-slr_summary <- slr %>%
+```{r slr-model, echo = TRUE}
+slr_model <- slr %>%
   tbl_regression(intercept = TRUE) %>%
   add_glance_table(include = c(
     nobs,
@@ -114,31 +108,17 @@ slr_summary <- slr %>%
     statistic,
     sigma,
     logLik,
-    AIC
+    AIC,
+    p.value
   ))
 
-# Show the model results table
-slr_summary
-```
-
-## Old way to get scatter plot with regression model
-```{r polt-regression, echo = TRUE}
-# use ggplot to show the scatter plot with regression line with linear model and confidence interval
-ggplot(df2, aes_string(x = x_var, y = y_var)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE, color = "blue") + # Adding the trend line with linear model
-  labs(
-    title = paste("Scatter Plot of", y_var, "vs", x_var),
-    x = x_var,
-    y = y_var
-  ) +
-  theme_minimal()
+slr_model
 ```
 
 ## Flexplot scatter plot and analysis
 ```{r polt-regression, echo = TRUE}
 # Plot the regression
-flexplot(f, data = df2, method = "lm", se = TRUE)
+flexplot(chol ~ sbp, data = df2, method = "lm", se = TRUE)
 
 # Analyze the residuals
 visualize(slr)
@@ -147,51 +127,28 @@ visualize(slr)
 estimates(slr)
 ```
 
-## Test for normal distribution of model residuals
+# Diagnostics  (Ho: residuals are normal)
 ```{r residuals, echo = TRUE}
 # Get nmodel residuals
 res <- residuals(slr)
+# Do the tests:
+sw_test <- shapiro.test(residuals(slr))$p.value       # Shapiro-Wilkn for normality
+ks_test <- nortest::lillie.test(res)$p.value                     # do _NOT_ use Kolmogorov–Smirnov test!!!
+bp_test <- bptest(slr)$p.value                        # Breusch-Pagan for heteroscedacity
+dw_test <- dwtest(slr)$p.value                      # Durbin-Watson test for autocorelation
 
-# Plot the residuals
-hist(res,
-  breaks = 20, main = "Histogram of Residuals",
-  xlab = "Residuals", col = "darkgrey"
-)
 
-# Q-Q plot
-qqnorm(res)
-qqline(res, col = "red")
+res <- check_normality(slr)
+res["p"]
 
-# Kolmogorov-Smirnov test  (Ho: residuals are normal)
-ks_test_result <- ks.test(res, "pnorm", mean = mean(res), sd = sd(res))
-ks_test_result
-```
-
-## Test for homoscedacity
-```{r homoscedacity, echo = TRUE}
-# Plot Residuals vs. Fitted Values Plot
-# (homoscedacity = scattered randomly around the horizontal line)
-# (heteroscedacity = Patterns like a funnel shape (wider spread at higher/lower fitted values), curves, or systematic trends)
-# plot(slr$fitted.values, residuals(slr),
-#  main = "Residuals vs. Fitted Values",
-#  xlab = "Fitted Values",
-#  ylab = "Residuals"
-#)
-# abline(h = 0, col = "red", lty = 2) # Add horizontal line at y = 0
-
-# Run Breusch-Pagan test  (Ho: no heteroscedacity)
-bp_test <- bptest(slr)
-bp_test
-```
-
-## Test for autocorrelation 
-```{r autocorrelation , echo = TRUE}
-# Plot ACF residuals
-acf(residuals(slr), main = "ACF of Residuals")
-
-# Run Durbin-Watson test  (Ho: no autocorelation)
-dw_result <- dwtest(slr)
-dw_result
+# Add these to the model summary table
+slr_model %>%
+   modify_table_styling(
+    column = label,
+    rows = row_type == "glance_statistic",
+    footnote = sprintf("Diagnostics:<br> Shapiro-Wilk (normality) = %.3f <br>Breusch-Pagan (heteroscedcity) = %.3f <br>Durbin-Watson (autocorrelation) = %.3f", 
+                       sw_test, bp_test, dw_test)
+  )
 ```
 
 ## Calculate the standaradized parameters

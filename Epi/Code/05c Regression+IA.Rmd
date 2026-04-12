@@ -6,6 +6,8 @@
 ### date  : 19/08/2025
 ###  
 ###  נלמד לעשות רגסיה עם אינטראקציה
+###
+### source: https://bookdown.org/drki_musa/dataanalysis/linear-regression.html#interaction
 
 
 ## Reset memory
@@ -38,6 +40,7 @@ pacman::p_load(
   car,                    # For Levene's test and ANOVA
   lmtest,                 # do linear regression tests
   parameters,             # get standardized parameters/coefficients
+  performance,
   GGally                  # to make a correlation matrix
               )
 # Install/load flexplot
@@ -53,6 +56,7 @@ df_covid <- import(file, trust = TRUE)
 labels <- data.frame(Variable = names(df_covid), Label = unlist(var_label(df_covid)))   ;   gt(labels)
 glimpse(df_covid)               # get an overview of the data
 ```
+
 ## Histogram of sympotms
 ```{r read-data, echo = TRUE}
 flexplot(symptoms ~ 1, data = df_covid)
@@ -60,164 +64,88 @@ flexplot(symptoms ~ 1, data = df_covid)
 
 # Simple regression model
 ```{r multi-reg, echo = TRUE}
-# Lets check out the plot
-flexplot(symptoms ~ bmi, data = df_covid, method = "lm")
-
 # Do a reduced linear regression (SLR) with chol as the dependent variable
 slr <- lm(symptoms ~ bmi, data = df_covid)
 
 # Show results in a nice table
-slr_summary <- tbl_regression(
-  slr,
-  # intercept = TRUE,
-  estimate_fun = ~ round(.x, 2)
-) %>%
+slr_model <- slr %>%
+  tbl_regression(intercept = TRUE) %>%
   add_glance_source_note(
     include = c(r.squared, adj.r.squared, AIC, p.value)
   )
-slr_summary
+
+slr_model
+
+# Lets check out the plot
+flexplot(symptoms ~ bmi, data = df_covid, method = "lm")
 ```
 
-# Multi-variate regression model with interaction /1/
+# Multi-variate regression model (no interaction)
 ```{r multi-reg, echo = TRUE}
-# Lets check out the plot
-flexplot(symptoms ~ bmi | age , data = df_covid, method = "lm")
-
-# Do a MLR with interaction
-mlr1 <- lm(symptoms ~ bmi:age, data = df_covid)
+# Do a MLR 
+mlr <- lm(symptoms ~ bmi + age + copd, data = df_covid)
 
 # Show results in a nice table
-mlr_summary <- tbl_regression(
-  mlr1,
-  # intercept = TRUE,
-  estimate_fun = ~ round(.x, 2)
-) %>%
+mlr_model <- mlr %>%
+  tbl_regression(intercept = TRUE) %>%
   add_glance_source_note(
     include = c(r.squared, adj.r.squared, AIC, p.value)
   )
-mlr_summary
+
+mlr_model
+
+# Lets check out the plot
+# flexplot(symptoms ~ bmi + copd + age , data = df_covid, method = "lm")
 ```
 
 
 
 # Multi-variate regression model with interaction /2/
 ```{r multi-reg, echo = TRUE}
-# Lets check out the plot
-flexplot(symptoms ~ bmi | copd , data = df_covid, method = "lm")
-
-# Do a reduced linear regression (SLR) with chol as the dependent variable
-mlr2 <- lm(symptoms ~ bmi:copd, data = df_covid)
+# Do a MLR with interaction
+mlrIA <- lm(symptoms ~ bmi + copd + bmi*copd, data = df_covid)
 
 # Show results in a nice table
-mlr_summary <- tbl_regression(
-  mlr2,
-  # intercept = TRUE,
-  estimate_fun = ~ round(.x, 2)
-) %>%
+mlrIA_model <- mlrIA %>%
+  tbl_regression(intercept = TRUE) %>%
   add_glance_source_note(
     include = c(r.squared, adj.r.squared, AIC, p.value)
   )
-mlr_summary
-```
 
+mlrIA_model
 
-# Multi-variate regression model with interaction /3/
-```{r multi-reg, echo = TRUE}
 # Lets check out the plot
-flexplot(symptoms ~ bmi | copd + age , data = df_covid, method = "lm")
-
-# Do a reduced linear regression (SLR) with chol as the dependent variable
-mlr3 <- lm(symptoms ~ bmi:copd:age, data = df_covid)
-
-# Show results in a nice table
-mlr_summary <- tbl_regression(
-  mlr3,
-  # intercept = TRUE,
-  estimate_fun = ~ round(.x, 2)
-) %>%
-  add_glance_source_note(
-    include = c(r.squared, adj.r.squared, AIC, p.value)
-  )
-mlr_summary
+flexplot(symptoms ~ bmi + copd | age , data = df_covid, method = "lm")
 ```
 
 
 ## Model comparison
 ```{r mdodel-comparison, echo = TRUE}
 # Check all combinations to select "best" model
-model.comparison(slr, mlr3)
-model.comparison(mlr1, mlr3)
-model.comparison(mlr2, mlr3)
+model.comparison(slr, mlr)
+model.comparison(slr, mlrIA)
+model.comparison(mlr, mlrIA)
 ```
 
 
-## Test model diagnostics
+## Diagnostics  (Ho: residuals are normal)
 ```{r residuals, echo = TRUE}
-# Get model residuals
-res <- residuals(mlr3) 
-df_res <- data.frame(res)
+# Get nmodel residuals
+res <- residuals(mlrIA)
+# Do the tests:
+sw_test <- shapiro.test(residuals(mlr))$p.value       # Shapiro-Wilkn for normality
+ks_test <- nortest::lillie.test(res)$p.value                     # do _NOT_ use Kolmogorov–Smirnov test!!!
+bp_test <- bptest(mlr)$p.value                        # Breusch-Pagan for heteroscedacity
+dw_test <- dwtest(mlr)$p.value                      # Durbin-Watson test for autocorelation
 
-# Analyze the residuals
-flexplot(res ~ 1, data=df_res) 
-
-# Run Kolmogorov-Smirnov test  (Ho: residuals are normal)
-ks_test_result <- ks.test(res, "pnorm", mean = mean(res), sd = sd(res))
-ks_test_result
- 
-# Run Breusch-Pagan test  (Ho: no heteroscedacity)
-bp_test <- bptest(mlr3)
-bp_test
-
-# Run Durbin-Watson test  (Ho: no autocorelation)
-dw_result <- dwtest(mlr3)
-dw_result
-
-# Plot ACF residuals
-# acf(residuals(mlr2), main = "ACF of Residuals")
-
-# Run VIF colinearity test  (no multicolinearity == VIF ≈ 1)
-mlr_vif <- vif(mlr3, type = 'predictor')
-mlr_vif
-```
-
-## Show full regression model summary table
-```{r mlr-summary, echo = TRUE}
-full_model <- tbl_regression(mlr3,
-  conf.int = TRUE,
-  intercept = TRUE
-) %>%
-  modify_header(
-    label = "**coeff**",
-    estimate = "**beta**",
-    std.error = "**SE**",
-    statistic = "**F**",
-    p.value = "**p**",
-    conf.low = "**CI<sub>95%**"
-  ) %>%
-  # modify_table_body(~ .x %>% filter(label != "Abbreviations")) %>%
-  add_glance_source_note(
-    include = c(
-      r.squared,
-      adj.r.squared,
-      statistic,
-      p.value,
-      # logLik,
-      AIC
-      # sigma
-    ),
-    label = list(
-      r.squared = "R²",
-      adj.r.squared = "Adj.R²",
-      statistic = "F",
-      p.value = "p",
-      logLik = "log-L",
-      sigma = "\U03C3",
-      AIC = "AIC"
-    )
-  ) %>%
-  modify_caption("**Table 2: Model Coefficients<br>(fit statistics)**")
-
-full_model
+# Add these to the model summary table
+mlrIA_model %>%
+   modify_table_styling(
+    column = label,
+    rows = row_type == "glance_statistic",
+    footnote = sprintf("Diagnostics:<br> Shapiro-Wilk (normality) = %.3f <br>Breusch-Pagan (heteroscedcity) = %.3f <br>Durbin-Watson (autocorrelation) = %.3f", 
+                       sw_test, bp_test, dw_test)
+  )
 ```
 
 
