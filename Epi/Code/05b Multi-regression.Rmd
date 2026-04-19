@@ -5,7 +5,7 @@
 ### lesson: רגרסיה לינארית 05   
 ### date  : 12/04/2026
 ###  
-### נלמד לעשות רגרסיה לינארית פשוטה
+### multivariate נלמד לעשות רגרסיה לינארית מרובת משתנים
 ###
 ### source: https://bookdown.org/drki_musa/dataanalysis/linear-regression.html#simple-linear-regression
 
@@ -41,7 +41,7 @@ pacman::p_load(
   lmtest,                 # do linear regression tests
   parameters,             # get standardized parameters/coefficients
   performance,
-  GGally
+  GGally                  # to make a correlation matrix
               )
 # Install/load flexplot
 if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
@@ -65,6 +65,11 @@ slr <- lm(chol ~ sbp, data = df2)
 summary(slr)
 ```
 
+## Correlation matrix
+```{r correlation-matrix, echo = TRUE}
+ggcorr(df2, label = TRUE)
+```
+
 ## Multivariate linear regression model
 ```{r mlr, echo = TRUE}
 # Perform a Simple Linear Regression
@@ -75,8 +80,7 @@ summary(mlr)
 
 ## Model parameter values with nice output
 ```{r slr-model, echo = TRUE}
-mlr_model <- mlr %>%
-  tbl_regression(intercept = TRUE) %>%
+mlr_model <- tbl_regression(mlr, intercept = TRUE) %>%
   add_glance_source_note(
     include = c(r.squared, adj.r.squared, AIC, p.value)
   )
@@ -91,9 +95,6 @@ flexplot(chol ~ dbp + bmi | age + race, data = df2, method = "lm", se = TRUE)
 
 # Analyze the residuals
 visualize(mlr)
-
-# Get the model parameter values
-estimates(mlr)
 ```
 
 ## Diagnostics  (Ho: residuals are normal)
@@ -101,7 +102,7 @@ estimates(mlr)
 # Get nmodel residuals
 res <- residuals(mlr)
 # Do the tests:
-sw_test <- shapiro.test(residuals(mlr))$p.value       # Shapiro-Wilkn for normality
+sw_test <- shapiro.test(res)$p.value       # Shapiro-Wilkn for normality
 ks_test <- nortest::lillie.test(res)$p.value                     # do _NOT_ use Kolmogorov–Smirnov test!!!
 bp_test <- bptest(mlr)$p.value                        # Breusch-Pagan for heteroscedacity
 dw_test <- dwtest(mlr)$p.value                      # Durbin-Watson test for autocorelation
@@ -119,8 +120,10 @@ mlr_model %>%
   )
 ```
 
-
-
+## Get the std parameter values
+```{r std-parms, echo = TRUE}
+estimates(mlr)
+```
 
 ### -------------------------------------------------
 ## תרגול-עצמי

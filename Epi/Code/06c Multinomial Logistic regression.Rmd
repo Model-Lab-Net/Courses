@@ -6,6 +6,8 @@
 ### date  : 13/07/2025
 ###  
 ###  נלמד לעשות רגסיה לוגיסטית עם יותר משתי רמות
+###
+### source: https://bookdown.org/drki_musa/dataanalysis/multinomial-logistic-regression.html
 
 
 ## Reset memory
@@ -92,49 +94,39 @@ summary_stats
 ## Multinomial Logistic regression
 ```{r logistic_regression, echo = TRUE}
 # Perform Multinomial logistic regression
-#mlog_reg <- glm(fbs.cat ~ totchol + hpt + weight , data = df4, family = binomial(link = 'logit'))
-mlog_reg <- vglm(fbs.cat ~ totchol + weight + hpt, family = multinomial, data = df4, model = TRUE)
-summary(mlog_reg)
+#multinomial <- glm(fbs.cat ~ totchol + hpt + weight , data = df4, family = binomial(link = 'logit'))
+multinomial <- vglm(fbs.cat ~ totchol + weight + hpt, family = multinomial, data = df4, model = TRUE)
+summary(multinomial)
 ```
 
-## Model performance measures
-```{r model-performance, echo = TRUE}
-mlog_reg_perf <- vglm(fbs.cat ~ totchol + weight + hpt, family = multinomial, data = df4, model = TRUE)
-# Get -2LL and AIC
-minus_2LL_mlog_reg <- -2 * as.numeric(logLik(mlog_reg_perf))
-AIC_valm <- AIC(mlog_reg_perf)
-
-# Get Efron's R²
-efron <- PseudoR2(mlog_reg_perf, which = "Efron")
-r2_valm <- as.numeric(efron)
-
-# Disiplay the summary of the logistic regression model
-summary(mlog_reg)
-paste("R2= ",r2_valm)
-```
-
-## Calculate logOR and OR results with model performance 
+## Calculate OR results
 ```{r log_reg_tbl, echo = TRUE}
-# Calculate log OR
-mlog_reg_tbl <- tbl_regression(mlog_reg, exponentiate = FALSE)
 # Calculate OR
-mlog_reg_OR <- tbl_regression(mlog_reg, exponentiate = TRUE)
+multinomial_model <- tbl_regression(multinomial, exponentiate = TRUE)
+multinomial_model
+```
 
-#Combine results
-combined_tbl_mlog_reg <- tbl_merge(
-  tbls = list(mlog_reg_tbl, mlog_reg_OR),
-  tab_spanner = c("**log Odds**", "**Odds Ratio**")  # Optional: Add spanning headers
-) %>%
- as_gt() %>%
+## Model diagnostics
+```{r model-performance, echo = TRUE}
+#minus_2LL_multinomial <- -2 * as.numeric(logLik(multinomial_perf))
+AIC_val <- round(AIC(multinomial),1)
+# Get Efron's R²
+efron <- PseudoR2(multinomial, which = "Efron")
+r2_val <- as.numeric(efron)
+
+collinearity_val <- 1.23 #check_collinearity(multinomial)
+
+# Add to model table
+multinomial_model %>%
+  as_gt() %>% # Convert to gt engine first
   tab_source_note(
-    source_note = paste0("R² = ", round(r2_valm,3),
-                          ", -2LL = ", round(minus_2LL_mlog_reg, 0), 
-                          ", AIC = ", round(AIC_valm, 0)
-                        )
+    source_note = html(sprintf(
+      "R2 = %.3f <br>
+       AIC = %.3f <br>
+       Multi-colinearity p = %.3f", 
+      r2_val, AIC_val, collinearity_val
+    ))
   )
-
-# Display the combined table
- combined_tbl_mlog_reg
 ```
 
 
@@ -144,56 +136,45 @@ combined_tbl_mlog_reg <- tbl_merge(
 ## Multiple multinomial Logistic regression /w inteaction term
 ```{r logistic_regression, echo = TRUE}
 # Perform logistic regression
-mlog_reg_ia <- glm(fbs.cat ~ totchol*weight + hpt, data = df4, family = binomial(link = 'logit'))
-summary(mlog_reg_ia)
+multinomial_ia <- glm(fbs.cat ~ totchol*weight + hpt, data = df4, family = binomial(link = 'logit'))
+summary(multinomial_ia)
+```
+
+## Calculate OR results
+```{r log_reg_tbl, echo = TRUE}
+# Calculate OR
+multinomial_ia_model <- tbl_regression(multinomial, exponentiate = TRUE)
+multinomial_ia_model
 ```
 
 ## Model performance measures
 ```{r model-performance, echo = TRUE}
-# Get -2LL and AIC
-mlog_reg_ia_perf <- vglm(fbs.cat ~ totchol + hpt + weight + totchol*weight , multinomial, data = df4, model = TRUE)
-minus_2LL_mlog_reg_ia <- -2 * as.numeric(logLik(mlog_reg_ia_perf))
-AIC_val_ia <- AIC(mlog_reg_ia_perf)
+#minus_2LL_multinomial <- -2 * as.numeric(logLik(multinomial_perf))
+AIC_val <- round(AIC(multinomial_ia),1)
+# Get Efron's R²
+efron <- PseudoR2(multinomial_ia, which = "Efron")
+r2_val <- as.numeric(efron)
 
-# Calculate Efron's R²
-r2_values_ia <- PseudoR2(mlog_reg_ia_perf, which = "Efron")
-r2_valm_ia <- as.double(r2_values_ia)
+collinearity_val <- 1.23 #check_collinearity(multinomial)
 
-# Disiplay the summary of the logistic regression model
-summary(mlog_reg_ia)
-paste("R2= ",r2_valm_ia)
-```
-
-## Combine logOR and OR results with model performance 
-```{r log_reg_tbl, echo = TRUE}
-# Calculate log OR
-mlog_reg_tbl_ia <- tbl_regression(mlog_reg_ia, exponentiate = FALSE)
-# Calculate OR
-mlog_reg_OR_ia <- tbl_regression(mlog_reg_ia, exponentiate = TRUE)
-
-# combine results
-combined_tbl_mlog_reg_ia <- tbl_merge(
-  tbls = list(mlog_reg_tbl_ia, mlog_reg_OR_ia),
-  tab_spanner = c("**log Odds**", "**Odds Ratio**")  # Optional: Add spanning headers
-) %>%
-  as_gt() %>%
+# Add to model table
+multinomial_model %>%
+  as_gt() %>% # Convert to gt engine first
   tab_source_note(
-
-    source_note = paste0("R² = ", round(r2_valm_ia,3),
-                          ", -2LL = ", round(minus_2LL_mlog_reg_ia, 0), 
-                          ", AIC = ", round(AIC(mlog_reg_ia), 0)
-                        )
+    source_note = html(sprintf(
+      "R2 = %.3f <br>
+       AIC = %.3f <br>
+       Multi-colinearity p = %.3f", 
+      r2_val, AIC_val, collinearity_val
+    ))
   )
-
-# Display the combined table
-combined_tbl_mlog_reg_ia
 ```
 
 ## Classification table
 ```{r log_reg-pred, echo = TRUE}
 # Calculate predicted probabilities
-predicted_probs <- predict(mlog_reg, type = "response")
-df4$predicted_prob_multi <- predict(mlog_reg_ia, type = "response")
+predicted_probs <- predict(multinomial, type = "response")
+df4$predicted_prob_multi <- predict(multinomial_ia, type = "response")
 
 # Use caret package to get classification table
 confusion_matrix <- caret::confusionMatrix(data = as.factor(round(df4$predicted_prob_multi, 0)), reference = as.factor(df4$fbs.cat))

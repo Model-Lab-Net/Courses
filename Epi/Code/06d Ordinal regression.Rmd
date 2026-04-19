@@ -3,9 +3,11 @@
 ### ID  : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה אורדינלית 06   
-### date  : 13/07/2025
+### date  : 19/04/2026
 ###  
 ###  נלמד לעשות רגרסיה לוגיסטי מרובה על משתנים אורדינליים
+###
+### 
 
 
 ## Reset memory
@@ -68,109 +70,115 @@ glimpse(df5)               # get an overview of the data
 ## Perfrom an ordinal linear regression
 ```{r ord-logisitc-reg, echo = TRUE}
 # Ordinal regression model
-ord_reg <- clm(perforation.ord ~ pulp + hemoglobin + systolic, data = df5, link = "logit")
-summary(ord_reg)
+ord_model <- clm(perforation.ord ~ pulp + hemoglobin + systolic, data = df5, link = "logit")
+summary(ord_model) 
 
-dd <- datadist(df5)   ;   options(datadist = "dd")
-ord_reg_ <- orm(perforation.ord ~ pulp + hemoglobin + systolic, data = df5)     # need this for model diagnostics. sorry.
+ordinal_model <- tbl_regression(ord_model, exponentiate = TRUE) 
+ordinal_model
+```
 
+## Vcov matrix
+```{r ord-logisitc-reg, echo = TRUE}
 # Variance-covariance matrix
-vcov_matrix <- vcov(ord_reg)
+vcov_matrix <- vcov(ord_model)
 vcov_matrix
 
 # Send the vcov matrix to a nice table
-vcov_tbl <- as_tibble(vcov_matrix, rownames = "Parameter")
-vcov_tbl %>%
+vcov_matrix %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Variable") %>%
+  gt() %>%
+  fmt_number(
+    columns = -Variable, # Format all columns except the 'Variable' names
+    decimals = 3
+  )
+```
+
+## Model diagnostics
+```{r ord-logisitc-reg, echo = TRUE}
+dd <- datadist(df5)   ;   options(datadist = "dd")
+ord_model_ <- orm(perforation.ord ~ pulp + hemoglobin + systolic, data = df5)     # need this for model diagnostics. sorry.
+# NEW way
+AIC_val  <- as.numeric(AIC(ord_model))                       # AIC
+r2_val   <- as.numeric(r2_nagelkerke(ord_model))
+chi_sq   <- as.numeric(ord_model_$stats["Model L.R."])       # Omnibus Chi-square (Likelihood Ratio Chi²)
+p_val    <- as.numeric(ord_model_$stats["P"]  )  
+
+# Add model diagnostics to table
+ordinal_model %>%
+  as_gt() %>% # Convert to gt engine first
+  tab_source_note(
+    source_note = md(paste0(
+      "R² = ", round(r2_val, 3), "<br>",
+      ",  AIC = ", round(AIC_val, 0), "<br>",
+      ",  χ² = ", round(chi_sq, 0), "<br>",
+      ",  p = ", round(p_val, 5)
+    ))
+  )
+```
+
+## Classification table
+```{r predict, echo = TRUE}
+# Calculate predicted probabilities and append to df
+df5$predict.prob <- predict(ord_model_, type = "fitted.ind")
+df5$predict.class <- as.integer(df5$predict.prob > 0.5)
+glimpse(df5)
+
+# Calculate the "confusion_matrix" using cvms
+cfm <- confusion_matrix(targets = df5$perforation.ord, predictions = df5$predict.class)
+
+# Plot the "confusion_matrix" using cvms
+plot_confusion_matrix(cfm)
+
+# Display the "classification metrics" using cvms
+# Get the "classification metrics" using cvms
+cfm_metrics <- select_metrics(cfm) %>%
+  # convert all columns to numeric (if needed)
+  #mutate(across(everything(), as.numeric)) %>%
+  # pivot to long format directly
+  pivot_longer(
+    cols = everything()
+    #names_to = "Metric",
+    #values_to = "Value"
+  )
+
+
+cfm_metrics %>%
   gt() %>%
   fmt_number(
     decimals = 3
   )
 ```
 
-## Model performance
-```{r ord-logisitc-reg, echo = TRUE}
-# NEW way
-minus2LL <- -2 * as.numeric(logLik(ord_reg))   # -2 Log Likelihood
-AIC_val  <- AIC(ord_reg)                       # AIC
-r2_val   <- ord_reg_$stats["R2"]               # R² (is multiple R², usually "R²" is Nagelkerke)
-chi_sq   <- ord_reg_$stats["Model L.R."]       # Omnibus Chi-square (Likelihood Ratio Chi²)
-p_val    <- ord_reg_$stats["P"]                # Omnibus test p-value (Likelihood Ratio Test)
-
-#reg_summary_df <- data.frame(
-#  minus2LL = as.numeric(minus2LL),
-#  AIC      = as.numeric(AIC_val),
-#  R2       = as.numeric(r2_val),
-#  ChiSq    = as.numeric(chi_sq),
-#  p_value  = as.numeric(p_val)
-#)
-#reg_summary_df %>% gt()
-#
-#reg_summary_long <- reg_summary_df %>%
-#  pivot_longer(
-#    cols = everything(),
-#    names_to = "Metric",
-#    values_to = "Value"
-#  ) %>%
-#  mutate(Value = round(Value, 3))  # optional rounding
-#reg_summary_long %>% gt()
-```
-
-# Display regression results
-```{r ord-logisitc-reg, echo = TRUE}
-ord_reg_summary <- tbl_regression(
-  ord_reg_,
-  exponentiate = TRUE # Gives odds ratios instead of log-odds
-) %>%
-  modify_header(estimate ~ "**Odds ratio**") %>%
-  as_gt() %>%
-  tab_source_note(
-    source_note = md(paste0(
-      "R² = ", round(r2_val, 3),
-      ",  -2LL = ", round(minus2LL, 0),
-      ",  AIC = ", round(AIC_val, 0), "<br>",
-      "  χ² = ", round(chi_sq, 0),
-      ",  p = ", round(p_val, 3), "<br>"
-    ))
-  )
-ord_reg_summary
-```
-
-## Classification table
-```{r predict, echo = TRUE}
-# Calculate predicted probabilities and append to df
-df5$predict.prob <- predict(ord_reg_, type = "fitted.ind")
-df5$predict.class <- as.integer(df5$predict.prob > 0.5)
-glimpse(df5)
-
-# Calculate the "confusion_matrix"
-cm <- confusion_matrix(targets = df5$perforation.ord, predictions = df5$predict.class)
-
-# Plot the "confusion_matrix"
-plot_confusion_matrix(cm)
-
-# Display the "classification metrics"
-cm_metrics <- select_metrics(cm) %>%
-  pivot_longer(cols = everything(),
-               names_to = "Metric",
-               values_to = "Value"
-              )
-cm_metrics <- as.data.frame(cm_metrics)
-cm_metrics <- cm_metrics %>%
-  mutate(across(where(is.numeric), ~ round(., 3)))
-cm_metrics
-
-cm_metrics %>%
-  gt() 
-```
-
 ## Nominal effects test
 ```{r , echo=FALSE}
 # Test to make sure model assumptions are not violated
-nominal_test(ord_reg)
-          # Note: If p<0.05 for all variables then fit is good.
+nomial <- nominal_test(ord_model)
+          # Note: If p>0.05 for all variables then fit is good.
           ### ------------------------------------------------
           ### Important: Hosmer–Lemeshow only works for binary 
           ### this is a more genralizable logistic regression
+
+nomial %>% 
+  gt() %>%
+    fmt_number(
+      decimals = 1
+    )       
+```
+
+### Create prediction plots
+```{r predict, echo = TRUE}
+# Predicted probabilities for pulp
+preds_pulp <- ggpredict(ord_model, terms = "pulp")
+plot(preds_pulp)
+
+# Predicted probabilities for hemoglobin
+preds_hemoglobin <- ggpredict(ord_model, terms = "hemoglobin")
+plot(preds_hemoglobin)
+
+# Predicted probabilities for systolic
+preds_systolic <- ggpredict(ord_model, terms = "systolic")
+plot(preds_systolic)
 ```
 
 ## Create distribution plots
@@ -190,62 +198,6 @@ flexplot(systolic ~ perforation.ord, data = df5, alpha = 0.6)
 p <- flexplot(pulp ~ perforation.ord, data = df5, alpha = 0.6)
 p <- p + ggtitle("PULP Score by Degree of Perforation")
 p
-```
-
-### Create prediction plots
-```{r predict, echo = TRUE}
-# Predicted probabilities for pulp
-preds_pulp <- ggpredict(ord_reg, terms = "pulp")
-# Build the plot with ggplot2 directly
-ggplot(preds_pulp, aes(x = x, y = predicted, color = response.level, group = response.level)) +
-  geom_line(size = 1.2) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = response.level, group = response.level),
-              alpha = 0.2,
-              color = NA) +
-  labs(
-    title = "Predicted Probability of Degree of Perforation by pulp",
-    x = "pulp",
-    y = "Predicted Probability",
-    color = "Outcome",
-    fill = "Outcome"
-  ) +
-  theme_minimal()
-
-
-# Predicted probabilities for hemoglobin
-preds_hemoglobin <- ggpredict(ord_reg, terms = "hemoglobin")
-# Build the plot with ggplot2 directly
-ggplot(preds_hemoglobin, aes(x = x, y = predicted, color = response.level, group = response.level)) +
-  geom_line(size = 1.2) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = response.level, group = response.level),
-              alpha = 0.2,
-              color = NA) +
-  labs(
-    title = "Predicted Probability of Degree of Perforation by pulp",
-    x = "pulp",
-    y = "Predicted Probability",
-    color = "Outcome",
-    fill = "Outcome"
-  ) +
-  theme_minimal()
-
-
-# Predicted probabilities for systolic
-preds_systolic <- ggpredict(ord_reg, terms = "systolic")
-# Build the plot with ggplot2 directly
-ggplot(preds_systolic, aes(x = x, y = predicted, color = response.level, group = response.level)) +
-  geom_line(size = 1.2) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = response.level, group = response.level),
-              alpha = 0.2,
-              color = NA) +
-  labs(
-    title = "Predicted Probability of Degree of Perforation by pulp",
-    x = "pulp",
-    y = "Predicted Probability",
-    color = "Outcome",
-    fill = "Outcome"
-  ) +
-  theme_minimal()
 ```
 
 

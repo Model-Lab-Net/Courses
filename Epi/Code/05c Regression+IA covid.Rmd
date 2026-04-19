@@ -41,8 +41,6 @@ pacman::p_load(
   lmtest,                 # do linear regression tests
   parameters,             # get standardized parameters/coefficients
   performance,
-  effectsize,
-  broom.helpers,
   GGally                  # to make a correlation matrix
               )
 # Install/load flexplot
@@ -51,7 +49,7 @@ if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/f
 
 ## Access the data
 ```{r read-data, echo = TRUE}
-# file <- "./covid.csv"     # 👈 use this if the file is on your computer
+#file <- "./EpiData/03 covid.rds"     # 👈 use this if the file is on your computer
 file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/03%20covid.rds"
 df_covid <- import(file, trust = TRUE)
 # show variable translations to Hebrew in lables
@@ -73,8 +71,6 @@ ggcorr(df_covid, label = TRUE)
 ```{r multi-reg, echo = TRUE}
 # Do a reduced linear regression (SLR) with chol as the dependent variable
 slr <- lm(symptoms ~ bmi, data = df_covid)
-tidy(slr, conf.int = TRUE)
-
 
 # Show results in a nice table
 slr_model <- slr %>%
@@ -104,13 +100,13 @@ mlr_model <- mlr %>%
 mlr_model
 
 # Lets check out the plot
-flexplot(symptoms ~ bmi + age + copd , data = df_covid, method = "lm")
+flexplot(symptoms ~ bmi + copd + age , data = df_covid, method = "lm")
 ```
 
 # Multi-variate regression model with interaction /2/
 ```{r multi-reg, echo = TRUE}
 # Do a MLR with interaction
-mlrIA <- lm(symptoms ~ bmi + copd + + age + bmi*copd, data = df_covid)
+mlrIA <- lm(symptoms ~ bmi + copd + bmi*copd, data = df_covid)
 
 # Show results in a nice table
 mlrIA_model <- mlrIA %>%
@@ -122,7 +118,7 @@ mlrIA_model <- mlrIA %>%
 mlrIA_model
 
 # Lets check out the plot
-flexplot(symptoms ~ bmi + age | copd  , data = df_covid, method = "lm")
+flexplot(symptoms ~ bmi + copd | age , data = df_covid, method = "lm")
 ```
 
 
@@ -367,18 +363,30 @@ attr(df_covid$copd, "label") <- "מחלת ראיה חסימתית"
 attr(df_covid$age, "label") <- "גיל"
 attr(df_covid$symptoms, "label") <- "עוצמת סימפטומים"
 
+
+# Convert 
 df_covid <- df_covid %>%
   mutate(
-    copd = factor(copd, levels = c(0, 1), labels = c("no", "yes")),
-    age  = factor(age) # Keeps the numbers but treats them as categories
+    # Convert age factor to double
+    age = case_when(
+      age == "<60" ~ 40,
+      age == "60+" ~ 65,
+      TRUE ~ NA_real_ 
+    ),
+    # Convert copd factor to double (0/1)
+    copd = case_when(
+      copd == "no"  ~ 0L,
+      copd == "yes" ~ 1L,
+      TRUE ~ NA_integer_
+    )
   )
 
-glimpse(df_covid)
+df_covid_1 <- df_covid
+glimpse(df_covid_1)
+saveRDS(df_covid_1, here("EpiData", "03 covid_1.rds"))
+
 
 labels <- NULL
 labels <- data.frame(Variable = names(df_covid), Label = unlist(var_label(df_covid)))
 gt(labels)
-
-saveRDS(df_covid, here("EpiData", "03 covid_1.rds"))
-
 ```

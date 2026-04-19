@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה לינארית 05   
-### date  : 13/07/2025
+### date  : 19/04/2026
 ###  
 ### נלמד לעשות רגרסיה לינארית פשוטה
 ###
@@ -99,8 +99,7 @@ pearson_result
 ## Linear regression parameter values with nice output
 ```{r slr-model, echo = TRUE}
 # use gtsummary to create a nice table
-slr_model <- slr %>%
-  tbl_regression(intercept = TRUE) %>%
+slr_model <- tbl_regression(slr, intercept = TRUE) %>%
   add_glance_table(include = c(
     nobs,
     r.squared,
@@ -113,19 +112,19 @@ slr_model <- slr %>%
   ))
 
 # Show the model results table
-slr_summary
+slr_model
 ```
 
 ## Old way to get scatter plot with regression model
 ```{r polt-regression, echo = TRUE}
 # use ggplot to show the scatter plot with regression line with linear model and confidence interval
-ggplot(df2, aes_string(x = x_var, y = y_var)) +
+ggplot(df2, aes(x = sbp, y = chol)) +
   geom_point() +
   geom_smooth(method = "lm", se = TRUE, color = "blue") + # Adding the trend line with linear model
   labs(
-    title = paste("Scatter Plot of", y_var, "vs", x_var),
-    x = x_var,
-    y = y_var
+    title = paste("Scatter Plot"),
+    #x = "sbp",
+    #y = "chol"
   ) +
   theme_minimal()
 ```
@@ -133,12 +132,12 @@ ggplot(df2, aes_string(x = x_var, y = y_var)) +
 ## Flexplot scatter plot and analysis
 ```{r polt-regression, echo = TRUE}
 # Plot the regression
-flexplot(f, data = df2, method = "lm", se = TRUE)
+flexplot(chol ~ sbp, data = df2, method = "lm", se = TRUE)
 
 # Analyze the residuals
 visualize(slr)
 
-# Get the model parameter values
+# Get the std parameter values
 estimates(slr)
 ```
 
@@ -148,13 +147,11 @@ estimates(slr)
 res <- residuals(slr)
 
 # Plot the residuals
-hist(res,
-  breaks = 20, main = "Histogram of Residuals",
+hist(res, breaks = 20, main = "Histogram of Residuals",
   xlab = "Residuals", col = "darkgrey"
 )
 
 # Q-Q plot
-qqnorm(res)
 qqline(res, col = "red")
 
 # Kolmogorov-Smirnov test  (Ho: residuals are normal)
@@ -187,11 +184,6 @@ acf(residuals(slr), main = "ACF of Residuals")
 # Run Durbin-Watson test  (Ho: no autocorelation)
 dw_result <- dwtest(slr)
 dw_result
-```
-
-## Calculate the standaradized parameters
-```{r std-parms , echo = TRUE}
-model_parameters(slr, standardize = "refit")
 ```
 
 

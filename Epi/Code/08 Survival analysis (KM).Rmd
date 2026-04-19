@@ -3,9 +3,12 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: הישרדות 08   Survival
-### date  : 13/07/2025
+### date  : 19/04/2026
 ###  
 ###  נלמד לבצע ניתוח שרידות
+###
+### source: https://bookdown.org/drki_musa/dataanalysis/survival-analysis-kaplan-meier-and-cox-proportional-hazard-ph-regression.html#kaplan-meier-survival-estimates
+
 
 ## Reset memory
 ```{r setup-packages, include = FALSE}

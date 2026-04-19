@@ -3,9 +3,11 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: סיכון יחסי 07  RR 
-### date  : 13/07/2025
+### date  : 19/04/2026
 ###  
-###  quasi רגרסיית פאוסון  
+###  quasi רגרסיית פאוסון 
+###
+### source: https://bookdown.org/drki_musa/dataanalysis/poisson-regression.html#quasi-poisson-regression-for-overdispersed-data 
 
 
 ## Reset memory
@@ -51,7 +53,8 @@ pacman::p_load(
   ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit 
   VGAM,                   # for multinomial logistic regression
   cardx,
-  epiDisplay             # For epi data type handling
+  epiDisplay,             # For epi data type handling
+  AER
             )
 # Install/load flexplot
 if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
@@ -77,26 +80,62 @@ epiDisplay::codebook(df6)
 ## Poisson regression multivariate model for quasi (when “mean equals variance” assumption is violated)
 ```{r read-data, echo=FALSE}
 ## Perform a "quasi"-poisson model
-qpr <- glm(attack ~ ., data = df6, family = "quasipoisson")
-summary(qpr)
-qpr_tbl <- tbl_regression(qpr, exponentiate = TRUE)
-qpr_tbl
+spr <- glm(attack ~ ., data = df6, family = "poisson")
+summary(spr)
+spr_model <- tbl_regression(spr, exponentiate = TRUE)
+spr_model
 ```
 
+## Poisson regression multivariate model for quasi (when “mean equals variance” assumption is violated)
+```{r read-data, echo=FALSE}
+## Perform a "quasi"-poisson model
+qpr <- glm(attack ~ ., data = df6, family = "quasipoisson")
+summary(qpr)
+qpr_model <- tbl_regression(qpr, exponentiate = TRUE)
+qpr_model
+```
 
+## Model diagnostics
+```{r mpr-logisitc-reg, echo = TRUE}
+dd <- datadist(df7)   ;   options(datadist = "dd")
+ord_model_ <- orm(perforation.ord ~ pulp + hemoglobin + systolic, data = df5)     # need this for model diagnostics. sorry.
+# NEW way
+AIC_val  <- as.numeric(AIC(qpr))                       # AIC
+r2_val   <- as.numeric(r2_nagelkerke(qpr))
+# Calculate Omnibus chi-square test for goodness of fit
+chi_sq <- qpr$null.deviance - qpr$deviance
+df_diff <- qpr$df.null - qpr$df.residual
+p_val <- pchisq(chi_sq, df = df_diff, lower.tail = FALSE) %>%
+                    format.pval(p_val, eps = 0.001) #%>% 
+                    #paste("p", ., sep = " ")
+
+# Add model diagnostics to table
+qpr_model %>%
+  as_gt() %>% # Convert to gt engine first
+  tab_source_note(
+    source_note = md(paste0(
+      "R² = ", round(r2_val, 3), "<br>",
+      "AIC = ", round(AIC_val, 0), "<br>",
+      "Omnibus test: p ", p_val
+    ))
+  )
+```
 
 ## Compare to simple Poisson regression
 ```{r simple-poisson-reg, echo = TRUE}
 # Do a univrariate Poisson regression - attack vs gender
-spr <- glm(ghq12 ~ ., data = df6, family = "poisson")
-spr_tbl <- tbl_regression(spr, exponentiate = TRUE)
-
-combined_tbl <- tbl_merge(
-  tbls = list(spr_tbl, qpr_tbl),
+tbl_merge(
+  tbls = list(spr_model, qpr_model),
   tab_spanner  = c("**SPR**", "**QPR**")
 ) %>%
   as_gt()
 combined_tbl
+```
+
+## Model comparison
+```{r mdodel-comparison, echo = TRUE}
+# Check all combinations to select "best" model
+model.comparison(spr, qpr)
 ```
 
 

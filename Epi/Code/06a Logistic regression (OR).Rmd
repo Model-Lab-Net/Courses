@@ -3,9 +3,11 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה לוגיסטית 06   
-### date  : 13/07/2025
+### date  : 19/04/2026
 ###  
 ###  נלמד לעשות רגסיה לוגיסטית
+###
+### https://bookdown.org/drki_musa/dataanalysis/binary-logistic-regression.html
 
 
 ## Reset memory
@@ -66,18 +68,20 @@ glimpse(df3)               # get an overview of the data
 ```{r clean-data, echo = TRUE}
 # Get summary statistics
 df3 %>%
-  tbl_summary(by = status) %>%
-  as_gt()
+  tbl_summary(by = status)
 ```
 
 ## Logistic regression
 ```{r logistic-reg, echo = TRUE}
 # Perform logistic regression
-log_reg <- glm(status ~ gcs, data = df3, family = binomial(link = "logit"))
-summary(log_reg)
+log_model <- glm(status ~ gcs, data = df3, family = binomial(link = "logit"))
+summary(log_model)
+```
 
-dd <- datadist(df3)   ;   options(datadist = "dd")
-log_reg_ <- lrm(status ~ gcs, data = df3)     # need this for model diagnostics. sorry.
+# Get "odds ratio"/OR
+```{r calc-log_OR, echo = TRUE}
+logistic_model <- tbl_regression(log_model, exponentiate = TRUE) 
+logistic_model
 ```
 
 ## Plot data and model
@@ -88,122 +92,72 @@ magnet_plot(status ~ gcs, data = df3, dot_size=3)
 logistic_overlay(status ~ gcs, data = df3, n_bins=13)
 ```
 
-# Calculate log(Odds Ratio)
-```{r calc-log_OR, echo = TRUE}
-log_reg_tbl <- tbl_regression(log_reg, exponentiate = FALSE) %>%
-  modify_header(estimate ~ "**log Odds**")
-log_reg_tbl
-```
-
-# Calculate Odds Ratio
-```{r calc-OR, include=FALSE}
-log_reg_OR <- tbl_regression(log_reg, exponentiate = TRUE) %>%
-  modify_header(estimate ~ "**Odds Ratio**")
-log_reg_OR
-```
-
 ## Model diagnostics
-```{r model-performance, echo = TRUE}
-# NEW way
-minus2LL <- -2 * as.numeric(logLik(log_reg))   # -2 Log Likelihood
-AIC_val  <- AIC(log_reg)                       # AIC
-r2_val   <- log_reg_$stats["R2"]               # R² (is multiple R², usually "R²" is Nagelkerke)
-chi_sq   <- log_reg_$stats["Model L.R."]       # Omnibus Chi-square (Likelihood Ratio Chi²)
-p_val    <- log_reg_$stats["P"]                # Omnibus test p-value (Likelihood Ratio Test)
+```{r model-diagnostics, echo = TRUE}
+dd <- datadist(df3)   ;   options(datadist = "dd")
+log_model_ <- lrm(status ~ gcs, data = df3)     # need this for model diagnostics. sorry.
+# minus2LL <- -2 * as.numeric(logLik(log_reg))   # -2 Log Likelihood
+AIC_val  <- as.numeric(AIC(log_model))                       # AIC
+r2_val   <- as.numeric(r2_nagelkerke(log_model))
+chi_sq   <- as.numeric(log_model_$stats["Model L.R."])       # Omnibus Chi-square (Likelihood Ratio Chi²)
+p_val    <- as.numeric(log_model_$stats["P"]  )              # Omnibus test p-value (Likelihood Ratio Test)
 
-#reg_summary_df <- data.frame(
-#  minus2LL = as.numeric(minus2LL),
-#  AIC      = as.numeric(AIC_val),
-#  R2       = as.numeric(r2_val),
-#  ChiSq    = as.numeric(chi_sq),
-#  p_value  = as.numeric(p_val)
-#)
-#reg_summary_df %>% gt()
-#
-#reg_summary_long <- reg_summary_df %>%
-#  pivot_longer(
-#    cols = everything(),
-#    names_to = "Metric",
-#    values_to = "Value"
-#  ) %>%
-#  mutate(Value = round(Value, 3))  # optional rounding
-#reg_summary_long %>% gt()
-```
-
-# Combine logOR and OR results with model diagnostics 
-```{r log_reg_tbl, echo = TRUE}
-combined_tbl <- tbl_merge(
-  tbls = list(log_reg_tbl, log_reg_OR),
-  tab_spanner = c("**log Odds**", "**Odds Ratio**") # Optional: Add spanning headers
-) %>%
-  as_gt() %>%
+# Add diagnostics to model table
+logistic_model <- logistic_model %>%
+  as_gt() %>% # Convert to gt engine first
   tab_source_note(
     source_note = paste0(
       "R² = ", round(r2_val, 3),
-      ", -2LL = ", round(minus2LL, 0),
       ",  AIC = ", round(AIC_val, 0),
       ",  χ² = ", round(chi_sq, 0),
       ",  p = ", round(p_val, 5)
     )
   )
 
-# Display the combined table
-combined_tbl
+logistic_model
 ```
 
-## Get better estimates using Flexplot
+## Get std estimates
 ```{r log_reg-est, echo = TRUE}
-estimates(log_reg)
+estimates(log_model_)
 ```
 
 ## Analyze the distribution of residuals
 ```{r residuals, echo = TRUE}
 # Residuals analysis
-visualize(log_reg)
-```
-
-## Get better estimates
-```{r residuals, echo = TRUE}
-# Residuals analysis
-estimates(log_reg)
-```
+visualize(log_model_)
+``` 
 
 ## Evalute model prediction
 ```{r log_reg-eval, echo = TRUE}
 # Calculate predicted probabilities and append to the df
-df3$predict.prob <- predict(log_reg, type="response")
+df3$predict.prob <- predict(log_model, type="response")
 df3$predict.class <- as.integer(df3$predict.prob > 0.5)
 glimpse(df3)
 
-# Get the "confusion_matrix"
-cm <- confusion_matrix(targets = df3$status, predictions = df3$predict.class)
-plot_confusion_matrix(cm)    # Plot the "confusion_matrix"
+# Get the "confusion_matrix" using cvms
+cfm <- confusion_matrix(targets = df3$status, predictions = df3$predict.class)
+plot_confusion_matrix(cfm)    # Plot the "confusion_matrix"
 
-# Get the "classification metrics"
-cm_metrics <- select_metrics(cm) %>%
+# Get the "classification metrics" using cvms
+cfm_metrics <- select_metrics(cfm) %>%
   # convert all columns to numeric (if needed)
   #mutate(across(everything(), as.numeric)) %>%
   # pivot to long format directly
   pivot_longer(
-    cols = everything(),
-    names_to = "Metric",
-    values_to = "Value"
-  ) %>%
-  # round numeric values
-  mutate(Value = round(Value, 3))
+    cols = everything()
+    #names_to = "Metric",
+    #values_to = "Value"
+  )
 
-cm_metrics
+cfm_metrics
 
 # Display in a nice table
-cm_metrics %>%
-  gt() 
-```
-
-## Hosmer-Lemeshow test for GOF
-```{r HL-test, echo=FALSE}
-# Get the Hosmer–Lemeshow test using generalhoslem
-hl_test <- logitgof(df3$status, df3$predict.prob, g=10)
-hl_test
+cfm_metrics %>%
+  gt() %>%
+  fmt_number(
+    decimals = 3
+  )
 ```
 
 ## ROC curve and AUC
@@ -219,6 +173,17 @@ roc_obj <- roc(response = df3$status,
                print.auc = TRUE,
                main = "ROC Curve",
                font = 2)
+```
+
+## Hosmer-Lemeshow test for GOF
+## WE WILL NOT USE THIS - IT IS BAD!!!
+## small sample = it lacks the power to detect poor fit
+## large sample size = it will almost always be significant
+## but just in case....
+```{r HL-test, echo=FALSE}
+# Get the Hosmer–Lemeshow test using generalhoslem
+hl_test <- logitgof(df3$status, df3$predict.prob, g=10)
+hl_test
 ```
 
 

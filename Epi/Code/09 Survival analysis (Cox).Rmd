@@ -3,11 +3,11 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: 09 רגרסיית Cox regression
-### date  : 13/07/2025
+### date  : 119/04/2026
 ###  
 ###  Cox נלמד לבצע ניתוח הישרדות באמצעות רגרסיית 
 ###
-### source:  https://bookdown.org/drki_musa/dataanalysis/survival-analysis-kaplan-meier-and-cox-proportional-hazard-ph-regression.html#semi-parametric-models-in-survival-analysis
+### source:  https://bookdown.org/drki_musa/dataanalysis/survival-analysis-kaplan-meier-and-cox-proportional-hazard-ph-regression.html#estimation-from-cox-proportional-hazards-regression
 
 
 ## Reset memory
@@ -90,41 +90,24 @@ df8 <- df8 %>%
 ```
 
 ## Simple Cox regession model
-```{r cox-reg, echo = TRUE}
-# Cox regression
-cox_reg <- 
-  coxph(Surv(time = time2, 
+```{r cox-model, echo = TRUE}
+cox <- coxph(Surv(time = time2, 
              event = status == 'dead') ~ stroke.type,
                      data = df8)
-summary(cox_reg)
+summary(cox)
 ```
 
-## Calculate Hazard ratios and display
-```{r hz, echo = TRUE}
-# Calculate log Hazard using gtsummary
-log_hz <- cox_reg %>%
-  tbl_regression(exp = FALSE)  # exp = FALSE shows log hazard ratios
+## Caclulate ratio in nice table
+```{r cox-reg, echo = TRUE}
+cox_model <- tbl_regression(cox, exponentiate = TRUE) 
+cox_model
+```
 
-# Calculate Crude Hazard using gtsummary
-crude_hz <- cox_reg %>%
-  tbl_regression(exp = TRUE)  # exp = TRUE shows hazard ratios
+## Model diagnosics
+```{r model-diag, echo = TRUE}
 
-# Display results
-hz_combined_tbl <- tbl_merge(
-  tbls = list(log_hz, crude_hz),
-  tab_spanner = c("**log Hazard**", "**Crude Hazard**")
-)  
 
-#%>% 
-#  as_gt() %>%
-#  tab_source_note(
-#    source_note = paste0("R² = ", round(r2_valm,3),
-#                         ",  -2LL = ", round(minus_2LL_mlog_reg, 0), 
-#                         ",  AIC = ", round(AIC(mlog_reg), 0)
-#                        )
-#  )
 
-hz_combined_tbl
 ```
 
 ## Cox hazard plot
@@ -134,15 +117,14 @@ newdata <- df8 %>%
   distinct(stroke.type) %>%
   arrange(stroke.type)
 
-surv_fit <- survfit(cox_reg, newdata = newdata)
+surv_fit <- survfit(cox, data = newdata)
 
-ggsurvplot(
-  surv_fit,
-  data = df8,
-  pval = TRUE,
-  legend.title = "Stroke Type",
-  title = "Survival Curves by Stroke Type"
-)
+ggsurvplot( surv_fit,
+            data = df8,
+            pval = TRUE,
+            legend.title = "Stroke Type",
+            title = "Survival Curves by Stroke Type"
+          )
 
 # Fit the survival object
 #surv_obj <- with(df8, Surv(time2, stroke.type == "dead"))
@@ -161,63 +143,56 @@ ggsurvplot(
 ## Multi-variate Cox regression model
 ```{r read-data, echo = TRUE}
 # Perform the Cos regression on multple variables
-cox_mreg <-
-  coxph(Surv(time = time2, 
+mcox <-coxph(Surv(time = time2, 
              event = status == 'dead') ~ stroke.type +  gcs + referral.from, 
-        data = df8)
+             data = df8)
 
 # get results for Crude Hazard
-cox_cr_table <- tbl_regression(cox_mreg)
-
-# get for Hazard Ration (HR)
-cox_hr_tbl <- tbl_regression(cox_mreg, exponentiate = TRUE)
-# Combine them side by side
-combined_tbl <- tbl_merge(
-  tbls = list(cox_cr_table, cox_hr_tbl),
-  tab_spanner = c("**Log Hazard**", "**Hazard Ratio**")
-)  
-combined_tbl
+mcox_model <- tbl_regression(mcox, exponentiate = TRUE)
+mcox_model
 ```
 
 ## Test with respect to stroke.type and refereal.form
 ```{r read-data, echo = TRUE}
-# Perform the Cos regression on multple variables
+# Perform the Cox regression on multple variables
 cox_mreg_test <-
   coxph(Surv(time = time2, 
              event = status == 'dead') ~ stroke.type + referral.from , 
         data = df8)
 
 # Do ANOVA
-anova(cox_mreg_test, cox_mreg, test = 'Chisq')
+anova(cox, mcox, test = 'Chisq')
 ```
 
 ### Model perforamnce
 ```{r read-data, echo = TRUE}
-# -2LL
-minus_2LL_cox <- -2 * as.numeric(logLik(cox_mreg))
-# AIC
-AIC_cox <- extractAIC(cox_mreg)
-
-
+# minus_2LL_cox <- -2 * as.numeric(logLik(cox_mreg))
+AIC_cox <- extractAIC(mcox)
 # Assumptions - Schoenfeld_test
 #             - test Ho: constant regression coefficients
 #             - p>0.05 = risks are proportional over time
-schoenfeld_test <- cox.zph(cox_mreg)
+schoenfeld_test <- cox.zph(mcox)
 schoenfeld_test
 
 plot(schoenfeld_test)
 ```
 
+
+### -------------------------------------
+
+
+
 ## Multi-variate Cox regression model with interaction term
 ```{r read-data, echo = TRUE}
 # Perform the Cos regression on multple variables
-cox_mreg_ia <-
+mcox_ia <-
   coxph(Surv(time = time2, 
-             event = status == 'dead') ~ gcs + stroke.type + stroke.type:gcs , 
-        data = df8)
+             event = status == 'dead') ~ gcs + stroke.type + stroke.type*gcs , 
+            data = df8
+        )
 
-cox_mreg_ia_tbl <- tbl_regression(cox_mreg_ia)
-cox_mreg_ia_tbl
+mcox_ia_model <- tbl_regression(mcox_ia)
+mcox_ia_model
 ```
 
 

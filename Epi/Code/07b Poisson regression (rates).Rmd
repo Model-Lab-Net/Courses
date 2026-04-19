@@ -3,10 +3,11 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: סיכון יחסי 07  Rates 
-### date  : 13/07/2025
+### date  : 19/04/2026
 ###  
 ###  rates רגרסיית פאוסון - היערות
 ###
+### source: https://bookdown.org/drki_musa/dataanalysis/poisson-regression.html#poisson-regression-for-rate
 
 
 ## Reset memory
@@ -52,7 +53,8 @@ pacman::p_load(
   ResourceSelection,      # For Hosmer-Lemeshow test for goodness of fit 
   VGAM,                   # for multinomial logistic regression
   cardx,
-  epiDisplay             # For epi data type handling
+  epiDisplay,             # For epi data type handling
+  AER
             )
 # Install/load flexplot
 if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
@@ -84,22 +86,40 @@ flexplot(case ~ 1, data = df7)
 ## A simple Poisson regression univariate model for rates
 ```{r read-data, echo = TRUE}
 # read the data in a file online
-spr <- glm(case ~ cigar.day, data = df7, family = "poisson", offset = log(person.yrs))
+spr <- glm(case ~ cigar.day,
+           data = df7,
+           family = "poisson",
+           offset = log(person.yrs))
 summary(spr)
+
+spr_model <- tbl_regression(spr, exponentiate = TRUE)
+spr_model
 ```
 
 ##  Poisson multivariate regression model for rates
 ```{r poisson-multi-reg, echo = TRUE}
 # read the data in a file online
-mpr <- glm(case ~ cigar.day + smoke.yrs, data = df7, family = "poisson", offset = log(person.yrs))    # the "." uses all the other variables
+mpr <- glm(case ~ cigar.day + smoke.yrs,
+           data = df7,
+           family = "poisson",
+           offset = log(person.yrs))    # the "." uses all the other variables
 summary(mpr)
+
+mpr_model <- tbl_regression(mpr, exponentiate = TRUE)
+mpr_model
 ```
 
 ## Multiple Poisson regression with interaction for rates
 ```{r poisson-multi-reg-ia, echo = TRUE}
 # read the data in a file online
-mpr_ia <- glm(case ~ cigar.day*smoke.yrs, data = df7, family = "poisson", offset = log(person.yrs))
+mpr_ia <- glm(case ~ cigar.day * smoke.yrs,
+              data = df7,
+              family = "poisson", 
+              offset = log(person.yrs))
 summary(mpr_ia)
+
+mpr_ia_model <- tbl_regression(mpr_ia, exponentiate = TRUE)
+mpr_ia_model
 ```
 
 ## Model fit and performance
@@ -107,9 +127,9 @@ summary(mpr_ia)
 #Scaled Pearson chi-square statistic
 
 # Chi-square goodness-of-fit
-epiDisplay::poisgof(mpr)
+epiDisplay::poisgof(mpr_ia)
 # AIC
-AIC(mpr)
+AIC(mpr_ia)
 ```
 
 
@@ -117,13 +137,44 @@ AIC(mpr)
 ```{r mdodel-comparison, echo = TRUE}
 # Compare models
 model.comparison(spr, mpr)
+model.comparison(spr, mpr_ia)
 model.comparison(mpr, mpr_ia)
 ```
 
-## Show summary
-```{r read-data, echo = TRUE}
-tbl_regression(mpr, exponentiate = TRUE)
-round(summary(mpr)$coefficients, 2)
+## Model diagnostics
+```{r mpr-logisitc-reg, echo = TRUE}
+dd <- datadist(df7)   ;   options(datadist = "dd")
+ord_model_ <- orm(perforation.ord ~ pulp + hemoglobin + systolic, data = df5)     # need this for model diagnostics. sorry.
+# NEW way
+AIC_val  <- as.numeric(AIC(mpr))                       # AIC
+r2_val   <- as.numeric(r2_nagelkerke(mpr))
+# Test dspersion
+dt_p <- dispersiontest(mpr)$p.value %>%
+                    format.pval(dt_p, eps = 0.001) #%>% 
+                    #paste("p", ., sep = " ")
+dt <- as.numeric(dispersiontest(mpr)$estimate) 
+# Test dspersion
+zi_check <- check_zeroinflation(mpr)
+
+# Calculate Omnibus chi-square test for goodness of fit
+chi_sq <- mpr$null.deviance - mpr$deviance
+df_diff <- mpr$df.null - mpr$df.residual
+p_val <- pchisq(chi_sq, df = df_diff, lower.tail = FALSE) %>%
+                    format.pval(p_val, eps = 0.001) #%>% 
+                    #paste("p", ., sep = " ")
+
+# Add model diagnostics to table
+mpr_model %>%
+  as_gt() %>% # Convert to gt engine first
+  tab_source_note(
+    source_note = md(paste0(
+      "R² = ", round(r2_val, 3), "<br>",
+      "AIC = ", round(AIC_val, 0), "<br>",
+      "Dispersion test = ", round(dt, 1), 
+      ",     p  ", dt_p, "<br>",
+      "Omnibus test: p ", p_val
+    ))
+  )
 ```
 
 

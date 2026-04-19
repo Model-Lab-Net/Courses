@@ -2,8 +2,8 @@
 ### name  : __________________
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
-### lesson: בדיקת השערות 02-04   
-### date  : 13/07/2025
+### lesson: בדיקת השערות 04   
+### date  : 22/02/2026
 ###  
 ###  נלמד לבצע סטטיטסיקה הסקתית ומבחני השערות
 
@@ -37,6 +37,7 @@ pacman::p_load(
   summarytools,           # to get a table of all summary statistics
   car,                    # For Levene's test and ANOVA
   dunn.test,              # For a Krutal-Wallis post-hoc test
+  finalfit                # to get 2x2 crosstables and calculations
               )
 # Install/load flexplot
 if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
@@ -56,13 +57,11 @@ glimpse(df_bc)               # get an overview of the data
 ## Crosstables, Chi-Square and Fisher Exact tests
 ```{r chi-square, echo = TRUE}
 # Create cross-tabulation with chi-square test
-tbl_cross(data = df_bc, row = rt, col = lvi,
-          missing = "no",                                               # Ignore missing values
-          percent = "cell"                                              # Row percentages (use "column" or "cell" if needed)
-         ) %>%
-         add_p(test = "chisq.test", test.args = list(correct = TRUE),   # do a chi-square test (replace with fisher.test if needed)
-         pvalue_fun = ~formatC(., digits = 3, format = "f")             # round p-value to 3 digits
-         )
+crosstable <- df_bc %>% # nolint
+  finalfit("recurrence", "lvi")
+
+crosstable %>%
+  gt()
 ```
 
 ## T test for independent samples

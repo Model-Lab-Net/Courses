@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: סטטיסטיקה תאורית וניתוח בסיסי 02-03   
-### date  : 13/07/2025
+### date  : 22/002/2026
 ###  
 ###  נלמד לבצע ניתוח סטטיסטי פשוט
 
@@ -75,7 +75,7 @@ stats_tbl <- stats %>%
   )
 
 # Display the table
-stats_tbl <- NULL
+stats_tbl
 ```
 
 ## Test normality on the raw data (Ho: data are normal dist)
@@ -222,10 +222,41 @@ crosstable %>%
 #chisq.test(x = df1$fever, y = df1$outcome)
 # Chi-Fisher Exact test
 #fisher.test(x = df1$fever, y = df1$outcome)
-
 ```
 
 
+## Crosstable example (smoking)
+```{r chi-square, echo = TRUE}
+# Create cross-tabulation/contigency table (with chi-square test)
+df_smoking <- data.frame(
+  Gender = c("Male", "Male", "Female", "Female"),
+  SmokingStatus = c("Smoker", "Non-Smoker", "Smoker", "Non-Smoker"),
+  Count = c(40, 60, 20, 80)
+ )
+df_smoking <- df_smoking %>% 
+  uncount(Count) %>%
+  mutate(
+      SmokingStatus = factor(SmokingStatus, levels = c("Non-Smoker", "Smoker")),
+      Gender = factor(Gender)
+    )
+glimpse(df_smoking)
+
+# Or an easier way....
+crosstable <- df_smoking %>%
+  finalfit("SmokingStatus", "Gender")
+
+crosstable %>%
+  gt()
+
+
+df_smoking %>%
+  tbl_summary(
+    by = SmokingStatus,                               # Split columns by Smoking Status
+    statistic = list(all_categorical() ~ "{p}%"),    # ONLY percentages
+    digits = all_categorical() ~ 1
+  ) %>%
+  add_p(test = all_categorical() ~ "chisq.test") %>% # Add Chi-square
+  add_odds_ratio(outcome = SmokingStatus)           # Add Odds Ratio
 
 ### -------------------------------------------------
 ## תרגול-עצמי
