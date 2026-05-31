@@ -73,7 +73,7 @@ ggcorr(df_covid, label = TRUE)
 ```{r multi-reg, echo = TRUE}
 # Do a reduced linear regression (SLR) with chol as the dependent variable
 slr <- lm(symptoms ~ bmi, data = df_covid)
-tidy(slr, conf.int = TRUE)
+summary(slr, conf.int = TRUE)
 
 
 # Show results in a nice table

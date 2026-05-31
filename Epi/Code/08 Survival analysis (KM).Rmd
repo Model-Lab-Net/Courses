@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: הישרדות 08   Survival
-### date  : 19/04/2026
+### date  : 31/05/2026
 ###  
 ###  נלמד לבצע ניתוח שרידות
 ###
@@ -171,12 +171,7 @@ KM_table %>%
 ## Kaplan-Meier survival curve
 ```{r read-data, echo = TRUE}
 # estimate the survival probabilities for all patients
-KM_all_plot <- ggsurvplot(KM_all, 
-           data = df8, 
-           risk.table = TRUE, 
-           linetype = c(1,4),
-           tables.height = 0.3,
-           pval = TRUE)
+KM_all_plot <- ggsurvplot(KM_all, data = df8)
 
 KM_all_plot
 # *** You may need to zoom out ***
@@ -190,8 +185,8 @@ KM_all_plot
 ```{r km-surv-strat, echo = TRUE}
 # estimate the survival probabilities for stroke type
 KM_str <- survfit(Surv(time = time2, 
-                             event = status == "dead" ) ~ stroke.type, 
-                        data = df8)
+                       event = status == "dead" ) ~ stroke.type, 
+                       data = df8)
 summary(KM_str)
 ```
 
@@ -200,10 +195,10 @@ summary(KM_str)
 # estimate the survival probabilities for all patients
 KM_str_plot <- ggsurvplot(KM_str, 
            data = df8, 
-           risk.table = TRUE, 
-           linetype = c(1,4),
-           tables.height = 0.3,
-           #conf.int = 0.95,
+           #risk.table = TRUE, 
+           #linetype = c(1,4),
+           #tables.height = 0.3,
+           conf.int = 0.95,
            pval = TRUE)
 
 KM_str_plot
@@ -219,14 +214,6 @@ log_rank_stroke <- survdiff(Surv(time = time2,
          data = df8,
          rho = 0)
 log_rank_stroke
-
-
-log_rank_diabetes <- survdiff(Surv(time = time2, 
-              event = status == "dead") ~ dm, 
-         data = df8,
-         rho = 0)
-
-log_rank_diabetes
 ```
 
 ## Compare strata another way
@@ -238,14 +225,6 @@ log_rank_stroke <- survdiff(Surv(time = time2,
          data = df8,
          rho = 1)
 log_rank_stroke
-
-# Test if survival estimates are different between levels/groups
-log_rank_dm <- survdiff(Surv(time = time2, 
-              event = status == "dead") ~ dm, 
-         data = df8,
-         rho = 1)
-
-log_rank_dm
 ```
 
 

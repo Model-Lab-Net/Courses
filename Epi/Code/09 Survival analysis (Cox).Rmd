@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: 09 רגרסיית Cox regression
-### date  : 119/04/2026
+### date  : 31/05/2026
 ###  
 ###  Cox נלמד לבצע ניתוח הישרדות באמצעות רגרסיית 
 ###
@@ -73,22 +73,6 @@ labels <- data.frame(Variable = names(df8), Label = unlist(var_label(df8)))   ; 
 glimpse(df8)               # get an overview of the data
 ```
 
-## Clean the data
-```{r read-data, echo = TRUE}
-# Clean up variable names
-df8 <- clean_names(df8)
-names(df8) <- gsub("_", ".", names(df8))
-
-# convert the variable doa and variable doa to a more valid format (date format)
-df8 <- 
-  df8 %>%
-  mutate(doa = dmy(doa),
-         dod = dmy(dod))
-
-df8 <- df8 %>%
-  mutate(status = fct_relevel(status, "alive"))
-```
-
 ## Simple Cox regession model
 ```{r cox-model, echo = TRUE}
 cox <- coxph(Surv(time = time2, 
@@ -155,10 +139,11 @@ mcox_model
 ## Test with respect to stroke.type and refereal.form
 ```{r read-data, echo = TRUE}
 # Perform the Cox regression on multple variables
-cox_mreg_test <-
+cox_test <-
   coxph(Surv(time = time2, 
              event = status == 'dead') ~ stroke.type + referral.from , 
         data = df8)
+cox_test
 
 # Do ANOVA
 anova(cox, mcox, test = 'Chisq')
@@ -167,7 +152,14 @@ anova(cox, mcox, test = 'Chisq')
 ### Model perforamnce
 ```{r read-data, echo = TRUE}
 # minus_2LL_cox <- -2 * as.numeric(logLik(cox_mreg))
-AIC_cox <- extractAIC(mcox)
+AIC_cox <- extractAIC(cox)
+AIC_mcox <- extractAIC(mcox)
+AIC_cox
+AIC_mcox
+```
+
+### Model diagnostics
+```{r read-data, echo = TRUE}
 # Assumptions - Schoenfeld_test
 #             - test Ho: constant regression coefficients
 #             - p>0.05 = risks are proportional over time
