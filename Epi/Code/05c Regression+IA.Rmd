@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה לינארית 05   
-### date  : 19/08/2025
+### date  : 09/08/2026
 ###  
 ###  נלמד לעשות רגסיה עם אינטראקציה
 ###
@@ -40,9 +40,7 @@ pacman::p_load(
   car,                    # For Levene's test and ANOVA
   lmtest,                 # do linear regression tests
   parameters,             # get standardized parameters/coefficients
-  performance,
-  effectsize,
-  broom.helpers,
+  performance,            # get diagnosticsa and model performance
   GGally                  # to make a correlation matrix
               )
 # Install/load flexplot
@@ -110,7 +108,7 @@ flexplot(symptoms ~ bmi + age + copd , data = df_covid, method = "lm")
 # Multi-variate regression model with interaction /2/
 ```{r multi-reg, echo = TRUE}
 # Do a MLR with interaction
-mlrIA <- lm(symptoms ~ bmi + copd + + age + bmi*copd, data = df_covid)
+mlrIA <- lm(symptoms ~ bmi + copd + age + bmi*copd, data = df_covid)
 
 # Show results in a nice table
 mlrIA_model <- mlrIA %>%
@@ -132,29 +130,90 @@ flexplot(symptoms ~ bmi + age | copd  , data = df_covid, method = "lm")
 model.comparison(slr, mlr)
 model.comparison(slr, mlrIA)
 model.comparison(mlr, mlrIA)
+
+
+## -----------------
+
+model_comparison <- compare_performance(
+  slr,
+  mlr,
+  mlrIA
+)
+model_comparison
+
+# Sequential model comparisons
+a <- anova(slr, mlr, mlrIA)
+
+# Extract p-values
+p_values <- c(
+  NA,
+  a$`Pr(>F)`[2],
+  a$`Pr(>F)`[3]
+)
+
+# Display in a nice table
+model_comparison %>%
+  as.data.frame() %>%
+  select(Name, R2_adjusted, RMSE, AICc) %>%
+  mutate(p_value = p_values) %>%
+  gt() %>%
+  fmt_number(
+    columns = where(is.numeric),
+    n_sigfig = 3
+  ) 
 ```
 
 
 ## Diagnostics  (Ho: residuals are normal)
 ```{r residuals, echo = TRUE}
-# Get nmodel residuals
-res <- residuals(mlrIA)
-# Do the tests:
-sw_test <- shapiro.test(residuals(mlr))$p.value       # Shapiro-Wilkn for normality
-ks_test <- nortest::lillie.test(res)$p.value                     # do _NOT_ use Kolmogorov–Smirnov test!!!
-bp_test <- bptest(mlr)$p.value                        # Breusch-Pagan for heteroscedacity
-dw_test <- dwtest(mlr)$p.value                      # Durbin-Watson test for autocorelation
+# Chhose the best model
+model_diag <- mlrIA
+# Run the diagnostics
+sw <- check_normality(model_diag)                # Shapiro-Wilk for normality
+bp <- check_heteroscedasticity(model_diag)       # Breusch-Pagan for heteroscedacity
+dw <- check_autocorrelation(model_diag)          # Durbin-Watson test for autocorelation
+vif <- check_collinearity(model_diag)            # Mullticolinearity
 
 # Add these to the model summary table
 mlrIA_model %>%
   as_gt() %>% # Convert to gt engine first
   tab_source_note(
     source_note = html(sprintf(
-      "Shapiro-Wilk (Normality): p = %.3f <br>
+      "Shapiro-Wilk (Normality):⠀⠀⠀⠀⠀⠀⠀ p = %.3f <br>
        Breusch-Pagan (Heteroscedasticity): p = %.3f <br>
-       Durbin-Watson (Autocorrelation): p = %.3f", 
-      sw_test, bp_test, dw_test
+       Durbin-Watson (Autocorrelation): ⠀ p = %.3f", 
+      sw, bp, dw
     ))
+  )
+
+vif %>%
+  as.data.frame() %>%
+  select(Term, VIF) %>%
+  mutate(
+    Correlation = case_when(
+      VIF < 5 ~ "Low ",
+      VIF < 10 ~ "Moderate",
+      TRUE ~ "High"
+    )
+  ) %>%
+  gt() %>%
+  fmt_number(
+    columns = where(is.numeric),
+    decimals = 1
+  )
+```
+
+## Get the standardized parameter values
+```{r std-parms, echo = TRUE}
+model_std <- model_parameters(mlrIA, standardize = "refit")
+
+model_std %>%
+  as.data.frame() %>%
+  select(Parameter, beta = Coefficient, CI_low, CI_high, p) %>%
+  gt() %>%
+  fmt_number(
+    #columns = c(Coefficient, SE, CI_low, CI_high),
+    decimals = 3
   )
 ```
 

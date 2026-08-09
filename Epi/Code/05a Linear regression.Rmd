@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה לינארית 05   
-### date  : 19/04/2026
+### date  : 09/08/2026
 ###  
 ### נלמד לעשות רגרסיה לינארית פשוטה
 ###
@@ -39,7 +39,9 @@ pacman::p_load(
   summarytools,           # to get a table of all summary statistics
   car,                    # For Levene's test and ANOVA
   lmtest,                 # do linear regression tests
-  parameters              # get standardized parameters/coefficients
+  parameters,             # get standardized parameters/coefficients
+  car,                    #
+  forecast                # get ACF plot
               )
 # Install/load flexplot
 if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
@@ -133,18 +135,12 @@ ggplot(df2, aes(x = sbp, y = chol)) +
 ```{r polt-regression, echo = TRUE}
 # Plot the regression
 flexplot(chol ~ sbp, data = df2, method = "lm", se = TRUE)
-
-# Analyze the residuals
-visualize(slr)
-
-# Get the std parameter values
-estimates(slr)
 ```
 
 ## Test for normal distribution of model residuals
 ```{r residuals, echo = TRUE}
-# Get nmodel residuals
-res <- residuals(slr)
+# Analyze the residuals
+visualize(slr)
 
 # Plot the residuals
 hist(res, breaks = 20, main = "Histogram of Residuals",
@@ -152,38 +148,27 @@ hist(res, breaks = 20, main = "Histogram of Residuals",
 )
 
 # Q-Q plot
-qqline(res, col = "red")
+qqPlot(slr) 
 
-# Kolmogorov-Smirnov test  (Ho: residuals are normal)
-ks_test_result <- ks.test(res, "pnorm", mean = mean(res), sd = sd(res))
-ks_test_result
+# Run  test  (Ho: residuals are normal)
+sw <- check_normality(slr)
+sw
 ```
 
 ## Test for homoscedacity
 ```{r homoscedacity, echo = TRUE}
-# Plot Residuals vs. Fitted Values Plot
-# (homoscedacity = scattered randomly around the horizontal line)
-# (heteroscedacity = Patterns like a funnel shape (wider spread at higher/lower fitted values), curves, or systematic trends)
-# plot(slr$fitted.values, residuals(slr),
-#  main = "Residuals vs. Fitted Values",
-#  xlab = "Fitted Values",
-#  ylab = "Residuals"
-#)
-# abline(h = 0, col = "red", lty = 2) # Add horizontal line at y = 0
-
-# Run Breusch-Pagan test  (Ho: no heteroscedacity)
-bp_test <- bptest(slr)
-bp_test
+# Run Breusch-Pagan test  (Ho: no autocorelation)
+bp <- check_heteroscedasticity(slr)
+bp
 ```
 
 ## Test for autocorrelation 
 ```{r autocorrelation , echo = TRUE}
 # Plot ACF residuals
-acf(residuals(slr), main = "ACF of Residuals")
+Acf(residuals(slr))
 
 # Run Durbin-Watson test  (Ho: no autocorelation)
-dw_result <- dwtest(slr)
-dw_result
+dw <- check_autocorrelation(mlr)
 ```
 
 

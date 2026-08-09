@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה לינארית 05   
-### date  : 12/04/2026
+### date  : 07/08/2026
 ###  
 ### multivariate נלמד לעשות רגרסיה לינארית מרובת משתנים
 ###
@@ -40,7 +40,7 @@ pacman::p_load(
   car,                    # For Levene's test and ANOVA
   lmtest,                 # do linear regression tests
   parameters,             # get standardized parameters/coefficients
-  performance,
+  performance,            # get diagnosticsa and model performance
   GGally                  # to make a correlation matrix
               )
 # Install/load flexplot
@@ -63,6 +63,30 @@ glimpse(df2)               # get an overview of the data
 slr <- lm(chol ~ sbp, data = df2)
 # print the summary of the simple linear regression
 summary(slr)
+
+# use gtsummary to create a nice table
+slr_model <- tbl_regression(slr, intercept = TRUE) %>%
+  add_glance_table(include = c(
+    nobs,
+    r.squared,
+    adj.r.squared,
+    statistic,
+    sigma,
+    logLik,
+    AIC,
+    p.value
+  ))
+# Show the model results table
+slr_model
+```
+
+## Flexplot scatter plot and analysis
+```{r polt-regression, echo = TRUE}
+# Plot the regression
+flexplot(chol ~ sbp, data = df2, method = "lm", se = TRUE)
+
+# Analyze the residuals
+visualize(slr)
 ```
 
 ## Correlation matrix
@@ -70,42 +94,45 @@ summary(slr)
 ggcorr(df2, label = TRUE)
 ```
 
-## Multivariate linear regression model
-```{r mlr, echo = TRUE}
+## Multi-variate linear regression model
+```{r slr, echo = TRUE}
 # Perform a Simple Linear Regression
 mlr <- lm(chol ~ sbp + race + bmi + age + dbp, data = df2)
 # print the summary of the simple linear regression
 summary(mlr)
-```
 
-## Model parameter values with nice output
-```{r slr-model, echo = TRUE}
+# use gtsummary to create a nice table
 mlr_model <- tbl_regression(mlr, intercept = TRUE) %>%
-  add_glance_source_note(
-    include = c(r.squared, adj.r.squared, AIC, p.value)
-  )
+  add_glance_table(include = c(
+    nobs,
+    r.squared,
+    adj.r.squared,
+    #statistic,
+    #sigma,
+    #logLik,
+    AIC,
+    p.value
+  ))
 
+# Show the model results table
 mlr_model
 ```
 
 ## Flexplot scatter plot and analysis
 ```{r polt-regression, echo = TRUE}
 # Plot the regression
-flexplot(chol ~ dbp + bmi | age + race, data = df2, method = "lm", se = TRUE)
+flexplot(chol ~ sbp + race + bmi + age + dbp, data = df2, method = "lm", se = TRUE)
 
 # Analyze the residuals
 visualize(mlr)
 ```
 
 ## Diagnostics  (Ho: residuals are normal)
-```{r residuals, echo = TRUE}
-# Get nmodel residuals
-res <- residuals(mlr)
-# Do the tests:
-sw_test <- shapiro.test(res)$p.value       # Shapiro-Wilkn for normality
-ks_test <- nortest::lillie.test(res)$p.value                     # do _NOT_ use Kolmogorov–Smirnov test!!!
-bp_test <- bptest(mlr)$p.value                        # Breusch-Pagan for heteroscedacity
-dw_test <- dwtest(mlr)$p.value                      # Durbin-Watson test for autocorelation
+```{r polt-regression, echo = TRUE}
+sw <- check_normality(mlr)                # Shapiro-Wilk for normality
+bp <- check_heteroscedasticity(mlr)       # Breusch-Pagan for heteroscedacity
+dw <- check_autocorrelation(mlr)          # Durbin-Watson test for autocorelation
+vif <- check_collinearity(mlr)            # mullticolinearity (<5 low, >10 high)
 
 # Add these to the model summary table
 mlr_model %>%
@@ -115,15 +142,43 @@ mlr_model %>%
       "Shapiro-Wilk (Normality): p = %.3f <br>
        Breusch-Pagan (Heteroscedasticity): p = %.3f <br>
        Durbin-Watson (Autocorrelation): p = %.3f", 
-      sw_test, bp_test, dw_test
+      sw, bp, dw
     ))
+  )
+
+vif %>%
+  as.data.frame() %>%
+  select(Term, VIF) %>%
+  mutate(
+    Correlation = case_when(
+      VIF < 5 ~ "Low ",
+      VIF < 10 ~ "Moderate",
+      TRUE ~ "High"
+    )
+  ) %>%
+  gt() %>%
+  fmt_number(
+    columns = where(is.numeric),
+    decimals = 1
   )
 ```
 
 ## Get the std parameter values
 ```{r std-parms, echo = TRUE}
-estimates(mlr)
+model_std <- model_parameters(mlr, standardize = "refit")
+
+model_std %>%
+  as.data.frame() %>%
+  select(Parameter, beta = Coefficient, CI_low, CI_high, p) %>%
+  gt() %>%
+  fmt_number(
+    #columns = c(Coefficient, SE, CI_low, CI_high),
+    decimals = 3
+  )
 ```
+
+
+
 
 ### -------------------------------------------------
 ## תרגול-עצמי

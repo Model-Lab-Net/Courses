@@ -133,13 +133,9 @@ model.comparison(mlr, mlrIA)
 
 ## Diagnostics  (Ho: residuals are normal)
 ```{r residuals, echo = TRUE}
-# Get nmodel residuals
-res <- residuals(mlrIA)
-# Do the tests:
-sw_test <- shapiro.test(residuals(mlr))$p.value       # Shapiro-Wilkn for normality
-ks_test <- nortest::lillie.test(res)$p.value                     # do _NOT_ use Kolmogorov–Smirnov test!!!
-bp_test <- bptest(mlr)$p.value                        # Breusch-Pagan for heteroscedacity
-dw_test <- dwtest(mlr)$p.value                      # Durbin-Watson test for autocorelation
+sw <- check_normality(mlrIA)                # Shapiro-Wilk for normality
+bp <- check_heteroscedasticity(mlrIA)       # Breusch-Pagan for heteroscedacity
+dw <- check_autocorrelation(mlrIA)          # Durbin-Watson test for autocorelation
 
 # Add these to the model summary table
 mlrIA_model %>%
@@ -149,7 +145,7 @@ mlrIA_model %>%
       "Shapiro-Wilk (Normality): p = %.3f <br>
        Breusch-Pagan (Heteroscedasticity): p = %.3f <br>
        Durbin-Watson (Autocorrelation): p = %.3f", 
-      sw_test, bp_test, dw_test
+      sw, bp, dw
     ))
   )
 ```
