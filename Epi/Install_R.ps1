@@ -7,11 +7,11 @@
 #         https://www.datanovia.com/learn/tools/r-in-vscode/recommended-vscode-configurations-for-r-programming.html
 
 # ---------------------- Get everything ready -------------------------------
-$R_VERSION = "4.5.2"
-$RSTUDIO_VERSION = "2026.01.0-392"
-$VSCODE_VERSION = "c3a26841a84f20dfe0850d0a5a9bd01da4f003ea/VSCode-win32-x64-1.109.4.zip"
-$RLANGSERVER_VERSION = "0.3.16"
-$CURL_VERSION = "8.18.0_4"
+$R_VERSION = "4.5.3"
+$RSTUDIO_VERSION = "2026.07.1-147"
+$VSCODE_VERSION = "df53daabb18cd157bdb08c7f01c34df936cf12f4/VSCode-win32-x64-1.132.0.zip"
+$RLANGSERVER_VERSION = "0.3.18"
+$CURL_VERSION = "8.21.0"
 $WGET_VERSION = "1.21.4"
 
 Set-Location -Path "C:\"
