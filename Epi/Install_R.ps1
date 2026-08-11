@@ -7,7 +7,7 @@
 #         https://www.datanovia.com/learn/tools/r-in-vscode/recommended-vscode-configurations-for-r-programming.html
 
 # ---------------------- Get everything ready -------------------------------
-$R_VERSION = "4.5.3"
+$R_VERSION = "4.6.1"
 $RSTUDIO_VERSION = "2026.07.1-147"
 $VSCODE_VERSION = "df53daabb18cd157bdb08c7f01c34df936cf12f4/VSCode-win32-x64-1.132.0.zip"
 $RLANGSERVER_VERSION = "0.3.18"
