@@ -65,9 +65,10 @@ robocopy "%programfiles%\R" "c:\RVSCode\R" /E /NFL /NDL /NJH /NJS /MT:4
 
 
 ::install R languaugeserver package
-if not exist c:\Temp\languageserver.zip c:\temp\curl.exe --progress-bar -o c:\Temp\languageserver.zip https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_%RLANGSERVER_VERSION%.zip
-::powershell Invoke-WebRequest -Uri 'https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_%RLANGSERVER_VERSION%.zip' -OutFile 'c:\Temp\languageserver.zip'
-c:\RVSCode\R\R-%R_VERSION%\bin\R.exe CMD INSTALL c:\Temp\languageserver.zip
+c:\RVSCode\R\R-%R_VERSION%\bin\RScript.exe -e "install.packages('languageserver', repos='https://cloud.r-project.org', force=TRUE)"
+#if not exist c:\Temp\languageserver.zip c:\temp\curl.exe --progress-bar -o c:\Temp\languageserver.zip https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_%RLANGSERVER_VERSION%.zip
+#::powershell Invoke-WebRequest -Uri 'https://cran.r-project.org/bin/windows/contrib/4.6/languageserver_%RLANGSERVER_VERSION%.zip' -OutFile 'c:\Temp\languageserver.zip'
+#c:\RVSCode\R\R-%R_VERSION%\bin\R.exe CMD INSTALL c:\Temp\languageserver.zip
 
 
 ::set settings.json for R in VSCode
