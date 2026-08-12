@@ -54,7 +54,7 @@ if (-not (Test-Path -Path "C:\temp\7z.exe")) {
 Write-Output "Downloading Jamovi..."
 $JAMOVI_VERSION = "28.1.0.0"
 $curlOptions = @(
-    "-L"
+    "--progress-bar", "-L"
     "-A", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 OPR/133.0.0.0"
     "-e", "https://www.jamovi.org/"
     "-H", "Accept: */*"
@@ -65,12 +65,12 @@ $curlOptions = @(
 if (-not (Test-Path -Path "C:\Jamovi")) {
     New-Item -Path "C:\Jamovi" -ItemType Directory -Force
     New-Item -Path "C:\Jamovi\Course" -ItemType Directory -Force
-    Expand-Archive -Path "C:\temp\jamovi.zip" -DestinationPath "C:\"
 }
 
 if (-not (Test-Path -Path "C:\temp\jamovi.zip")) {
     & "C:\temp\curl.exe" @curlOptions "C:\temp\jamovi.zip" "https://dl-cdn.jamovi.org/jamovi-$JAMOVI_VERSION-win-x64.zip"
 #   & "C:\temp\curl.exe" --progress-bar -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36" -e "https://www.jamovi.org/" -o "C:\temp\jamovi.zip" "https://dl-cdn.jamovi.org/jamovi-28.1.0.0-win-x64.zip"
+    Expand-Archive -Path "C:\temp\jamovi.zip" -DestinationPath "C:\"
 }
 
 
@@ -99,7 +99,7 @@ $snowCluster = "7.6.8"
 $jsurvival = "1.0.0"
 $flexplot = "0.7.2"
 $curlOptions = @(
-    "-L"
+    "--progress-bar", "-L"
     "-A", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 OPR/133.0.0.0"
     "-e", "https://library.jamovi.org/"
     "-H", "Accept: */*"
@@ -108,33 +108,43 @@ $curlOptions = @(
 )
 
 #curl.exe -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 OPR/133.0.0.0" -e "https://library.jamovi.org/" -H "Accept: */*" -H "Accept-Language: en-US,en;q=0.9" -o "r-datasets.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/r-datasets-$rdatasets.jmo"
+Write-Output "Adding module - r-datasets..."
 C:\temp\curl.exe @curlOptions "C:\temp\r-datasets.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/r-datasets-$rdatasets.jmo"
 Expand-Archive -Path "C:\temp\r-datasets.zip" -DestinationPath "C:\Jamovi\Resources\modules"
 
+Write-Output "Adding module - lsj-data..."
 curl.exe @curlOptions "C:\temp\lsj-data.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/lsj-data-$lsj.jmo"
 Expand-Archive -Path "C:\temp\lsj-data.zip" -DestinationPath "C:\Jamovi\Resources\modules"
 
+Write-Output "Adding module - GAMLj3..."
 C:\temp\curl.exe @curlOptions "C:\temp\GAMLj3.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/GAMLj3-$GAMLj3.jmo"
 Expand-Archive -Path "C:\temp\GAMLj3.zip" -DestinationPath "C:\Jamovi\Resources\modules"
 
+Write-Output "Adding module - Rj..."
 C:\temp\curl.exe @curlOptions "C:\temp\Rj.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/Rj-$RJ.jmo"
 Expand-Archive -Path "C:\temp\Rj.zip" -DestinationPath "C:\Jamovi\Resources\modules"
 
+Write-Output "Adding module - esci..."
 C:\temp\curl.exe @curlOptions "C:\temp\esci.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/esci-$esci.jmo"
 Expand-Archive -Path "C:\temp\esci.zip" -DestinationPath "C:\Jamovi\Resources\modules"
 
+Write-Output "Adding module - moretests..."
 C:\temp\curl.exe @curlOptions "C:\temp\moretests.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/moretests-$MORETETS.jmo"
 Expand-Archive -Path "C:\temp\moretests.zip" -DestinationPath "C:\Jamovi\Resources\modules"
 
+Write-Output "Adding module - semlj..."
 C:\temp\curl.exe @curlOptions "C:\temp\semlj.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/semlj-$SEMLJ.jmo"
 Expand-Archive -Path "C:\temp\semlj.zip" -DestinationPath "C:\Jamovi\Resources\modules"
 
+Write-Output "Adding module - snowCluster..."
 C:\temp\curl.exe @curlOptions "C:\temp\snowCluster.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/snowCluster-$snowCluster.jmo"
 Expand-Archive -Path "C:\temp\snowCluster.zip" -DestinationPath "C:\Jamovi\Resources\modules"
 
+Write-Output "Adding module - jsurvival..."
 C:\temp\curl.exe @curlOptions "C:\temp\jsurvival.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/jsurvival-$jsurvival.jmo"
 Expand-Archive -Path "C:\temp\jsurvival.zip" -DestinationPath "C:\Jamovi\Resources\modules"
 
+Write-Output "Adding module - flexplot..."
 C:\temp\curl.exe @curlOptions "C:\temp\flexplot.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/flexplot-$flexplot.jmo"
 Expand-Archive -Path "C:\temp\flexplot.zip" -DestinationPath "C:\Jamovi\Resources\modules"
 
