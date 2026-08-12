@@ -5,7 +5,7 @@
 
 # ---------------------- Get everything ready -------------------------------
 $JAMOVI_VERSION = "28.1.0.0"
-$CURL_VERSION = "8.21.0"
+$CURL_VERSION = "8.21.0_6"
 #$R_VERSION = "4.5.3"
 #$RSTUDIO_VERSION = "2026.07.1-147"
 #$VSCODE_VERSION = "df53daabb18cd157bdb08c7f01c34df936cf12f4/VSCode-win32-x64-1.132.0.zip"
