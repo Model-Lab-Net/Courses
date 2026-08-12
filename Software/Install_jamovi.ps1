@@ -56,22 +56,23 @@ $JAMOVI_VERSION = "28.1.0.0"
 $curlOptions = @(
     "-L"
     "-A", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 OPR/133.0.0.0"
-    "-e", "https://library.jamovi.org/"
+    "-e", "https://www.jamovi.org/"
     "-H", "Accept: */*"
     "-H", "Accept-Language: en-US,en;q=0.9"
     "-o"
 )
-
-if (-not (Test-Path -Path "C:\temp\jamovi.zip")) {
-    & "C:\temp\curl.exe" @curlOptions "C:\temp\jamovi.zip" "https://dl-cdn.jamovi.org/jamovi-$JAMOVI_VERSION-win-x64.zip"
-#   & "C:\temp\curl.exe" --progress-bar -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36" -e "https://www.jamovi.org/" -o "C:\temp\jamovi.zip" "https://dl-cdn.jamovi.org/jamovi-28.1.0.0-win-x64.zip"
-}
 
 if (-not (Test-Path -Path "C:\Jamovi")) {
     New-Item -Path "C:\Jamovi" -ItemType Directory -Force
     New-Item -Path "C:\Jamovi\Course" -ItemType Directory -Force
     Expand-Archive -Path "C:\temp\jamovi.zip" -DestinationPath "C:\"
 }
+
+if (-not (Test-Path -Path "C:\temp\jamovi.zip")) {
+    & "C:\temp\curl.exe" @curlOptions "C:\temp\jamovi.zip" "https://dl-cdn.jamovi.org/jamovi-$JAMOVI_VERSION-win-x64.zip"
+#   & "C:\temp\curl.exe" --progress-bar -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36" -e "https://www.jamovi.org/" -o "C:\temp\jamovi.zip" "https://dl-cdn.jamovi.org/jamovi-28.1.0.0-win-x64.zip"
+}
+
 
 # Make folders for main course files
 #New-Item -Path "C:\RVSCode\data\user-data\User" -ItemType Directory -Force
