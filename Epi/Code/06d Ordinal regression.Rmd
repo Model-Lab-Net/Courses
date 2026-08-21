@@ -3,11 +3,10 @@
 ### ID  : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה אורדינלית 06   
-### date  : 19/04/2026
+### date  : 21/08/2026
 ###  
 ###  נלמד לעשות רגרסיה לוגיסטי מרובה על משתנים אורדינליים
 ###
-### 
 
 
 ## Reset memory
@@ -48,9 +47,13 @@ pacman::p_load(
   ggeffects,              # To display the confusion matrix
   performance,            # For model performance metrics
   generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 
+  ordinal,                 # For ordinal regression statistical functions 
   rms,
-  # MASS,                   # For statistical functions (polr for ordinal regression)ordinal
-  ordinal                 # For ordinal regression statistical functions 
+  #marginaleffects,
+  insight,
+  effectsize,
+  modelbased,
+  report
               )
 # Install/load flexplot
 if (!require("devtools")) devtools::install_github("dustinfife/flexplot", ref = "development")  ;  if (!require("pacman")) install.packages("pacman")  ;  library(flexplot)
@@ -65,12 +68,19 @@ df5 <- import(file, trust = TRUE)
 # show variable translations to Hebrew in lables
 labels <- data.frame(Variable = names(df5), Label = unlist(var_label(df5)))   ;   datatable(labels, options = list(pageLength = 100, autoWidth = TRUE, dom = 't'), caption = "Variable Labels for df5", rownames = FALSE)
 glimpse(df5)               # get an overview of the data
+
+df5 <- df5 %>%
+  mutate(perforation.ord = factor(perforation, ordered = TRUE))
 ```
 
 ## Perfrom an ordinal linear regression
 ```{r ord-logisitc-reg, echo = TRUE}
 # Ordinal regression model
-ord_model <- clm(perforation.ord ~ pulp + hemoglobin + systolic, data = df5, link = "logit")
+ord_model <- clm(degree.perforation ~ pulp + hemoglobin + systolic, data = df5, link = "logit", exponentiate = TRUE)
+dd <- datadist(df5)   ;   options(datadist = "dd")
+ord_model_ <- orm(degree.perforation ~ pulp + hemoglobin + systolic, data = df5,
+                  x = TRUE, y = TRUE)     # need this for model diagnostics. sorry.
+
 summary(ord_model) 
 
 ordinal_model <- tbl_regression(ord_model, exponentiate = TRUE) 
@@ -80,6 +90,7 @@ ordinal_model
 ## Vcov matrix
 ```{r ord-logisitc-reg, echo = TRUE}
 # Variance-covariance matrix
+
 vcov_matrix <- vcov(ord_model)
 vcov_matrix
 
@@ -96,13 +107,16 @@ vcov_matrix %>%
 
 ## Model diagnostics
 ```{r ord-logisitc-reg, echo = TRUE}
-dd <- datadist(df5)   ;   options(datadist = "dd")
-ord_model_ <- orm(perforation.ord ~ pulp + hemoglobin + systolic, data = df5)     # need this for model diagnostics. sorry.
-# NEW way
-AIC_val  <- as.numeric(AIC(ord_model))                       # AIC
 r2_val   <- as.numeric(r2_nagelkerke(ord_model))
-chi_sq   <- as.numeric(ord_model_$stats["Model L.R."])       # Omnibus Chi-square (Likelihood Ratio Chi²)
-p_val    <- as.numeric(ord_model_$stats["P"]  )  
+AIC_val  <- as.numeric(AIC(ord_model))                       # AIC
+#ord_model <- orm(perforation.ord ~ pulp + hemoglobin + systolic, data = df5)     # need this for model diagnostics. sorry.
+  chi_sq   <- as.numeric(ord_model_$stats["Model L.R."])       # Omnibus Chi-square (Likelihood Ratio Chi²)
+  p_val    <- as.numeric(ord_model_$stats["P"]  ) 
+      p_val <- ifelse(
+         p_val < 0.001,
+         "<0.001",
+        sprintf("%.3f", p_val)
+       )
 
 # Add model diagnostics to table
 ordinal_model %>%
@@ -110,11 +124,12 @@ ordinal_model %>%
   tab_source_note(
     source_note = md(paste0(
       "R² = ", round(r2_val, 3), "<br>",
-      ",  AIC = ", round(AIC_val, 0), "<br>",
-      ",  χ² = ", round(chi_sq, 0), "<br>",
-      ",  p = ", round(p_val, 5)
-    ))
+      "AIC = ", round(AIC_val, 0), "<br>",
+      "χ² = ", round(chi_sq, 0), "<br>",
+      "p ", p_val)
+    )
   )
+
 ```
 
 ## Classification table
@@ -142,7 +157,6 @@ cfm_metrics <- select_metrics(cfm) %>%
     #values_to = "Value"
   )
 
-
 cfm_metrics %>%
   gt() %>%
   fmt_number(
@@ -159,10 +173,13 @@ nomial <- nominal_test(ord_model)
           ### Important: Hosmer–Lemeshow only works for binary 
           ### this is a more genralizable logistic regression
 
-nomial %>% 
+nomial %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Var") %>%
+  dplyr::select(Var, `Pr(>Chi)`) %>%
   gt() %>%
     fmt_number(
-      decimals = 1
+      decimals = 2
     )       
 ```
 
@@ -170,15 +187,57 @@ nomial %>%
 ```{r predict, echo = TRUE}
 # Predicted probabilities for pulp
 preds_pulp <- ggpredict(ord_model, terms = "pulp")
-plot(preds_pulp)
+# Build the plot with ggplot2 directly
+ggplot(preds_pulp, aes(x = x, y = predicted, color = response.level,
+ group = response.level)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = response.level,
+    group = response.level),
+            alpha = 0.2,
+            color = NA) +
+  labs(
+    title = "Predicted Probability of Degree of Perforation by pulp",
+    x = "pulp",
+    y = "Predicted Probability",
+    color = "Outcome",
+    fill = "Outcome"
+ 	)
+
 
 # Predicted probabilities for hemoglobin
 preds_hemoglobin <- ggpredict(ord_model, terms = "hemoglobin")
-plot(preds_hemoglobin)
+ggplot(preds_hemoglobin, aes(x = x, y = predicted, color = response.level,
+ group = response.level)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = response.level,
+    group = response.level),
+            alpha = 0.2,
+            color = NA) +
+  labs(
+    title = "Predicted Probability of Degree of Perforation by pulp",
+    x = "pulp",
+    y = "Predicted Probability",
+    color = "Outcome",
+    fill = "Outcome"
+ 	)
+
 
 # Predicted probabilities for systolic
 preds_systolic <- ggpredict(ord_model, terms = "systolic")
-plot(preds_systolic)
+ggplot(preds_systolic, aes(x = x, y = predicted, color = response.level,
+ group = response.level)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = response.level,
+    group = response.level),
+            alpha = 0.2,
+            color = NA) +
+  labs(
+    title = "Predicted Probability of Degree of Perforation by pulp",
+    x = "pulp",
+    y = "Predicted Probability",
+    color = "Outcome",
+    fill = "Outcome"
+ 	)
 ```
 
 ## Create distribution plots

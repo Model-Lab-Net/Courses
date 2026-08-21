@@ -40,7 +40,7 @@ pacman::p_load(
   car,                    # For Levene's test and ANOVA
   lmtest,                 # do linear regression tests
   parameters,             # get standardized parameters/coefficients
-  performance,            # get diagnosticsa and model performance
+  performance, see,       # get diagnosticsa and model performance
   GGally                  # to make a correlation matrix
               )
 # Install/load flexplot
@@ -143,23 +143,29 @@ model_comparison
 
 # Sequential model comparisons
 a <- anova(slr, mlr, mlrIA)
-
-# Extract p-values
+# Extract p-values from ANOVA
 p_values <- c(
   NA,
   a$`Pr(>F)`[2],
   a$`Pr(>F)`[3]
 )
+# Replave small p-values with <0.001
+p_values <- ifelse(
+  p_values < 0.001,
+  "<0.001",
+  sprintf("%.3f", p_values)
+)
 
 # Display in a nice table
 model_comparison %>%
   as.data.frame() %>%
-  select(Name, R2_adjusted, RMSE, AICc) %>%
+  dplyr::select(Name, R2_adjusted, RMSE, AICc) %>%
   mutate(p_value = p_values) %>%
   gt() %>%
   fmt_number(
     columns = where(is.numeric),
-    n_sigfig = 3
+    n_sigfig = 3,
+    #drop_trailing_zeros = FALSE
   ) 
 ```
 
@@ -175,7 +181,7 @@ dw <- check_autocorrelation(model_diag)          # Durbin-Watson test for autoco
 vif <- check_collinearity(model_diag)            # Mullticolinearity
 
 # Add these to the model summary table
-mlrIA_model %>%
+model_diag %>%
   as_gt() %>% # Convert to gt engine first
   tab_source_note(
     source_note = html(sprintf(
@@ -201,15 +207,17 @@ vif %>%
     columns = where(is.numeric),
     decimals = 1
   )
+
+visualize(model_diag)
 ```
 
 ## Get the standardized parameter values
 ```{r std-parms, echo = TRUE}
-model_std <- model_parameters(mlrIA, standardize = "refit")
+model_std <- model_parameters(mlrIA, exponentiate = TRUE, standardize = "refit")
 
 model_std %>%
   as.data.frame() %>%
-  select(Parameter, beta = Coefficient, CI_low, CI_high, p) %>%
+  dplyr::select(Parameter, Coefficient, CI_low, CI_high, p) %>%
   gt() %>%
   fmt_number(
     #columns = c(Coefficient, SE, CI_low, CI_high),

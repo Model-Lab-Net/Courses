@@ -163,13 +163,13 @@ vif %>%
   )
 ```
 
-## Get the std parameter values
+## Get the standardized parameter values
 ```{r std-parms, echo = TRUE}
 model_std <- model_parameters(mlr, standardize = "refit")
 
 model_std %>%
   as.data.frame() %>%
-  select(Parameter, beta = Coefficient, CI_low, CI_high, p) %>%
+  dplyr::select(Parameter, beta = Coefficient, CI_low, CI_high, p) %>%
   gt() %>%
   fmt_number(
     #columns = c(Coefficient, SE, CI_low, CI_high),

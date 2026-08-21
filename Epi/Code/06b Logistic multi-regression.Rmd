@@ -40,14 +40,13 @@ pacman::p_load(
   car,                    # For Levene's test and ANOVA
   lmtest,                 # do linear regression tests
   parameters,             # get standardized parameters/coefficients
+  performance,            # get diagnosticsa and model performance
   GGally,                 # to make a correlation matrix
-  skimr,                  # get overview of data
   pROC,                   # For ROC analysis
-  cvms, ggimage, rsvg,    # For confusion matrix and classification metrics
+  cvms,                   # For confusion matrix and classification metrics
+  #caret,                 # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
-  performance,            # For model performance metrics
-  generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit 
-  rms
+  generalhoslem           # For Hosmer-Lemeshow test for goodness of fit
               )
 # Install/load flexplot
 if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
@@ -82,35 +81,32 @@ logistic_model
 flexplot(status ~ gcs + stroke.type | sex + age, data = df3, method = "logistic", se = F, ghost.line = "red", jitter = c(0.1, 0.1))
 ```
 
-## Analyze the distribution of residuals
-```{r residuals, echo = TRUE}
-# Residuals analysis
-visualize(mlog_model)
-```
-
 ## Model diagnostics
 ```{r logistic_multi-reg, echo=FALSE}
-dd <- datadist(df3)   ;   options(datadist = "dd")
-mlog_model_ <- lrm(status ~ gcs, data = df3)     # need this for model diagnostics. sorry.
-# minus2LL <- -2 * as.numeric(logLik(log_reg))   # -2 Log Likelihood
-AIC_val  <- as.numeric(AIC(mlog_model))                       # AIC
 r2_val   <- as.numeric(r2_nagelkerke(mlog_model))
-chi_sq   <- as.numeric(mlog_model_$stats["Model L.R."])       # Omnibus Chi-square (Likelihood Ratio Chi²)
-p_val    <- as.numeric(mlog_model_$stats["P"]  )  
+AIC_val  <- as.numeric(AIC(mlog_model))                       # AIC
+brier <- BrierScore(mlog_model)
+chi_sq   <- lrtest(mlog_model)$Chisq[2]                       # Omnibus χ² (Likelihood Ratio Chi²)
+p_val    <- as.numeric(lrtest(mlog_model)$`Pr(>Chisq)`[2])    # Omnibus χ² p-value (Likelihood Ratio Test)
+  p_val <- ifelse(
+    p_val < 0.001,
+    "<0.001",
+    sprintf("%.3f", p_val)
+  )
 
 # Add model diagnostics to table
 logistic_model %>%
   as_gt() %>% # Convert to gt engine first
   tab_source_note(
-    source_note = paste0(
-      "R² = ", round(r2_val, 3),
-      ",  AIC = ", round(AIC_val, 0),
-      ",  χ² = ", round(chi_sq, 0),
-      ",  p = ", round(p_val, 5)
+    source_note = html(paste0(
+      "R² = ", round(r2_val, 3),"<br>",
+      "AIC = ", round(AIC_val, 0),"<br>",
+      "χ² = ", round(chi_sq, 0),"<br>",
+      "p ", p_val,"<br>",
+      "Brier = ",round(brier, 3)
     )
-  )
+  ))
 ```
-
 
 
 ### ------------------------------------------
@@ -132,9 +128,45 @@ mlogistic_model_ia
 
 ## Model comparison
 ```{r mdodel-comparison, echo = TRUE}
-# Compare models
-model.comparison(mlog_model, mlog_model_ia)
+## Model comparison
+```{r mdodel-comparison, echo = TRUE}
+model_comparison <- compare_performance(
+  log_model,
+  mlog_model,
+  mlog_model_ia
+)
+model_comparison
+
+r2_nagelkerke(log_model)
+
+# Sequential model comparisons
+a <- anova(log_model, mlog_model, mlog_model_ia)
+# Extract p-values from ANOVA
+p_values <- c(
+  a$`Pr(>Chi)`[1],
+  a$`Pr(>Chi)`[2],
+  a$`Pr(>Chi)`[3]
+)
+# Replave small p-values with <0.001
+p_values <- ifelse(
+  p_values < 0.001,
+  "<0.001",
+  sprintf("%.3f", p_values)
+)
+
+# Display in a nice table
+model_comparison %>%
+  as.data.frame() %>%
+  dplyr::select(Name, R2_Tjur, RMSE, AICc) %>%
+  mutate(p_value = p_values) %>%
+  gt() %>%
+  fmt_number(
+    columns = where(is.numeric),
+    n_sigfig = 3,
+    #drop_trailing_zeros = FALSE
+  ) 
 ```
+
 
 ## Classification table
 ```{r , echo=FALSE}

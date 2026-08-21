@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: רגרסיה לוגיסטית 06   
-### date  : 19/04/2026
+### date  : 09/08/2026
 ###  
 ###  נלמד לעשות רגסיה לוגיסטית
 ###
@@ -40,15 +40,13 @@ pacman::p_load(
   car,                    # For Levene's test and ANOVA
   lmtest,                 # do linear regression tests
   parameters,             # get standardized parameters/coefficients
+  performance,            # get diagnosticsa and model performance
   GGally,                 # to make a correlation matrix
-  skimr,                  # get overview of data
   pROC,                   # For ROC analysis
   cvms,                   # For confusion matrix and classification metrics
-  #caret,                  # For confusion matrix and classification metrics
+  #caret,                 # For confusion matrix and classification metrics
   ggeffects,              # To display the confusion matrix
-  performance,            # For model performance metrics
-  generalhoslem,          # For Hosmer-Lemeshow test for goodness of fit
-  rms 
+  generalhoslem           # For Hosmer-Lemeshow test for goodness of fit
               )
 # Install/load flexplot
 if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")
@@ -80,7 +78,7 @@ summary(log_model)
 
 # Get "odds ratio"/OR
 ```{r calc-log_OR, echo = TRUE}
-logistic_model <- tbl_regression(log_model, exponentiate = TRUE) 
+logistic_model <- tbl_regression(log_model, exponentiate = TRUE)
 logistic_model
 ```
 
@@ -88,44 +86,39 @@ logistic_model
 ```{r flexplot, echo = TRUE}
 # use flexplot
 flexplot(status ~ gcs, data = df3, method = "logistic", se = TRUE, jitter = c(0.1, 0.1))
-magnet_plot(status ~ gcs, data = df3, dot_size=3)
+#magnet_plot(status ~ gcs, data = df3, dot_size=3)
 logistic_overlay(status ~ gcs, data = df3, n_bins=13)
 ```
 
 ## Model diagnostics
 ```{r model-diagnostics, echo = TRUE}
-dd <- datadist(df3)   ;   options(datadist = "dd")
-log_model_ <- lrm(status ~ gcs, data = df3)     # need this for model diagnostics. sorry.
-# minus2LL <- -2 * as.numeric(logLik(log_reg))   # -2 Log Likelihood
+r2_val   <- as.numeric(PseudoR2(log_model, which = "Nagelkerke"))
+brier <- BrierScore(log_model)
 AIC_val  <- as.numeric(AIC(log_model))                       # AIC
-r2_val   <- as.numeric(r2_nagelkerke(log_model))
-chi_sq   <- as.numeric(log_model_$stats["Model L.R."])       # Omnibus Chi-square (Likelihood Ratio Chi²)
-p_val    <- as.numeric(log_model_$stats["P"]  )              # Omnibus test p-value (Likelihood Ratio Test)
-
-# Add diagnostics to model table
-logistic_model <- logistic_model %>%
-  as_gt() %>% # Convert to gt engine first
-  tab_source_note(
-    source_note = paste0(
-      "R² = ", round(r2_val, 3),
-      ",  AIC = ", round(AIC_val, 0),
-      ",  χ² = ", round(chi_sq, 0),
-      ",  p = ", round(p_val, 5)
-    )
+chi_sq   <- lrtest(log_model)$Chisq[2]                       # Omnibus χ² (Likelihood Ratio Chi²)
+p_val    <- as.numeric(lrtest(log_model)$`Pr(>Chisq)`[2])    # Omnibus χ² p-value (Likelihood Ratio Test)
+  p_val <- ifelse(
+    p_val < 0.001,
+    "<0.001",
+    sprintf("%.3f", p_val)
   )
 
-logistic_model
+# Add diagnostics to model table
+logistic_model %>%
+  as_gt() %>% # Convert to gt engine first
+  tab_source_note(
+    source_note = html(paste0(
+      "R² = ", round(r2_val, 3), "<br>",
+      "AIC = ", round(AIC_val, 0),"<br>",
+      "χ² = ", round(chi_sq, 0),"<br>",
+      "p = ", p_val,"<br>",
+      "Brier = ",round(brier, 3))
+    ))
 ```
 
-## Get std estimates
-```{r log_reg-est, echo = TRUE}
-estimates(log_model_)
-```
-
-## Analyze the distribution of residuals
+## Visualize the distribution of residuals
 ```{r residuals, echo = TRUE}
-# Residuals analysis
-visualize(log_model_)
+visualize(log_model)
 ``` 
 
 ## Evalute model prediction
@@ -142,14 +135,13 @@ plot_confusion_matrix(cfm)    # Plot the "confusion_matrix"
 # Get the "classification metrics" using cvms
 cfm_metrics <- select_metrics(cfm) %>%
   # convert all columns to numeric (if needed)
-  #mutate(across(everything(), as.numeric)) %>%
+  # mutate(across(everything(), as.numeric)) %>%
   # pivot to long format directly
   pivot_longer(
     cols = everything()
     #names_to = "Metric",
     #values_to = "Value"
   )
-
 cfm_metrics
 
 # Display in a nice table
@@ -175,15 +167,15 @@ roc_obj <- roc(response = df3$status,
                font = 2)
 ```
 
-## Hosmer-Lemeshow test for GOF
-## WE WILL NOT USE THIS - IT IS BAD!!!
+## Test for Goodness-of-fit (GOF)
+```{r HL-test, echo=FALSE}
+# Perform the Hosmer–Lemeshow test using generalhoslem
+hl_test <- logitgof(df3$status, df3$predict.prob, g=10)
+hl_test
+## PLEASE DO NOT USE THIS - IT IS BAD!!!
 ## small sample = it lacks the power to detect poor fit
 ## large sample size = it will almost always be significant
 ## but just in case....
-```{r HL-test, echo=FALSE}
-# Get the Hosmer–Lemeshow test using generalhoslem
-hl_test <- logitgof(df3$status, df3$predict.prob, g=10)
-hl_test
 ```
 
 
