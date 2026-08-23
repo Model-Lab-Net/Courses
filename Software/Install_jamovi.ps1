@@ -158,6 +158,7 @@ C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('DescTools', repos='
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('VGAM', repos='https://cloud.r-project.org', force=TRUE)"
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('car', repos='https://cloud.r-project.org', force=TRUE)"
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('jmvconnect', repos='https://cloud.r-project.org', force=TRUE)"
+C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('skedastic', repos='https://cloud.r-project.org', force=TRUE)"
 
 
 
