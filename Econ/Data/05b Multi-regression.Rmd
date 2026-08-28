@@ -1,0 +1,255 @@
+###
+### name  : __________________
+### ID    : [מספר תעודת זהות]
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: רגרסיה לינארית 05   
+### date  : 07/08/2026
+###  
+### multivariate נלמד לעשות רגרסיה לינארית מרובת משתנים
+###
+### source: https://bookdown.org/drki_musa/dataanalysis/linear-regression.html#simple-linear-regression
+
+
+## Reset memory
+```{r setup-packages, include = FALSE}
+rm(list = ls(all.names = TRUE))          # 👈 Clear all data objects        👇 Clear packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
+gc()                                     # Clear unused data from memory ("garbage cllection")
+dev.off()                                # Reset the display output of R
+system("powershell -Command Clear-Host") # This will clear the terminal in VScode
+```
+
+## Load required packages
+```{r load-packages, include = FALSE}
+options("install.lock" = FALSE)
+if (!require("pacman")) install.packages("pacman") ; library(pacman)
+pacman::p_load(
+  Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
+  rio, here,              # File import and path support
+  labelled,               # deal with labels
+  tidyverse,              # data management + ggplot2 graphics,
+  broom,                  # For tidying model outputs
+  dplyr,                  # For data manipulation
+  gt,                     # Nice beuatiful tables
+  gtsummary,              # summary statistics and tests
+  nortest,                # Anderson-Darling test for normality
+  ggplot2,                # For creating plots
+  ggpubr,                 # For ggplot2 extensions
+  DescTools,              # For statistical functions like skewness and kurtosis
+  summarytools,           # to get a table of all summary statistics
+  car,                    # For Levene's test and ANOVA
+  lmtest,                 # do linear regression tests
+  parameters,             # get standardized parameters/coefficients
+  performance,            # get diagnosticsa and model performance
+  GGally                  # to make a correlation matrix
+              )
+# Install/load flexplot
+if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
+```
+
+## Access the data
+```{r read-data, echo = TRUE}
+# file <- "./EpiData/03 coronary.rds" # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/03%20coronary.rds"
+df2 <- import(file, trust = TRUE)
+# show variable translations to Hebrew in lables
+labels <- data.frame(Variable = names(df2), Label = unlist(var_label(df2)))   ;   gt(labels)
+glimpse(df2)               # get an overview of the data
+```
+
+## Simple linear regression model
+```{r slr, echo = TRUE}
+# Perform a Simple Linear Regression
+slr <- lm(chol ~ sbp, data = df2)
+# print the summary of the simple linear regression
+summary(slr)
+
+# use gtsummary to create a nice table
+slr_model <- tbl_regression(slr, intercept = TRUE) %>%
+  add_glance_table(include = c(
+    nobs,
+    r.squared,
+    adj.r.squared,
+    statistic,
+    sigma,
+    logLik,
+    AIC,
+    p.value
+  ))
+# Show the model results table
+slr_model
+```
+
+## Flexplot scatter plot and analysis
+```{r polt-regression, echo = TRUE}
+# Plot the regression
+flexplot(chol ~ sbp, data = df2, method = "lm", se = TRUE)
+
+# Analyze the residuals
+visualize(slr)
+```
+
+## Correlation matrix
+```{r correlation-matrix, echo = TRUE}
+ggcorr(df2, label = TRUE)
+```
+
+## Multi-variate linear regression model
+```{r slr, echo = TRUE}
+# Perform a Simple Linear Regression
+mlr <- lm(chol ~ sbp + race + bmi + age + dbp, data = df2)
+# print the summary of the simple linear regression
+summary(mlr)
+
+# use gtsummary to create a nice table
+mlr_model <- tbl_regression(mlr, intercept = TRUE) %>%
+  add_glance_table(include = c(
+    nobs,
+    r.squared,
+    adj.r.squared,
+    #statistic,
+    #sigma,
+    #logLik,
+    AIC,
+    p.value
+  ))
+
+# Show the model results table
+mlr_model
+```
+
+## Flexplot scatter plot and analysis
+```{r polt-regression, echo = TRUE}
+# Plot the regression
+flexplot(chol ~ sbp + race + bmi + age + dbp, data = df2, method = "lm", se = TRUE)
+
+# Analyze the residuals
+visualize(mlr)
+```
+
+## Diagnostics  (Ho: residuals are normal)
+```{r polt-regression, echo = TRUE}
+sw <- check_normality(mlr)                # Shapiro-Wilk for normality
+bp <- check_heteroscedasticity(mlr)       # Breusch-Pagan for heteroscedacity
+dw <- check_autocorrelation(mlr)          # Durbin-Watson test for autocorelation
+vif <- check_collinearity(mlr)            # mullticolinearity (<5 low, >10 high)
+
+# Add diagnostics to model table
+mlr_model %>%
+  as_gt() %>% # Convert to gt engine first
+  tab_source_note(
+    source_note = html(paste0(
+      "Shapiro-Wilk (normality):⠀⠀⠀⠀⠀⠀⠀p = ", round(sw, 3), "<br>",
+      "Breusch-Pagan (heteroscedasticity): p = ", round(bp, 3),"<br>",
+      "Durbin-Watson (autocorrelation): ⠀ p = ", round(dw, 3),"<br>"
+    )))
+  
+# Multicolinearity test
+vif %>%
+  as.data.frame() %>%
+  select(Term, VIF) %>%
+  mutate(
+    Correlation = case_when(
+      VIF < 5 ~ "Low ",
+      VIF < 10 ~ "Moderate",
+      TRUE ~ "High"
+    )
+  ) %>%
+  gt() %>%
+  fmt_number(
+    columns = where(is.numeric),
+    decimals = 1
+  )
+```
+
+## Get the standardized parameter values
+```{r std-parms, echo = TRUE}
+model_std <- model_parameters(mlr, standardize = "refit")
+
+model_std %>%
+  as.data.frame() %>%
+  dplyr::select(Parameter, beta = Coefficient, CI_low, CI_high, p) %>%
+  gt() %>%
+  fmt_number(
+    #columns = c(Coefficient, SE, CI_low, CI_high),
+    decimals = 3
+  )
+```
+
+
+
+
+### -------------------------------------------------
+## תרגול-עצמי
+
+## שאלה 1
+```{r question-1, echo = TRUE}
+# 
+
+```
+
+## שאלה 2
+```{r question-2, echo = TRUE}
+# 
+
+```
+
+## שאלה 3
+```{r question-3, echo = TRUE}
+# 
+
+```
+
+
+
+
+
+
+
+
+
+### source: https://bookdown.org/drki_musa/dataanalysis/linear-regression.html#multiple-linear-regression
+###         https://github.com/drkamarul/multivar_data_analysis/tree/main/data
+
+## Clean data
+```{r clean-data, echo = TRUE}
+# Load the data
+file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/coronary.dta"
+df2 <- import(file, trust = TRUE)
+#write.csv(df2, here("EpiData", "03 coronary.csv"))
+
+# Change id to factor
+df2 <- df2 %>%
+  mutate(id = as.factor(id))
+
+# Change cad to factor
+df2 <- df2 %>%
+  mutate(cad = as.factor(cad))
+
+# Change gender column from 1, 2 to "F", "M"
+df2 <- df2 %>%
+  mutate(gender = case_when(
+    gender == 1 ~ "F",
+    gender == 2 ~ "M",
+    TRUE ~ as.factor(gender) # Preserve other values (e.g., NA)
+  ))
+
+# Change race column from 1, 2, 3  to "W", "B", "J"
+df2 <- df2 %>%
+  mutate(race = case_when(
+    race == 1 ~ "W",
+    race == 2 ~ "B",
+    race == 3 ~ "J",
+    TRUE ~ as.factor(race) # Preserve other values (e.g., NA)
+  ))
+
+# Convert all chr variables to fct
+df2 <- mutate_if(df2, is.character, as.factor)
+
+# Check the updated dataset structure
+glimpse(df2)
+
+# Save as R data file
+saveRDS(df2, here("EpiData", "03 coronary.rds"))
+```
+

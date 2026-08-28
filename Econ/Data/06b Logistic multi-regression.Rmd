@@ -1,0 +1,311 @@
+###
+### name  : __________________
+### ID    : [מספר תעודת זהות]
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: רגרסיה לוגיסטית 06   
+### date  : 19/04/2026
+###  
+### multivariate נלמד לעשות רגסיה לוגיסטית מרובה משתנים
+###
+### source: https://bookdown.org/drki_musa/dataanalysis/binary-logistic-regression.html#multiple-binary-logistic-regression
+
+
+## Reset memory
+```{r setup-packages, include = FALSE}
+rm(list = ls(all.names = TRUE))          # 👈 Clear all data objects        👇 Clear packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
+gc()                                     # Clear unused data from memory ("garbage cllection")
+dev.off()                                # Reset the display output of R
+system("powershell -Command Clear-Host") # This will clear the terminal in VScode
+```
+
+## Load required packages
+```{r load-packages, include false}
+options("install.lock" = FALSE)
+if (!require("pacman")) install.packages("pacman") ; library(pacman)
+pacman::p_load(
+  Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
+  rio, here,              # File import and path support
+  labelled,               # deal with labels
+  tidyverse,              # data management + ggplot2 graphics,
+  broom,                  # For tidying model outputs
+  dplyr,                  # For data manipulation
+  gt,                     # Nice beuatiful tables
+  gtsummary,              # summary statistics and tests
+  nortest,                # Anderson-Darling test for normality
+  ggplot2,                # For creating plots
+  ggpubr,                 # For ggplot2 extensions
+  DescTools,              # For statistical functions like skewness and kurtosis
+  summarytools,           # to get a table of all summary statistics
+  car,                    # For Levene's test and ANOVA
+  lmtest,                 # do linear regression tests
+  parameters,             # get standardized parameters/coefficients
+  performance,            # get diagnosticsa and model performance
+  GGally,                 # to make a correlation matrix
+  pROC,                   # For ROC analysis
+  cvms,                   # For confusion matrix and classification metrics
+  #caret,                 # For confusion matrix and classification metrics
+  ggeffects,              # To display the confusion matrix
+  generalhoslem           # For Hosmer-Lemeshow test for goodness of fit
+              )
+# Install/load flexplot
+if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
+```
+
+## Access the data
+```{r read-data, echo=FALSE}
+# file <- "./EpiData/04 stroke.rds"     # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/04%20stroke.rds"
+df3 <- import(file, trust = TRUE)
+# show variable translations to Hebrew in lables
+labels <- data.frame(Variable = names(df3), Label = unlist(var_label(df3)))   ;   gt(labels)
+glimpse(df3)               # get an overview of the data
+```
+
+## Multivariate logistic regression
+```{r logistic_multi-reg, echo=FALSE}
+# Perform a multivariate logistic regression
+mlog_model <- glm(status ~ gcs + stroke.type + sex + age, data = df3, family = binomial(link = "logit"))
+summary(mlog_model)
+```
+
+# Get "odds ratio"/OR
+```{r calc-log_OR, echo = TRUE}
+logistic_model <- tbl_regression(mlog_model, exponentiate = TRUE) 
+logistic_model
+```
+
+## Plot data and model
+```{r flexplot, echo = TRUE}
+# use flexplot
+flexplot(status ~ gcs + stroke.type | sex + age, data = df3, method = "logistic", se = F, ghost.line = "red", jitter = c(0.1, 0.1))
+```
+
+## Model diagnostics
+```{r logistic_multi-reg, echo=FALSE}
+r2_val   <- as.numeric(r2_nagelkerke(mlog_model))
+AIC_val  <- as.numeric(AIC(mlog_model))                       # AIC
+brier <- BrierScore(mlog_model)
+chi_sq   <- lrtest(mlog_model)$Chisq[2]                       # Omnibus χ² (Likelihood Ratio Chi²)
+p_val    <- as.numeric(lrtest(mlog_model)$`Pr(>Chisq)`[2])    # Omnibus χ² p-value (Likelihood Ratio Test)
+  p_val <- ifelse(
+    p_val < 0.001,
+    "<0.001",
+    sprintf("= %.3f", p_val)
+  )
+
+# Add model diagnostics to table
+logistic_model %>%
+  as_gt() %>% # Convert to gt engine first
+  tab_source_note(
+    source_note = html(paste0(
+      "R² = ", round(r2_val, 3),"<br>",
+      "AIC = ", round(AIC_val, 0),"<br>",
+      "χ² = ", round(chi_sq, 0),"<br>",
+      "p ", p_val,"<br>",
+      "Brier = ",round(brier, 3)
+    )
+  ))
+```
+
+
+### ------------------------------------------
+
+
+## Add inreaction term
+```{r OR, include=FALSE}
+# Recalculate logistic regression for OR
+mlog_model_ia <- glm(status ~ gcs + stroke.type*sex, data = df3, family = binomial(link = "logit"))
+summary(mlog_model_ia)
+
+mlogistic_model_ia <- tbl_regression(mlog_model_ia, exponentiate = TRUE) 
+mlogistic_model_ia
+```
+
+### ------------------------------------------
+
+
+## Model comparison
+```{r mdodel-comparison, echo = TRUE}
+## Model comparison
+```{r mdodel-comparison, echo = TRUE}
+model_comparison <- compare_performance(
+  log_model,
+  mlog_model,
+  mlog_model_ia
+)
+model_comparison
+
+r2_nagelkerke(log_model)
+
+# Sequential model comparisons
+a <- anova(log_model, mlog_model, mlog_model_ia)
+# Extract p-values from ANOVA
+p_values <- c(
+  a$`Pr(>Chi)`[1],
+  a$`Pr(>Chi)`[2],
+  a$`Pr(>Chi)`[3]
+)
+# Replave small p-values with <0.001
+p_values <- ifelse(
+  p_values < 0.001,
+  "<0.001",
+  sprintf("= %.3f", p_values)
+)
+
+# Display in a nice table
+model_comparison %>%
+  as.data.frame() %>%
+  dplyr::select(Name, R2_Tjur, RMSE, AICc) %>%
+  mutate(p_value = p_values) %>%
+  gt() %>%
+  fmt_number(
+    columns = where(is.numeric),
+    n_sigfig = 3,
+    #drop_trailing_zeros = FALSE
+  ) 
+```
+
+## Classification table
+```{r , echo=FALSE}
+# Calculate predicted probabilities and append to df
+df3$predict.prob.multi <- predict(mlog_model_ia, type = "response")
+df3$predict.class.multi <- as.integer(df3$predict.prob.multi > 0.5)
+glimpse(df3) 
+
+# Calculate the "confusion_matrix"
+cfm <- confusion_matrix(targets = df3$status, predictions = df3$predict.class.multi)
+
+# Plot the "confusion_matrix"
+plot_confusion_matrix(cfm)
+
+# Get the "classification metrics" using cvms
+cfm_metrics <- select_metrics(cfm) %>%
+  # convert all columns to numeric (if needed)
+  #mutate(across(everything(), as.numeric)) %>%
+  # pivot to long format directly
+  pivot_longer(
+    cols = everything()
+    #names_to = "Metric",
+    #values_to = "Value"
+  )
+
+cfm_metrics
+
+# Display in a nice table
+cfm_metrics %>%
+  gt() %>%
+  fmt_number(
+    decimals = 3
+  )
+```
+
+## ROC curve and AUC (area under curve)
+```{r mlog_model-ROC,2 echo = TRUE}
+roc_obj <- roc(response = df3$status, 
+               predictor = df3$predict.prob,
+               direction = "<", 
+               plot = TRUE, 
+               col = "red",
+               lwd = 2,
+               grid = TRUE,
+               print.auc = TRUE,
+               main = "ROC Curve",
+               font = 2)
+```
+
+## Hosmer-Lemeshow test for GOF
+## WE WILL NOT USE THIS - IT IS BAD!!!
+## small sample = it lacks the power to detect poor fit
+## large sample size = it will almost always be significant
+## but just in case....
+```{r , echo=FALSE}
+# Get the Hosmer–Lemeshow test using generalhoslem
+hl_test <- logitgof(df3$status, df3$predict.prob, g=10)
+hl_test
+```
+
+## Get std estimates for best model
+```{r log_reg_ia-est, echo = TRUE}
+estimates(mlogistic_model_ia)
+```
+
+
+
+
+
+### -------------------------------------------------
+## תרגול-עצמי
+
+## שאלה 1
+```{r question-1, echo = TRUE}
+# 
+
+```
+
+## שאלה 2
+```{r question-2, echo = TRUE}
+# 
+
+```
+
+## שאלה 3
+```{r question-3, echo = TRUE}
+# 
+
+```
+
+
+
+
+
+
+
+
+
+### source: https://bookdown.org/drki_musa/dataanalysis/binary-logistic-regression.html#multiple-binary-logistic-regression
+###         https://github.com/drkamarul/multivar_data_analysis/tree/main/data
+
+## Clean the data
+```{r clean-data, echo = TRUE}
+# Load the data
+file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/stroke.dta"
+df3 <- import(file, trust = TRUE)
+#write.csv(df3, here("EpiData", "04 stroke.csv"))
+
+# Clean up variable names
+df3 <- clean_names(df3)
+names(df3) <- gsub("_", ".", names(df3))
+
+# Convert status to integer (2 -> 0, 1 -> 1)
+df3 <- df3 %>%
+  mutate(
+    status = ifelse(status == 2, 0, 1),
+    sex = ifelse(sex == 2, 0, 1)
+  )
+
+# Convert these variables from dbl to int
+df3 <- df3 %>%
+  mutate(across(c(sex, status, dm, stroke.type), as.integer))
+
+# Check the updated dataset structure
+glimpse(df3)
+
+# Save as R data file
+saveRDS(df3, here("EpiData", "04 stroke.rds"))
+```
+
+## Give variable explanations in labels
+```{r labels, echo = TRUE}
+attr(df3$sex, "label") <- "מגדר"
+attr(df3$status, "label") <- "מצב (חי / נפטר)"
+attr(df3$gcs, "label") <- "סולם התרדמת של גלאזגו"
+attr(df3$sbp, "label") <- "לחץ דם סיסטולי"
+attr(df3$dm , "label") <- "סוּכֶּרֶת"
+attr(df3$age, "label") <- "גיל"
+attr(df3$stroke.type, "label") <- "סוג שבץ מוח (HS / IS)"
+
+labels <- NULL
+labels <- data.frame(Variable = names(df3), Label = unlist(var_label(df3)))
+gt(labels)
+```

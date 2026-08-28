@@ -1,0 +1,277 @@
+###
+### name  : __________________
+### ID    : [מספר תעודת זהות]
+### course: אפידמיולוגיה (HIT.ac.il)
+### lesson: רגרסיה לינארית 05   
+### date  : 09/08/2026
+###  
+### נלמד לעשות רגרסיה לינארית פשוטה
+###
+### source: https://bookdown.org/drki_musa/dataanalysis/linear-regression.html#simple-linear-regression
+
+
+## Reset memory
+```{r setup-packages, include = FALSE}
+rm(list = ls(all.names = TRUE))          # 👈 Clear all data objects        👇 Clear packages
+lapply(paste("package:", names(sessionInfo()$otherPkgs), sep = ""), detach, character.only = TRUE, unload = TRUE, force = TRUE)
+gc()                                     # Clear unused data from memory ("garbage cllection")
+dev.off()                                # Reset the display output of R
+system("powershell -Command Clear-Host") # This will clear the terminal in VScode
+```
+
+## Load required packages
+```{r load-packages, include = FALSE}
+options("install.lock" = FALSE)
+if (!require("pacman")) install.packages("pacman") ; library(pacman)
+pacman::p_load(
+  Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
+  rio, here,              # File import and path support
+  labelled,               # deal with labels
+  tidyverse,              # data management + ggplot2 graphics,
+  broom,                  # For tidying model outputs
+  dplyr,                  # For data manipulation
+  gt,                     # Nice beuatiful tables
+  gtsummary,              # summary statistics and tests
+  nortest,                # Anderson-Darling test for normality
+  ggplot2,                # For creating plots
+  ggpubr,                 # For ggplot2 extensions
+  DescTools,              # For statistical functions like skewness and kurtosis
+  summarytools,           # to get a table of all summary statistics
+  car,                    # For Levene's test and ANOVA
+  lmtest,                 # do linear regression tests
+  performance,
+  parameters,             # get standardized parameters/coefficients
+  car,                    #
+  forecast                # get ACF plot
+              )
+# Install/load flexplot
+if (!require("flexplot", quietly = TRUE)) devtools::install_github("dustinfife/flexplot", ref = "logistic_plots")  ;  library(flexplot)
+```
+
+## Access the data
+```{r read-data, echo = TRUE}
+# file <- "./EpiData/03 coronary.rds" # 👈 use this if the file is on your computer
+file <- "https://raw.githubusercontent.com/Model-Lab-Net/Courses/refs/heads/main/Epi/Data/03%20coronary.rds"
+df2 <- import(file, trust = TRUE)
+# show variable translations to Hebrew in lables
+labels <- data.frame(Variable = names(df2), Label = unlist(var_label(df2)))   ;   gt(labels)
+glimpse(df2)               # get an overview of the data
+```
+
+## Summary statistics for numerical variables
+```{r summary-stats, echo = TRUE}
+# Create summary statistics for all numerical variables grouped by "race"
+tbl_summary(data = df2,
+            include = where(is.numeric),
+            by = gender,
+            statistic = list(all_continuous() ~ "{mean} ({sd})"),
+            digits = all_continuous() ~ 1
+           ) %>%
+          # add_p() %>%                                        # Add p-values for comparisons
+          # add_overall() %>%                                    # Add overall column
+          modify_header(label = "**משתנה**")                # Customize header
+```
+
+## Simple linear regression model
+```{r slr, echo = TRUE}
+# Perform a Simple Linear Regression
+slr <- lm(chol ~ sbp, data = df2)
+
+# print the summary of the simple linear regression
+summary(slr)
+```
+
+## Calculate pearson correlation coefficient
+```{r pearson, echo = TRUE}
+# Calculate the pearson coefficient
+pearson_result <- cor.test(df2$chol, df2$sbp, method = "pearson", use = "complete.obs")
+pearson_result
+```
+
+## Linear regression parameter values with nice output
+```{r slr-model, echo = TRUE}
+# use gtsummary to create a nice table
+slr_model <- tbl_regression(slr, intercept = TRUE) %>%
+  add_glance_table(include = c(
+    nobs,
+    r.squared,
+    adj.r.squared,
+    statistic,
+    sigma,
+    logLik,
+    AIC,
+    p.value
+  ))
+
+# Show the model results table
+slr_model
+```
+
+## Old way to get scatter plot with regression model
+```{r polt-regression, echo = TRUE}
+# use ggplot to show the scatter plot with regression line with linear model and confidence interval
+ggplot(df2, aes(x = sbp, y = chol)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") + # Adding the trend line with linear model
+  labs(
+    title = paste("Scatter Plot"),
+    #x = "sbp",
+    #y = "chol"
+  ) +
+  theme_minimal()
+```
+
+## Flexplot scatter plot and analysis
+```{r polt-regression, echo = TRUE}
+# Plot the regression
+flexplot(chol ~ sbp, data = df2, method = "lm", se = TRUE)
+```
+
+## Test for normal distribution of model residuals
+```{r residuals, echo = TRUE}
+# Analyze the residuals
+visualize(slr)
+
+# Plot the residuals
+hist(res, breaks = 20, main = "Histogram of Residuals",
+  xlab = "Residuals", col = "darkgrey"
+)
+
+# Q-Q plot
+qqPlot(slr) 
+
+# Run  test  (Ho: residuals are normal)
+sw <- check_normality(slr)
+sw
+```
+
+## Test for homoscedacity
+```{r homoscedacity, echo = TRUE}
+# Run Breusch-Pagan test  (Ho: no autocorelation)
+bp <- check_heteroscedasticity(slr)
+bp
+```
+
+## Test for autocorrelation 
+```{r autocorrelation , echo = TRUE}
+# Plot ACF residuals
+Acf(residuals(slr))
+
+# Run Durbin-Watson test  (Ho: no autocorelation)
+dw <- check_autocorrelation(mlr)
+```
+
+## Add diagnostics to model
+```{r residuals, echo = TRUE}
+# Chhose the best model
+# Run the diagnostics
+sw <- as.numeric(check_normality(slr))               # Shapiro-Wilk for normality
+bp <- as.numeric(check_heteroscedasticity(slr))      # Breusch-Pagan for heteroscedacity
+dw <- as.numeric(check_autocorrelation(slr))         # Durbin-Watson test for autocorelation
+vif <- as.data.frame(check_collinearity(slr))           # Mullticolinearity
+
+# Add diagnostics to model table
+slr_model %>%
+  as_gt() %>% # Convert to gt engine first
+  tab_source_note(
+    source_note = html(paste0(
+      "Shapiro-Wilk (normality):⠀⠀⠀⠀⠀⠀⠀p = ", round(sw, 3), "<br>",
+      "Breusch-Pagan (heteroscedasticity): p = ", round(bp, 3),"<br>",
+      "Durbin-Watson (autocorrelation): ⠀ p = ", round(dw, 3),"<br>"
+    )))
+```
+
+
+
+
+
+### -------------------------------------------------
+## תרגול-עצמי
+
+## שאלה 1
+```{r question-1, echo = TRUE}
+# 
+
+```
+
+## שאלה 2
+```{r question-2, echo = TRUE}
+# 
+
+```
+
+## שאלה 3
+```{r question-3, echo = TRUE}
+# 
+
+```
+
+
+
+
+
+
+
+
+
+### source: https://bookdown.org/drki_musa/dataanalysis/linear-regression.html
+###         https://github.com/drkamarul/multivar_data_analysis/tree/main/data
+
+## Clean data
+```{r clean-data, echo = TRUE}
+# Load the data
+file <- "https://raw.githubusercontent.com/drkamarul/multivar_data_analysis/refs/heads/main/data/coronary.dta"
+df2 <- import(file, trust = TRUE)
+#write.csv(df2, here("EpiData", "03 coronary.csv"))
+
+# Change id to factor
+df2 <- df2 %>%
+  mutate(id = as.factor(id))
+
+# Change cad to factor
+df2 <- df2 %>%
+  mutate(cad = as.factor(cad))
+
+# Change gender column from 1, 2 to "F", "M"
+df2 <- df2 %>%
+  mutate(gender = case_when(
+    gender == 1 ~ "F",
+    gender == 2 ~ "M",
+    TRUE ~ as.factor(gender) # Preserve other values (e.g., NA)
+  ))
+
+# Change race column from 1, 2, 3  to "W", "B", "J"
+df2 <- df2 %>%
+  mutate(race = case_when(
+    race == 1 ~ "W",
+    race == 2 ~ "B",
+    race == 3 ~ "J",
+    TRUE ~ as.factor(race) # Preserve other values (e.g., NA)
+  ))
+
+# Convert all chr variables to fct
+df2 <- mutate_if(df2, is.character, as.factor)
+
+# Check the updated dataset structure
+glimpse(df2)
+
+# Save as R data file
+saveRDS(df2, here("EpiData", "03 coronary.rds"))
+```
+
+## Give variable explanations in labels
+```{r labels, echo = TRUE}
+attr(df2$id, "label") <- "קוד המטופל"
+attr(df2$cad, "label") <- "מחלת עורקים כליליים"
+attr(df2$sbp, "label") <- "לחץ דם סיסטולי"
+attr(df2$dbp, "label") <- "לחץ דם דיאסטולי"
+attr(df2$chol , "label") <- "כולסטרול בדם"
+attr(df2$age, "label") <- "גיל"
+attr(df2$bmi, "label") <- "BMI"
+attr(df2$race, "label") <- "לבן / שלור / יהודי"
+attr(df2$gender, "label") <- "מגדר"
+
+labels <- NULL
+labels <- data.frame(Variable = names(df2), Label = unlist(var_label(df2)))
+gt(labels)
+```
