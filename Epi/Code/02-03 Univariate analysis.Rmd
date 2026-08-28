@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: סטטיסטיקה תאורית וניתוח בסיסי 02-03   
-### date  : 22/002/2026
+### date  : 17/07/2026
 ###  
 ###  נלמד לבצע ניתוח סטטיסטי פשוט
 
@@ -17,8 +17,9 @@ dev.off()                                # Reset the display output of R
 system("powershell -Command Clear-Host") # This will clear the terminal in VScode
 ```
 
+
 ## Load required packages
-```{r load-packages, include = FALSE}  
+```{r load-packages, include = FALSE}
 options("install.lock" = FALSE)
 if (!require("pacman")) install.packages("pacman") ; library(pacman)
 pacman::p_load(
@@ -48,55 +49,10 @@ labels <- data.frame(Variable = names(df1), Label = unlist(var_label(df1)))   ; 
 glimpse(df1)               # get an overview of the data
 ```
 
-## Select numerical variable for analysis
-```{r descriptives, echo = TRUE}
-# Select variables from the df to calculate summary statistics
-variables <- c("age", "bmi", "temp")
-
-# Calculate summary statistics
-summary_stats <- descr(df1[, variables], round.digits = 2, headings = TRUE)
-summary_stats
-```
-
-## Send to nice table
-```{r descriptives, echo = TRUE}
-# Convert to dataframe
-stats <- as.data.frame((summary_stats))
-# Copy stat names to rownames
-stats <- cbind(Statistic = rownames(stats), stats)   # need this to keep
-
-# Convert to nice table
-stats_tbl <- stats %>%
-  gt() %>%
-  tab_header(title = "Descriptive Statistics⠀⠀⠀⠀סטטיסטיקה תאורית") %>%
-  fmt_number(
-    #columns = where(is.numeric),
-    decimals = 1
-  )
-
-# Display the table
-stats_tbl
-```
-
-## Test normality on the raw data (Ho: data are normal dist)
-```{r descriptives-old, echo = TRUE}
-# Seleect which variable to test
-variable <- c("age")
-
-# Do an Anderson-Darling test for normality
-ad <- ad.test(df1[[variable]])$p.value      
-ad <- paste0("p < ", formatC(ad, format = "f", digits = 4))
-ad
-```
-
 ## The old way to do descriptives
 ```{r descriptives-old, echo = TRUE}
 # Select variable from the df to calculate summary statistics
 variable <- c("temp")
-
-# Get summary statistics
-desc_result <- Desc(df1[variable], plotit = TRUE)
-desc_result
 
 # Collect all the values
 mean_var1 <- mean(df$var.1, na.rm = TRUE)
@@ -107,14 +63,17 @@ iqr_var1 <- median(df$var.1, na.rm = TRUE)
 
 mean1 <- Mean(df1[[variable]], na.rm = TRUE)
 sd1 <- sd(df1[[variable]], na.rm = TRUE)
+
 CI1 <- MeanCI(df1[[variable]], na.rm = TRUE)
    lower_meanci_1 <- as.numeric((CI1["lwr.ci"]))
    upper_meanci_1 <- as.numeric((CI1["upr.ci"]))
+
 mode1 <- as.numeric(Mode(df1[[variable]], na.rm = TRUE))
 median1 <- Median(df1[[variable]], na.rm = TRUE)
 q25_1 <- as.numeric(Quantile(df1[[variable]], probs = 0.25, na.rm = TRUE))
 q75_1 <- as.numeric(Quantile(df1[[variable]], probs = 0.75, na.rm = TRUE))
 IQR1 <- IQR(df1[[variable]], na.rm = TRUE)
+
 min1 <- min(df1[[variable]], na.rm = TRUE)
 max1 <- max(df1[[variable]], na.rm = TRUE)
 skew1 <- Skew(df1[[variable]], na.rm = TRUE) # Skewness
@@ -137,6 +96,53 @@ summary_stats <- stats_df %>%
 summary_stats # Show the table
 ```
 
+## Get all summary stats
+```{r descriptives, echo = TRUE}
+# Use summarytools  package
+summary_stats <- descr(df1)
+summary_stats
+```
+
+## Send to nice table
+```{r descriptives, echo = TRUE}
+# Convert to dataframe
+stats <- as.data.frame((summary_stats)) %>%
+   cbind(Statistic = rownames(stats), stats)   # need this to keep
+
+# Convert to nice table
+stats_tbl <- stats %>%
+  gt() %>%
+  tab_header(title = "Descriptive Statistics⠀⠀⠀⠀סטטיסטיקה תאורית") %>%
+  fmt_number(
+    #columns = where(is.numeric),
+    decimals = 1
+  ) 
+
+# Display the table
+stats_tbl
+```
+
+## Use tbl_summary() to get mean/SD directly
+```{r summary-stats, echo = TRUE}
+# Create summary statistics for all numerical variables grouped by "outcome"
+tbl_summary(data = df1,
+            include = where(is.numeric),
+            by = outcome,
+            statistic = list(all_continuous() ~ "{mean} ({sd})"),
+            digits = all_continuous() ~ 1
+           ) %>%
+          # add_p() %>%                                        # Add p-values for comparisons
+          # add_overall() %>%                                    # Add overall column
+           modify_header(label = "**משתנה**")                # Customize header
+```
+
+## Test normality on the raw data (Ho: data are normal dist)
+```{r descriptives-old, echo = TRUE}
+# Seleect which variable to test
+var <- c("age")
+# Do Anderson-Darling test for mormality
+ad.test((df1[[var]]))
+```
 
 ## Bar chart 
 ```{r pie, echo = TRUE}
@@ -197,7 +203,7 @@ ggplot(df1, aes(x = get(x_var), y = get(y_var), fill = get(x_var))) +
 
 ## Plot the histograms and density functions of the data rom above
 ```{r boxplot, echo = TRUE}
-desc_result <- Desc(df1[variables], plotit = TRUE)
+desc_result <- Desc(df1[[var]], plotit = TRUE)
 desc_result
 ```
 
@@ -209,19 +215,6 @@ crosstable <- df1 %>%
 
 crosstable %>%
   gt()
-
-## Create contigency table the old way
-#contingency_table <- table(df1$fever, df1$outcome)
-#contingency_table
-# Convert to probabilities
-#percent_table <- prop.table(contingency_table, margin = 1)
-#percent_table
-#percent_table <- round(prop.table(contingency_table), 3)      # round to 3 digits
-#percent_table
-# Chi-Square test
-#chisq.test(x = df1$fever, y = df1$outcome)
-# Chi-Fisher Exact test
-#fisher.test(x = df1$fever, y = df1$outcome)
 ```
 
 
@@ -241,22 +234,16 @@ df_smoking <- df_smoking %>%
     )
 glimpse(df_smoking)
 
-# Or an easier way....
 crosstable <- df_smoking %>%
   finalfit("SmokingStatus", "Gender")
 
 crosstable %>%
   gt()
+```
 
 
-df_smoking %>%
-  tbl_summary(
-    by = SmokingStatus,                               # Split columns by Smoking Status
-    statistic = list(all_categorical() ~ "{p}%"),    # ONLY percentages
-    digits = all_categorical() ~ 1
-  ) %>%
-  add_p(test = all_categorical() ~ "chisq.test") %>% # Add Chi-square
-  add_odds_ratio(outcome = SmokingStatus)           # Add Odds Ratio
+
+
 
 ### -------------------------------------------------
 ## תרגול-עצמי

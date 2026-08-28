@@ -65,8 +65,7 @@ glimpse(df3)               # get an overview of the data
 ## Summary statistics
 ```{r clean-data, echo = TRUE}
 # Get summary statistics
-df3 %>%
-  tbl_summary(by = status)
+tbl_summary(data = df3, by = status)
 ```
 
 ## Logistic regression
@@ -100,7 +99,7 @@ p_val    <- as.numeric(lrtest(log_model)$`Pr(>Chisq)`[2])    # Omnibus χ² p-va
   p_val <- ifelse(
     p_val < 0.001,
     "<0.001",
-    sprintf("%.3f", p_val)
+    sprintf("= %.3f", p_val)
   )
 
 # Add diagnostics to model table
@@ -111,7 +110,7 @@ logistic_model %>%
       "R² = ", round(r2_val, 3), "<br>",
       "AIC = ", round(AIC_val, 0),"<br>",
       "χ² = ", round(chi_sq, 0),"<br>",
-      "p = ", p_val,"<br>",
+      "p ", p_val,"<br>",
       "Brier = ",round(brier, 3))
     ))
 ```

@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: סיכון יחסי 07  RR 
-### date  : 19/04/2025
+### date  : 28/08/2026
 ###  
 ###  counts רגרסיית פאוסון - ספירות
 ###
@@ -73,8 +73,11 @@ glimpse(df6)               # get an overview of the data
 
 ## Get summary stats
 ```{r summary-stats, echo = TRUE}
-# read the data in a file online
-epiDisplay::codebook(df6)
+tbl_summary(data = df6,
+            #include = c(gender, res.inf, ghq12, attack),
+            include = everything(),
+            by = gender,
+            statistic = all_continuous() ~ "{mean} ({sd})")
 ```
 
 ## Plot the data
@@ -82,14 +85,14 @@ epiDisplay::codebook(df6)
 flexplot(attack ~ 1, data = df6)
 ```
 
-## Simple Poisson regression univariate model
+## Simple univariate Poisson model
 ```{r simple-poisson-reg, echo = TRUE}
 # Do a univrariate Poisson regression - attack vs gender
-spr <- glm(ghq12 ~ attack, data = df6, family = "poisson")
-summary(spr)
+spm <- glm(ghq12 ~ attack, data = df6, family = "poisson")
+summary(spm)
 
-spr_model <- tbl_regression(spr, exponentiate = TRUE)
-spr_model
+spm_model <- tbl_regression(spm, exponentiate = TRUE)
+spm_model
 
 flexplot(attack ~ ghq12, data = df6, method = "poisson", ghost.line = "red", jitter=c(0,0.05))
 ```
@@ -97,11 +100,11 @@ flexplot(attack ~ ghq12, data = df6, method = "poisson", ghost.line = "red", jit
 ## Multivariate Poisson regression model  
 ```{r poisson-multi-reg, echo = TRUE}
 # Do a multivariate Poisson regression - attack vs everything
-mpr <- glm(ghq12 ~ attack + res.inf, data = df6, family = "poisson")
-summary(mpr)
+mpm <- glm(attack ~ ghq12 + res.inf, data = df6, family = "poisson")
+summary(mpm)
 
-mpr_model <- tbl_regression(mpr, exponentiate = TRUE)
-mpr_model
+mpm_model <- tbl_regression(mpm, exponentiate = TRUE)
+mpm_model
 
 flexplot(attack ~ ghq12 | res.inf, data = df6, method = "poisson", ghost.line = "red", jitter=c(0,0.05))
 flexplot(attack ~ ghq12 + res.inf, data = df6, method = "poisson", ghost.line = "red", jitter=c(0,0.05))
@@ -109,62 +112,66 @@ flexplot(attack ~ ghq12 + res.inf, data = df6, method = "poisson", ghost.line = 
 
 ## Model comparison
 ```{r model-comparison, echo = TRUE}
-# Uaing just flexplot
-model.comparison(spr, mpr)
-
-## Model fit and performance
-visualize(mpr)
-
-# Chi-square goodness-of-fit
-epiDisplay::poisgof(mpr)
-
-# Scaled Pearson chi-square statistic
-
-# AIC
-AIC(mpr)
+model_comparison <- compare_performance(
+  spm,
+  mpm
+  )
+model_comparison
 ```
 
 ## Model diagnostics
 ```{r mpr-logisitc-reg, echo = TRUE}
-dd <- datadist(df5)   ;   options(datadist = "dd")
-ord_model_ <- orm(perforation.ord ~ pulp + hemoglobin + systolic, data = df5)     # need this for model diagnostics. sorry.
-# NEW way
-AIC_val  <- as.numeric(AIC(mpr))                       # AIC
-r2_val   <- as.numeric(r2_nagelkerke(mpr))
-# Test dspersion
-dt_p <- dispersiontest(mpr)$p.value %>%
-                    format.pval(dt_p, eps = 0.001) #%>% 
-                    #paste("p", ., sep = " ")
-dt <- as.numeric(dispersiontest(mpr)$estimate) 
-# Test dspersion
-zi_check <- check_zeroinflation(mpr)
+epiDisplay::poisgof(mpm)
+r2_val   <- as.numeric(r2_nagelkerke(mpm))
+AIC_val  <- as.numeric(AIC(mpm))
+chi_sq   <- epiDisplay::poisgof(mpm)$chisq     # Omnibus χ² (Likelihood Ratio Chi²)
+p_val   <- epiDisplay::poisgof(mpm)$p.value
+  p_val <- ifelse(
+    p_val < 0.001,
+    "<0.001",
+    sprintf("= %.3f", p_val)
+  )
 
-# Calculate Omnibus chi-square test for goodness of fit
-chi_sq <- mpr$null.deviance - mpr$deviance
-df_diff <- mpr$df.null - mpr$df.residual
-p_val <- pchisq(chi_sq, df = df_diff, lower.tail = FALSE) %>%
-                    format.pval(p_val, eps = 0.001) #%>% 
-                    #paste("p", ., sep = " ")
+# Test dspersion
+dt <- as.numeric(dispersiontest(mpm)$estimate) 
+dt_p <- dispersiontest(mpm)$p.value
+  dt_p <- ifelse(
+    dt_p < 0.001,
+    "<0.001",
+    sprintf("%.3f", dt_p)
+  )
+# Zero inflation
+zi_check <- check_zeroinflation(mpm)
+zi <- zi_check$ratio
 
 # Add model diagnostics to table
-mpr_model %>%
+mpm_model %>%
   as_gt() %>% # Convert to gt engine first
   tab_source_note(
-    source_note = md(paste0(
+    source_note = html(paste0(
       "R² = ", round(r2_val, 3), "<br>",
       "AIC = ", round(AIC_val, 0), "<br>",
-      "Dispersion test = ", round(dt, 1), 
-      ",     p  ", dt_p, "<br>",
-      "Omnibus test: p ", p_val
+      "χ² = ", round(chi_sq, 0),"<br>",
+      "⠀⠀p ", p_val,"<br>",
+      "Dispersion test = ", round(dt, 1),"<br>", 
+      "⠀⠀p  = ", dt_p, "<br>",
+      "Zero inflation: ", round(zi,2)
     ))
   )
 ```
 
-
 ## Model prediction
 ```{r predict-data, echo = TRUE}
 # expected number of asthmatic attacks per year for a patient with recurrent respiratory infection and GHQ-12 score of 8
-predict <- predict(mpr, list(res.inf = "yes", ghq12 = 8),type = "response")
+attacks <- predict(mpm,
+                   newdata = data.frame(res.inf = "yes", ghq12 = 8),
+                   type = "response",
+                   se.fit = TRUE)
+                   
+# Calculate expected and 95% CIs                   
+expected <- as.numeric(exp(attacks$fit))
+lower <- as.numeric(exp(attacks$fit - 1.96 * attacks$se.fit))
+upper <- as.numeric(exp(attacks$fit + 1.96 * attacks$se.fit))
 ```
 
 

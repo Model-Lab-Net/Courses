@@ -68,34 +68,11 @@ labels <- data.frame(Variable = names(df4), Label = unlist(var_label(df4)))   ; 
 glimpse(df4)               # get an overview of the data
 ```
 
-## Summary statistics
-```{r clean-data, echo = TRUE}
-summary_stats <- df4 %>%
-  dplyr::select(totchol, hpt, weight, fbs.cat) %>%
-  tbl_summary(
-    by = fbs.cat,  # Group by fbs.cat
-    statistic = list(
-      all_continuous() ~ "{mean} ({sd})"  # Mean and SD for continuous variables
-      #all_continuous() ~ "{median} ({p25}, {p75})"  # Median and IQR
-    ),
-    digits = all_continuous() ~ 2,  # Round to 2 decimal places
-    label = list(
-      totchol ~ "Total Cholesterol (mg/dL)",
-      hpt ~ "Hypertension Status",
-      weight ~ "Weight (kg)"
-    )
-  ) %>%
-  add_p() %>%  # Add p-values for group comparisons
-  modify_caption("**Summary Statistics by Fasting Blood Sugar Category**")
-
-summary_stats
-```
-
 ## Multinomial Logistic regression
 ```{r logistic_regression, echo = TRUE}
 # Perform Multinomial logistic regression
 #multinomial <- glm(fbs.cat ~ totchol + hpt + weight , data = df4, family = binomial(link = 'logit'))
-multinomial <- vglm(fbs.cat ~ totchol + weight + hpt, family = multinomial, data = df4, model = TRUE)
+multinomial <- vglm(fbs.cat ~ totchol + hpt + weight, family = multinomial, data = df4, model = TRUE)
 summary(multinomial)
 ```
 

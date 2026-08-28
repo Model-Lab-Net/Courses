@@ -134,18 +134,17 @@ bp <- check_heteroscedasticity(mlr)       # Breusch-Pagan for heteroscedacity
 dw <- check_autocorrelation(mlr)          # Durbin-Watson test for autocorelation
 vif <- check_collinearity(mlr)            # mullticolinearity (<5 low, >10 high)
 
-# Add these to the model summary table
+# Add diagnostics to model table
 mlr_model %>%
   as_gt() %>% # Convert to gt engine first
   tab_source_note(
-    source_note = html(sprintf(
-      "Shapiro-Wilk (Normality): p = %.3f <br>
-       Breusch-Pagan (Heteroscedasticity): p = %.3f <br>
-       Durbin-Watson (Autocorrelation): p = %.3f", 
-      sw, bp, dw
-    ))
-  )
-
+    source_note = html(paste0(
+      "Shapiro-Wilk (normality):⠀⠀⠀⠀⠀⠀⠀p = ", round(sw, 3), "<br>",
+      "Breusch-Pagan (heteroscedasticity): p = ", round(bp, 3),"<br>",
+      "Durbin-Watson (autocorrelation): ⠀ p = ", round(dw, 3),"<br>"
+    )))
+  
+# Multicolinearity test
 vif %>%
   as.data.frame() %>%
   select(Term, VIF) %>%

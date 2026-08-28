@@ -91,7 +91,7 @@ p_val    <- as.numeric(lrtest(mlog_model)$`Pr(>Chisq)`[2])    # Omnibus χ² p-v
   p_val <- ifelse(
     p_val < 0.001,
     "<0.001",
-    sprintf("%.3f", p_val)
+    sprintf("= %.3f", p_val)
   )
 
 # Add model diagnostics to table
@@ -122,7 +122,6 @@ mlogistic_model_ia <- tbl_regression(mlog_model_ia, exponentiate = TRUE)
 mlogistic_model_ia
 ```
 
-
 ### ------------------------------------------
 
 
@@ -151,7 +150,7 @@ p_values <- c(
 p_values <- ifelse(
   p_values < 0.001,
   "<0.001",
-  sprintf("%.3f", p_values)
+  sprintf("= %.3f", p_values)
 )
 
 # Display in a nice table
@@ -166,7 +165,6 @@ model_comparison %>%
     #drop_trailing_zeros = FALSE
   ) 
 ```
-
 
 ## Classification table
 ```{r , echo=FALSE}
@@ -216,11 +214,6 @@ roc_obj <- roc(response = df3$status,
                font = 2)
 ```
 
-## Get std estimates for best model
-```{r log_reg_ia-est, echo = TRUE}
-estimates(mlogistic_model_ia)
-```
-
 ## Hosmer-Lemeshow test for GOF
 ## WE WILL NOT USE THIS - IT IS BAD!!!
 ## small sample = it lacks the power to detect poor fit
@@ -230,6 +223,11 @@ estimates(mlogistic_model_ia)
 # Get the Hosmer–Lemeshow test using generalhoslem
 hl_test <- logitgof(df3$status, df3$predict.prob, g=10)
 hl_test
+```
+
+## Get std estimates for best model
+```{r log_reg_ia-est, echo = TRUE}
+estimates(mlogistic_model_ia)
 ```
 
 

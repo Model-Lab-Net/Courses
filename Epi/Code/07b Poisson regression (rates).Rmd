@@ -71,13 +71,6 @@ labels <- data.frame(Variable = names(df7), Label = unlist(var_label(df7)))   ; 
 glimpse(df7)               # get an overview of the data
 ```
 
-## Get summary stats
-```{r summary-stats, echo = TRUE}
-# Get summary stastistics
-epiDisplay::codebook(df7)
-```
-
-
 ## Plot the data
 ```{r simple-poisson-reg, echo = TRUE}
 flexplot(case ~ 1, data = df7)
@@ -86,93 +79,140 @@ flexplot(case ~ 1, data = df7)
 ## A simple Poisson regression univariate model for rates
 ```{r read-data, echo = TRUE}
 # read the data in a file online
-spr <- glm(case ~ cigar.day,
-           data = df7,
-           family = "poisson",
-           offset = log(person.yrs))
-summary(spr)
+spm <- glm(case ~ cigar.day, data = df7,
+           family = "poisson",  offset = log(person.yrs))
+summary(spm)
 
-spr_model <- tbl_regression(spr, exponentiate = TRUE)
-spr_model
+spm_model <- tbl_regression(spm, exponentiate = TRUE)
+spm_model
 ```
 
 ##  Poisson multivariate regression model for rates
 ```{r poisson-multi-reg, echo = TRUE}
 # read the data in a file online
-mpr <- glm(case ~ cigar.day + smoke.yrs,
-           data = df7,
-           family = "poisson",
-           offset = log(person.yrs))    # the "." uses all the other variables
-summary(mpr)
+mpm <- glm(case ~ cigar.day + smoke.yrs, data = df7,
+           family = "poisson",  offset = log(person.yrs))
+summary(mpm)
 
-mpr_model <- tbl_regression(mpr, exponentiate = TRUE)
-mpr_model
+mpm_model <- tbl_regression(mpm, exponentiate = TRUE)
+mpm_model
 ```
 
 ## Multiple Poisson regression with interaction for rates
 ```{r poisson-multi-reg-ia, echo = TRUE}
 # read the data in a file online
-mpr_ia <- glm(case ~ cigar.day * smoke.yrs,
+mpm_ia <- glm(case ~ cigar.day * smoke.yrs,
               data = df7,
               family = "poisson", 
               offset = log(person.yrs))
-summary(mpr_ia)
+summary(mpm_ia)
 
-mpr_ia_model <- tbl_regression(mpr_ia, exponentiate = TRUE)
-mpr_ia_model
+mpm_ia_model <- tbl_regression(mpm_ia, exponentiate = TRUE)
+mpm_ia_model
 ```
-
-## Model fit and performance
-```{r read-data, echo = TRUE}
-#Scaled Pearson chi-square statistic
-
-# Chi-square goodness-of-fit
-epiDisplay::poisgof(mpr_ia)
-# AIC
-AIC(mpr_ia)
-```
-
 
 ## Model comparison
+```{r read-data, echo = TRUE}
+model_comparison <- compare_performance(
+  spm,
+  mpm,
+  mpm_ia
+  )
+model_comparison
+
+## Model fit and performance
+visualize(mpm)
+```
+
+
+## Model diagnostics
 ```{r mdodel-comparison, echo = TRUE}
-# Compare models
-model.comparison(spr, mpr)
-model.comparison(spr, mpr_ia)
-model.comparison(mpr, mpr_ia)
+epiDisplay::poisgof(mpm)
+r2_val   <- as.numeric(r2_nagelkerke(mpm))
+AIC_val  <- as.numeric(AIC(mpm))
+chi_sq   <- epiDisplay::poisgof(mpm)$chisq     # Omnibus χ² (Likelihood Ratio Chi²)
+p_val   <- epiDisplay::poisgof(mpm)$p.value
+  p_val <- ifelse(
+    p_val < 0.001,
+    "<0.001",
+    sprintf("= %.3f", p_val)
+  )
+
+# Test dspersion
+dt <- as.numeric(dispersiontest(mpm)$estimate) 
+dt_p <- dispersiontest(mpm)$p.value
+  dt_p <- ifelse(
+    dt_p < 0.001,
+    "<0.001",
+    sprintf("= %.3f", dt_p)
+  )
+# Zero inflation
+zi_check <- check_zeroinflation(mpm)
+zi <- zi_check$ratio
+
+# Add model diagnostics to table
+mpm_model %>%
+  as_gt() %>% # Convert to gt engine first
+  tab_source_note(
+    source_note = html(paste0(
+      "R² = ", round(r2_val, 3), "<br>",
+      "AIC = ", round(AIC_val, 0), "<br>",
+      "χ² = ", round(chi_sq, 0),"<br>",
+      "⠀⠀p ", p_val,"<br>",
+      "Dispersion test = ", round(dt, 1),"<br>", 
+      "⠀⠀p  = ", dt_p, "<br>",
+      "Zero inflation: ", round(zi,2)
+    ))
+  )
+# Display in a nice table
+model_comparison %>%
+  as.data.frame() %>%
+  dplyr::select(Name, R2_Nagelkerke, RMSE, AICc) %>%
+  mutate(p_value = p_values) %>%
+  gt() %>%
+  fmt_number(
+    columns = where(is.numeric),
+    n_sigfig = 3,
+    #drop_trailing_zeros = FALSE
+  ) 
 ```
 
 ## Model diagnostics
-```{r mpr-logisitc-reg, echo = TRUE}
-dd <- datadist(df7)   ;   options(datadist = "dd")
-ord_model_ <- orm(perforation.ord ~ pulp + hemoglobin + systolic, data = df5)     # need this for model diagnostics. sorry.
-# NEW way
-AIC_val  <- as.numeric(AIC(mpr))                       # AIC
-r2_val   <- as.numeric(r2_nagelkerke(mpr))
-# Test dspersion
-dt_p <- dispersiontest(mpr)$p.value %>%
-                    format.pval(dt_p, eps = 0.001) #%>% 
-                    #paste("p", ., sep = " ")
-dt <- as.numeric(dispersiontest(mpr)$estimate) 
-# Test dspersion
-zi_check <- check_zeroinflation(mpr)
+```{r mpm-logisitc-reg, echo = TRUE}
+r2_val   <- as.numeric(r2_nagelkerke(mpm))
+AIC_val  <- as.numeric(AIC(mpm))
+chi_sq   <- epiDisplay::poisgof(mpm)$chisq     # Omnibus χ² (Likelihood Ratio Chi²)
+p_val   <- epiDisplay::poisgof(mpm)$p.value
+  p_val <- ifelse(
+    p_val < 0.001,
+    "<0.001",
+    sprintf("= %.3f", p_val)
+  )
 
-# Calculate Omnibus chi-square test for goodness of fit
-chi_sq <- mpr$null.deviance - mpr$deviance
-df_diff <- mpr$df.null - mpr$df.residual
-p_val <- pchisq(chi_sq, df = df_diff, lower.tail = FALSE) %>%
-                    format.pval(p_val, eps = 0.001) #%>% 
-                    #paste("p", ., sep = " ")
+# Test dspersion
+dt <- as.numeric(dispersiontest(mpm)$estimate) 
+dt_p <- dispersiontest(mpm)$p.value
+  dt_p <- ifelse(
+    dt_p < 0.001,
+    "<0.001",
+    spmintf("%.3f", dt_p)
+  )
+# Zero inflation
+zi_check <- check_zeroinflation(mpm)
+zi <- zi_check$ratio
 
 # Add model diagnostics to table
-mpr_model %>%
+mpm_model %>%
   as_gt() %>% # Convert to gt engine first
   tab_source_note(
     source_note = md(paste0(
       "R² = ", round(r2_val, 3), "<br>",
       "AIC = ", round(AIC_val, 0), "<br>",
-      "Dispersion test = ", round(dt, 1), 
-      ",     p  ", dt_p, "<br>",
-      "Omnibus test: p ", p_val
+      "χ² = ", round(chi_sq, 0),"<br>",
+      "⠀⠀p ", p_val,"<br>",
+      "Dispersion test = ", round(dt, 1),"<br>", 
+      "⠀⠀p  ", dt_p, "<br>",
+      "Zero inflation: ", round(zi,2)
     ))
   )
 ```

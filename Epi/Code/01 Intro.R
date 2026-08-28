@@ -27,7 +27,7 @@ bmi
 x1 <- 23
 class(x1)
 
-x2 <- x 1/4.5
+x2 <- x1/4.5
 x2
 x2 <- round(x2,2)
 x2
@@ -151,3 +151,20 @@ if (y>x){           # check if y is greater than x
 v3 <- c(12,34,56,1,4,45)                    # create a vector v3
 condition <- ifelse(v3 > 10 ,'yes','no')    # ifelse function checks each element in v3, if it's greater than 10, it returns 'yes', otherwise 'no'
 condition
+
+
+
+# Need to install libraries (even if already installed the next time
+#                            the may be missing)
+install.packages("dplyr")
+install.packages("broom")
+install.packages("gt")
+install.packages("tidyverse")
+install.packages("ggplot2")
+
+# Now load packages
+library(dplyr)
+library(broom)
+library(gt)
+library(tidyverse)
+library(ggplot2)

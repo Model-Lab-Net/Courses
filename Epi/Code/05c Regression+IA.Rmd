@@ -126,14 +126,6 @@ flexplot(symptoms ~ bmi + age | copd  , data = df_covid, method = "lm")
 
 ## Model comparison
 ```{r mdodel-comparison, echo = TRUE}
-# Check all combinations to select "best" model
-model.comparison(slr, mlr)
-model.comparison(slr, mlrIA)
-model.comparison(mlr, mlrIA)
-
-
-## -----------------
-
 model_comparison <- compare_performance(
   slr,
   mlr,
@@ -173,12 +165,23 @@ model_comparison %>%
 ## Diagnostics  (Ho: residuals are normal)
 ```{r residuals, echo = TRUE}
 # Chhose the best model
-model_diag <- mlrIA
+model_diag <- mlrIA_model
+
 # Run the diagnostics
-sw <- check_normality(model_diag)                # Shapiro-Wilk for normality
-bp <- check_heteroscedasticity(model_diag)       # Breusch-Pagan for heteroscedacity
-dw <- check_autocorrelation(model_diag)          # Durbin-Watson test for autocorelation
-vif <- check_collinearity(model_diag)            # Mullticolinearity
+sw <- as.numeric(check_normality(model_diag))               # Shapiro-Wilk for normality
+bp <- as.numeric(check_heteroscedasticity(model_diag))      # Breusch-Pagan for heteroscedacity
+dw <- as.numeric(check_autocorrelation(model_diag))         # Durbin-Watson test for autocorelation
+vif <- as.data.frame(check_collinearity(model_diag))           # Mullticolinearity
+
+# Add diagnostics to model table
+model_diag %>%
+  as_gt() %>% # Convert to gt engine first
+  tab_source_note(
+    source_note = html(paste0(
+      "Shapiro-Wilk (Normality): ", round(sw, 3), "<br>",
+      "Breusch-Pagan (Heteroscedasticity): ", round(bp, 3),"<br>",
+      "Durbin-Watson (Autocorrelation): ", round(dw, 3),"<br>"
+    )))
 
 # Add these to the model summary table
 model_diag %>%
@@ -193,7 +196,6 @@ model_diag %>%
   )
 
 vif %>%
-  as.data.frame() %>%
   select(Term, VIF) %>%
   mutate(
     Correlation = case_when(
@@ -208,7 +210,7 @@ vif %>%
     decimals = 1
   )
 
-visualize(model_diag)
+visualize(mlrIA)
 ```
 
 ## Get the standardized parameter values

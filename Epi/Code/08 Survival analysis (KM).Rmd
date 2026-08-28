@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: הישרדות 08   Survival
-### date  : 31/05/2026
+### date  : 21/08/2026
 ###  
 ###  נלמד לבצע ניתוח שרידות
 ###
@@ -74,21 +74,14 @@ glimpse(df8)               # get an overview of the data
 
 ## Show the data
 ```{r read-data, echo = TRUE}
-# in a nice table
-df8 %>%
-  tbl_summary(
-    by = status,
-    include = -c(doa, dod)  # exclude these two date variables
-  ) %>%
-  as_gt()
+tbl_summary(data = df8,
+            include = -c(doa, dod),
+            by = stroke.type) 
 
+tbl_summary(data = df8,
+            include = -c(doa, dod),
+            by = sex) 
 
-df8 %>%
-  tbl_summary(
-    by = stroke.type,
-    include = -c(doa, dod)  # exclude these two date variables
-  ) %>%
-  as_gt()
 ```
 
 ## Survival time statistics
@@ -125,54 +118,39 @@ summary_stats              # Show the table
 ## Do a Kaplan-Meier survival analayis
 ```{r km-surv, echo = TRUE}
 # estimate the survival probabilities for all patients
-KM_all <- survfit(Surv(time = time2, 
+KM <- survfit(Surv(time = time2, 
                        event = status == "dead" ) ~ 1, 
                        data = df8)
-summary(KM_all)
+summary(KM)
 ```
-
 
 ## Life table
 ```{r life-table, echo = TRUE}
-KM_table <- with(summary(KM_all),
-                 data.frame(
-                   time = time,
-                   n_risk = n.risk,
-                   n_event = n.event,
-                   n_censor = n.censor,
-                   surv = surv,
-                   std_err = std.err,
-                   lower_ci = lower,
-                   upper_ci = upper
-                 ))
-KM_table
-KM_table <- KM_table %>%
-  mutate(across(c(surv, std_err, lower_ci, upper_ci),
-         ~ round(.x, 2))
-         )
+# Get the Life table into a df
+KM_table <- tidy(KM)
 
 # Display with gt
 KM_table %>%
   gt() %>%
+  fmt_percent(columns = c(estimate, conf.low, conf.high), decimals = 1) %>%
+  fmt_number(columns = std.error, decimals = 3)  %>%
   tab_header(title = "Survival analysis") %>%
     cols_label(
     time      = "Time",
-    n_risk    = "At Risk",
-    n_event   = "Deaths",
-    surv      = "Survival %",
-    std_err   = "Std. Error",
-    lower_ci  = "Lower CI",
-    upper_ci  = "Upper CI"
-  ) %>%
-  fmt_percent(columns = c(surv, lower_ci, upper_ci), decimals = 1) %>%
-  fmt_number(columns = std_err, decimals = 3)
+    n.risk    = "Remaining",
+    n.event   = "Event",
+    n.censor  = "Censored",
+    estimate  = "Survival %",
+    std.error = "S.E",
+    conf.low  = "Lower CI",
+    conf.high = "Upper CI"
+  )
 ```
 
 ## Kaplan-Meier survival curve
 ```{r read-data, echo = TRUE}
 # estimate the survival probabilities for all patients
-KM_all_plot <- ggsurvplot(KM_all, data = df8)
-
+KM_plot <- ggsurvplot(KM_all, data = df8)
 KM_all_plot
 # *** You may need to zoom out ***
 ```

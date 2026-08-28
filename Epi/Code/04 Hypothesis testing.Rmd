@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: בדיקת השערות 04   
-### date  : 22/02/2026
+### date  : 17/07/2026
 ###  
 ###  נלמד לבצע סטטיטסיקה הסקתית ומבחני השערות
 
@@ -62,6 +62,16 @@ crosstable <- df_bc %>% # nolint
 
 crosstable %>%
   gt()
+```
+
+## Summary stats
+```{r chi-square, echo = TRUE}
+# Create cross-tabulation with chi-square test
+tbl_summary(data = df_bc,
+            statistic = list(
+                all_continuous() ~ "{mean} ± {sd}",
+                all_categorical() ~ "{n} ({p}%)")
+           )   
 ```
 
 ## T test for independent samples
