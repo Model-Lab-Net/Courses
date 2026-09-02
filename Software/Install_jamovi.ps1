@@ -158,9 +158,11 @@ C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('DescTools', repos='
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('VGAM', repos='https://cloud.r-project.org', force=TRUE)"
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('car', repos='https://cloud.r-project.org', force=TRUE)"
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('jmvconnect', repos='https://cloud.r-project.org', force=TRUE)"
+C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('performance', repos='https://cloud.r-project.org', force=TRUE)"
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('skedastic', repos='https://cloud.r-project.org', force=TRUE)"
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('systemfit', repos='https://cloud.r-project.org', force=TRUE)"
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('quantreg', repos='https://cloud.r-project.org', force=TRUE)"
+C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('merTools', repos='https://cloud.r-project.org', force=TRUE)"
 
 
 
