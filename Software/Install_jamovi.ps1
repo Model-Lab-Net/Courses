@@ -164,6 +164,8 @@ C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('systemfit', repos='
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('quantreg', repos='https://cloud.r-project.org', force=TRUE)"
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('merTools', repos='https://cloud.r-project.org', force=TRUE)"
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('MCMCpack', repos='https://cloud.r-project.org', force=TRUE)"
+C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('infer', repos='https://cloud.r-project.org', force=TRUE)"
+
 
 
 
