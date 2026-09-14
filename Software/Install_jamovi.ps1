@@ -153,6 +153,7 @@ Expand-Archive -Path "C:\temp\flexplot.zip" -DestinationPath "C:\Jamovi\Resource
 
 # -------------------- Add packages for Jamovi's Rj ---------------------------
 
+C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('gtsummary', repos='https://cloud.r-project.org', force=TRUE)"
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('AER', repos='https://cloud.r-project.org', force=TRUE)"
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('DescTools', repos='https://cloud.r-project.org', force=TRUE)"
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('VGAM', repos='https://cloud.r-project.org', force=TRUE)"
