@@ -163,6 +163,7 @@ C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('skedastic', repos='
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('systemfit', repos='https://cloud.r-project.org', force=TRUE)"
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('quantreg', repos='https://cloud.r-project.org', force=TRUE)"
 C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('merTools', repos='https://cloud.r-project.org', force=TRUE)"
+C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('MCMCpack', repos='https://cloud.r-project.org', force=TRUE)"
 
 
 
