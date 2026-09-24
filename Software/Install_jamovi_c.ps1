@@ -3,6 +3,32 @@
 # For: Stats/Econometrics course
 # Date: 11/08/2026
 
+# Title: PowerShell script to install Jamovi
+# Author: David Burg
+# For: Stats/Econometrics course
+# Date: 11/08/2026
+
+# ---------------------- Get Admin privelegs -------------------------------
+
+# Check if current session has Administrator privileges
+$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = New-Object Security.Principal.WindowsPrincipal($identity)
+$isAdmin =$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+if (-not $isAdmin) {
+    Write-Host "Requesting administrative privileges..." -ForegroundColor Yellow
+
+    # Relaunch script with elevated permissions ('RunAs')
+    $scriptPath =$MyInvocation.MyCommand.Path
+    Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
+
+    # Exit current non-elevated process
+    exit
+}
+
+# --- YOUR ELEVATED CODE GOES HERE ---
+Write-Host "Running with administrative privileges!" -ForegroundColor Green
+
 # ---------------------- Get everything ready -------------------------------
 $CURL_VERSION = "8.21.0_6"
 $ARIA_VERSION = "1.37.0"
@@ -50,9 +76,9 @@ if (-not (Test-Path -Path "C:\temp\7z.exe")) {
 #Copy-Item -Path "c:\RVScode\R\bin\x64\Rblas.dll" -Destination "c:\RVScode\R\library\stats\libs\x64" -Force
 #Copy-Item -Path "c:\RVScode\R\bin\x64\Rlapack.dll" -Destination "c:\RVScode\R\library\stats\libs\x64" -Force
 
-# ----------------- Download Jamovi --- ZIP for portable ------------------
+# ----------------- Download Jamovi --- EXE for install ------------------
 Write-Output "Downloading Jamovi..."
-$JAMOVI_VERSION = "28.1.0.0"
+$JAMOVI_VERSION = "28.3.0.0"
 $curlOptions = @(
     "--progress-bar", "-L"
     "-A", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 OPR/133.0.0.0"
@@ -67,7 +93,7 @@ if (-not (Test-Path -Path "C:\Jamovi")) {
     New-Item -Path "C:\Jamovi\Course" -ItemType Directory -Force
 }
 
-if (-not (Test-Path -Path "C:\temp\jamovi.zip")) {
+if (-not (Test-Path -Path "C:\temp\jamovi.exe")) {
     & "C:\temp\curl.exe" @curlOptions "C:\temp\jamovi.zip" "https://dl-cdn.jamovi.org/jamovi-$JAMOVI_VERSION-win-x64.zip"
 #   & "C:\temp\curl.exe" --progress-bar -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36" -e "https://www.jamovi.org/" -o "C:\temp\jamovi.zip" "https://dl-cdn.jamovi.org/jamovi-28.1.0.0-win-x64.zip"
     Expand-Archive -Path "C:\temp\jamovi.zip" -DestinationPath "C:\"
@@ -87,17 +113,6 @@ if (-not (Test-Path -Path "C:\temp\jamovi.zip")) {
 
 # -------------------- Add Jamovi modules ---------------------------
 #https://library.jamovi.org/win64/R4.6.0-x64/
-$JMO_VERSION = "4.6.0"
-$rdatasets = "1.0.1"
-$lsj = "1.0.1"
-$GAMLj3 = "3.7.0"
-$RJ = "2.7.18"
-$ESCI = "1.0.10"
-$MORETETS = "0.9.5"
-$SEMLJ = "1.2.5"
-$snowCluster = "7.6.8"
-$jsurvival = "1.0.0"
-$flexplot = "0.7.2"
 $curlOptions = @(
     "--progress-bar", "-L"
     "-A", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 OPR/133.0.0.0"
@@ -107,71 +122,66 @@ $curlOptions = @(
     "-o"
 )
 
-#curl.exe -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 OPR/133.0.0.0" -e "https://library.jamovi.org/" -H "Accept: */*" -H "Accept-Language: en-US,en;q=0.9" -o "r-datasets.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/r-datasets-$rdatasets.jmo"
-Write-Output "Adding module - r-datasets..."
-C:\temp\curl.exe @curlOptions "C:\temp\r-datasets.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/r-datasets-$rdatasets.jmo"
-Expand-Archive -Path "C:\temp\r-datasets.zip" -DestinationPath "C:\Jamovi\Resources\modules"
+$JMO_VERSION = "4.6.0"
+#$rdatasets = "1.0.1"
+#$lsj = "1.0.1"
+#$GAMLj3 = "3.7.1"
+#$RJ = "2.7.18"
+#$ESCI = "1.0.10"
+#$MORETETS = "0.9.5"
+#$SEMLJ = "1.2.8"
+#$snowCluster = "7.6.8"
+#$jsurvival = "1.0.6"
+#$flexplot = "0.7.2"
 
-Write-Output "Adding module - lsj-data..."
-curl.exe @curlOptions "C:\temp\lsj-data.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/lsj-data-$lsj.jmo"
-Expand-Archive -Path "C:\temp\lsj-data.zip" -DestinationPath "C:\Jamovi\Resources\modules"
+$modules = @(
+    @{ Name = "r-datasets";  Version = "1.0.1" }
+    @{ Name = "lsj-data";    Version = "1.0.1" }
+    @{ Name = "GAMLj3";      Version = "3.7.1" }
+    @{ Name = "Rj";          Version = "2.7.18" }
+    @{ Name = "esci";        Version = "1.0.10" }
+    @{ Name = "moretests";   Version = "0.9.5" }
+    @{ Name = "semlj";       Version = "1.2.8" }
+    @{ Name = "snowCluster"; Version = "7.6.8" }
+    @{ Name = "jsurvival";   Version = "1.0.6" }
+    @{ Name = "flexplot";    Version = "0.7.2" }
+)
 
-Write-Output "Adding module - GAMLj3..."
-C:\temp\curl.exe @curlOptions "C:\temp\GAMLj3.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/GAMLj3-$GAMLj3.jmo"
-Expand-Archive -Path "C:\temp\GAMLj3.zip" -DestinationPath "C:\Jamovi\Resources\modules"
+$destPath = "$env:AppData\jamovi\modules"
+$curlExe  = "C:\temp\curl.exe"
 
-Write-Output "Adding module - Rj..."
-C:\temp\curl.exe @curlOptions "C:\temp\Rj.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/Rj-$RJ.jmo"
-Expand-Archive -Path "C:\temp\Rj.zip" -DestinationPath "C:\Jamovi\Resources\modules"
+foreach ($module in $modules) {
+    $name    = $module.Name
+    $version = $module.Version
 
-Write-Output "Adding module - esci..."
-C:\temp\curl.exe @curlOptions "C:\temp\esci.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/esci-$esci.jmo"
-Expand-Archive -Path "C:\temp\esci.zip" -DestinationPath "C:\Jamovi\Resources\modules"
+    Write-Output "Adding module - $name..."
 
-Write-Output "Adding module - moretests..."
-C:\temp\curl.exe @curlOptions "C:\temp\moretests.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/moretests-$MORETETS.jmo"
-Expand-Archive -Path "C:\temp\moretests.zip" -DestinationPath "C:\Jamovi\Resources\modules"
+    $zipFile = "C:\temp\$name.zip"
+    $url     = "https://library.jamovi.org/win64/R$JMO_VERSION-x64/$name-$version.jmo"
 
-Write-Output "Adding module - semlj..."
-C:\temp\curl.exe @curlOptions "C:\temp\semlj.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/semlj-$SEMLJ.jmo"
-Expand-Archive -Path "C:\temp\semlj.zip" -DestinationPath "C:\Jamovi\Resources\modules"
-
-Write-Output "Adding module - snowCluster..."
-C:\temp\curl.exe @curlOptions "C:\temp\snowCluster.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/snowCluster-$snowCluster.jmo"
-Expand-Archive -Path "C:\temp\snowCluster.zip" -DestinationPath "C:\Jamovi\Resources\modules"
-
-Write-Output "Adding module - jsurvival..."
-C:\temp\curl.exe @curlOptions "C:\temp\jsurvival.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/jsurvival-$jsurvival.jmo"
-Expand-Archive -Path "C:\temp\jsurvival.zip" -DestinationPath "C:\Jamovi\Resources\modules"
-
-Write-Output "Adding module - flexplot..."
-C:\temp\curl.exe @curlOptions "C:\temp\flexplot.zip" "https://library.jamovi.org/win64/R$JMO_VERSION-x64/flexplot-$flexplot.jmo"
-Expand-Archive -Path "C:\temp\flexplot.zip" -DestinationPath "C:\Jamovi\Resources\modules"
-
-
+    & $curlExe @curlOptions $zipFile $url
+    Expand-Archive -Path $zipFile -DestinationPath $destPath -Force
+}
 
 
-# -------------------- Add packages for Jamovi's Rj ---------------------------
 
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('gtsummary', repos='https://cloud.r-project.org', force=TRUE)"
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('AER', repos='https://cloud.r-project.org', force=TRUE)"
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('DescTools', repos='https://cloud.r-project.org', force=TRUE)"
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('skedastic', repos='https://cloud.r-project.org', force=TRUE)"
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('sandwich', repos='https://cloud.r-project.org', force=TRUE)"
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('modelbased', repos='https://cloud.r-project.org', force=TRUE)"
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('VGAM', repos='https://cloud.r-project.org', force=TRUE)"
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('car', repos='https://cloud.r-project.org', force=TRUE)"
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('jmvconnect', repos='https://cloud.r-project.org', force=TRUE)"
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('performance', repos='https://cloud.r-project.org', force=TRUE)"
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('parameters', repos='https://cloud.r-project.org', force=TRUE)"
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('systemfit', repos='https://cloud.r-project.org', force=TRUE)"
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('quantreg', repos='https://cloud.r-project.org', force=TRUE)"
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('merTools', repos='https://cloud.r-project.org', force=TRUE)"
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('MCMCpack', repos='https://cloud.r-project.org', force=TRUE)"
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('bayestestR', repos='https://cloud.r-project.org', force=TRUE)"
-C:\Jamovi\Frameworks\R\bin\RScript.exe -e "install.packages('coda', repos='https://cloud.r-project.org', force=TRUE)"
+# -------------------- Add R packages for Rj ---------------------------
 
+Write-Output "Adding R packages to Jamovi..."
 
+$RScriptPath = "C:\jamovi\Frameworks\R\bin\RScript.exe"
+
+$Packages = @('gtsummary', 'AER', 'DescTools', 'skedastic', 'sandwich',
+              'modelbased', 'VGAM', 'car', 'jmvconnect', 'performance',
+              'parameters', 'systemfit', 'quantreg', 'merTools',
+              'MCMCpack', 'bayestestR', 'coda'
+              )
+
+# Joins the packages into a single R vector string: c('pkg1', 'pkg2', ...)
+$RVector = "c(" + (($Packages | ForEach-Object { "'$_'" }) -join ", ") + ")"
+
+# Executes the installation in a single R process
+& $RScriptPath -e "install.packages($RVector, repos='https://cloud.r-project.org', force=TRUE)"
 
 
 # -------------------- Create shorcut ---------------------------
@@ -196,3 +206,5 @@ Remove-Item "C:\temp\*" -Recurse -Force -ErrorAction SilentlyContinue
 
 # Pause for 15 seconds before exiting
 Start-Sleep -Seconds 15
+
+
