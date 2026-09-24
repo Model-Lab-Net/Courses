@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: סטטיסטיקה תאורית וניתוח בסיסי 02-03   
-### date  : 17/07/2026
+### date  : 30/09/2026
 ###  
 ###  נלמד לבצע ניתוח סטטיסטי פשוט
 
@@ -20,7 +20,8 @@ system("powershell -Command Clear-Host") # This will clear the terminal in VScod
 
 ## Load required packages
 ```{r load-packages, include = FALSE}
-options("install.lock" = FALSE)
+options("install.lock" = FALSE,
+        "repos" = c(CRAN = "https://cloud.r-project.org")) # Replace with your target repo URL
 if (!require("pacman")) install.packages("pacman") ; library(pacman)
 pacman::p_load(
   Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
@@ -142,6 +143,9 @@ tbl_summary(data = df1,
 var <- c("age")
 # Do Anderson-Darling test for mormality
 ad.test((df1[[var]]))
+
+# Do Anderson-Darling test for mormality
+ks.test((df1[[var]]))
 ```
 
 ## Bar chart 

@@ -2,10 +2,10 @@
 ### name  : __________________
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
-### lesson: רגרסיה לוגיסטית 06   
-### date  : 19/04/2026
+### lesson: מודל לוגיסטי 06   
+### date  : 30/09/2026
 ###  
-### multivariate נלמד לעשות רגסיה לוגיסטית מרובה משתנים
+### multivariate נלמד לעשות מודל לוגיסטי מרובה משתנים
 ###
 ### source: https://bookdown.org/drki_musa/dataanalysis/binary-logistic-regression.html#multiple-binary-logistic-regression
 
@@ -20,8 +20,9 @@ system("powershell -Command Clear-Host") # This will clear the terminal in VScod
 ```
 
 ## Load required packages
-```{r load-packages, include false}
-options("install.lock" = FALSE)
+```{r load-packages, include = FALSE}
+options("install.lock" = FALSE,
+        "repos" = c(CRAN = "https://cloud.r-project.org")) # Replace with your target repo URL
 if (!require("pacman")) install.packages("pacman") ; library(pacman)
 pacman::p_load(
   Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)

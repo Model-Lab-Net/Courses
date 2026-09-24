@@ -2,10 +2,10 @@
 ### name  : __________________
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
-### lesson: רגרסיה לינארית 05   
-### date  : 07/08/2026
+### lesson: מודל לינארי 05   
+### date  : 30/09/2026
 ###  
-### multivariate נלמד לעשות רגרסיה לינארית מרובת משתנים
+### multivariate נלמד על מודל לינארי מרובה משתנים
 ###
 ### source: https://bookdown.org/drki_musa/dataanalysis/linear-regression.html#simple-linear-regression
 
@@ -21,7 +21,8 @@ system("powershell -Command Clear-Host") # This will clear the terminal in VScod
 
 ## Load required packages
 ```{r load-packages, include = FALSE}
-options("install.lock" = FALSE)
+options("install.lock" = FALSE,
+        "repos" = c(CRAN = "https://cloud.r-project.org")) # Replace with your target repo URL
 if (!require("pacman")) install.packages("pacman") ; library(pacman)
 pacman::p_load(
   Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)

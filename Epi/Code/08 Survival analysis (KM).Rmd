@@ -3,7 +3,7 @@
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
 ### lesson: הישרדות 08   Survival
-### date  : 21/08/2026
+### date  : 30/09/2026
 ###  
 ###  נלמד לבצע ניתוח שרידות
 ###
@@ -21,7 +21,8 @@ system("powershell -Command Clear-Host") # This will clear the terminal in VScod
 
 ## Load required packages
 ```{r load-packages, include = FALSE}
-options("install.lock"=FALSE)
+options("install.lock" = FALSE,
+        "repos" = c(CRAN = "https://cloud.r-project.org")) # Replace with your target repo URL
 if (!require("pacman")) install.packages("pacman") ; library(pacman)
 pacman::p_load(
   Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)

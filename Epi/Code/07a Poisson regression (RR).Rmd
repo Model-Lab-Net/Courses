@@ -2,10 +2,10 @@
 ### name  : __________________
 ### ID    : [מספר תעודת זהות]
 ### course: אפידמיולוגיה (HIT.ac.il)
-### lesson: סיכון יחסי 07  RR 
-### date  : 28/08/2026
+### lesson: 07 מודל פואסון
+### date  : 30/09/2026
 ###  
-###  counts רגרסיית פאוסון - ספירות
+###  counts יחס סיכון  - ספירות RR
 ###
 ### source: https://bookdown.org/drki_musa/dataanalysis/poisson-regression.html#poisson-regression-for-count
 
@@ -21,7 +21,8 @@ system("powershell -Command Clear-Host") # This will clear the terminal in VScod
 
 ## Load required packages
 ```{r load-packages, include = FALSE}
-options("install.lock"=FALSE)
+options("install.lock" = FALSE,
+        "repos" = c(CRAN = "https://cloud.r-project.org")) # Replace with your target repo URL
 if (!require("pacman")) install.packages("pacman") ; library(pacman)
 pacman::p_load(
   Rcpp, devtools, gh, remotes,   # For installing packages/files online (like from GitHub)
