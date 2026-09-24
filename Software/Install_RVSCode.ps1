@@ -10,7 +10,6 @@
 $R_VERSION = "4.6.1"
 $RSTUDIO_VERSION = "2026.07.1-147"
 $VSCODE_VERSION = "df53daabb18cd157bdb08c7f01c34df936cf12f4/VSCode-win32-x64-1.132.0.zip"
-$RLANGSERVER_VERSION = "0.3.18"
 $CURL_VERSION = "8.21.0_6"
 $WGET_VERSION = "1.21.4"
 
@@ -60,7 +59,9 @@ if (-not (Test-Path -Path "c:\RVSCode\R\bin")) {
 Copy-Item -Path "c:\RVSCode\R\bin\x64\Rblas.dll" -Destination "c:\RVSCode\R\library\stats\libs\x64" -Force
 Copy-Item -Path "c:\RVSCode\R\bin\x64\Rlapack.dll" -Destination "c:\RVSCode\R\library\stats\libs\x64" -Force
 
-& "C:\RVSCode\R\bin\R.exe" -s -e "install.packages('languageserver', repos='https://cloud.r-project.org')"
+& "C:\RVSCode\R\bin\R.exe" -e "install.packages('languageserver', repos='https://cloud.r-project.org', force=TRUE)"
+& "C:\RVSCode\R\bin\R.exe" -e "install.packages('httpgd', repos = c('https://community.r-multiverse.org', 'https://cloud.r-project.org'))"
+& "C:\RVSCode\R\bin\R.exe" -e "install.packages('vscDebugger', repos = 'https://manuelhentschel.r-universe.dev')"
 
 # ----------------- Download VSCode --- ZIP for portable ------------------
 Write-Output "Downloading VSCode..."
