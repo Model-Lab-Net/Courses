@@ -5,6 +5,7 @@
 # Source: https://www.youtube.com/watch?v=k79H8EeR5Jo
 #         https://www.youtube.com/watch?v=rKPfssR66GM
 #         https://www.datanovia.com/learn/tools/r-in-vscode/recommended-vscode-configurations-for-r-programming.html
+#         ...things have changes since these tutorials. Now use jpd() and sess().
 
 
 # ---------------------- Get Admin privelegs -------------------------------
@@ -33,7 +34,7 @@ Write-Host "Running with administrative privileges!" -ForegroundColor Green
 # ---------------------- Get everything ready -------------------------------
 $R_VERSION = "4.6.1"
 $RSTUDIO_VERSION = "2026.09.0-174"
-#$VSCODE_VERSION = "2242ebbb54efeeb0129e08e919e7e8d43033cd83/VSCode-win32-x64-1.139.0.zip"
+$VSCODE_VERSION = "1.139.0"
 $CURL_VERSION = "8.22.0_2"
 $WGET_VERSION = "1.21.4"
 $ARIA_VERSION = "1.37.0"
@@ -55,7 +56,7 @@ if (-not (Test-Path -Path "C:\temp\7za.exe")) {
     & "C:\temp\7za\7za.exe" x "C:\temp\7zip.exe" -o"C:\Temp" -y -mmt=on
 }
 
-# Get CURL
+<## Get CURL
 if (-not (Test-Path -Path "C:\temp\curl.zip")) {
     Invoke-WebRequest -Uri "https://curl.se/windows/dl-$CURL_VERSION/curl-$CURL_VERSION-win64-mingw.zip" -OutFile "C:\temp\curl.zip"
 }
@@ -76,6 +77,7 @@ if (-not (Test-Path -Path "C:\temp\wget.exe")) {
     & "C:\temp\7z.exe" x "C:\temp\wget.zip" -o"C:\Temp" -y -mmt=on -bso0 -bsp0
     #Move-Item -Path "C:\temp\curl-$CURL_VERSION-win64-mingw\bin\*.*" -Destination "C:\temp" -Force
 }
+#>
 
 #Get ARIA2
 if (-not (Test-Path -Path "C:\temp\aria2.zip")) {
@@ -84,65 +86,68 @@ if (-not (Test-Path -Path "C:\temp\aria2.zip")) {
 
 if (-not (Test-Path -Path "C:\temp\aria2.zip")) {
     # Expand-Archive -Path "C:\temp\aria2.zip" -DestinationPath "C:\temp" -Force
-    & "C:\temp\7z.exe" x "C:\temp\aria2.zip" -o"C:\Temp" -y -mmt=on -bso0 -bsp0
+    & "C:\temp\7z.exe" x "C:\temp\aria2.zip" -o"c:\temp" -y -mmt=on -bso0 -bsp0
     Move-Item -Path "C:\temp\aria2-$ARIA_VERSION-win-64bit-build1\*.*" -Destination "C:\temp" -Force
 }
 
 
 
-<#-------------------------- Download R + VSCode ---------------------------
-# Define download commands
-$cmd1 = '& "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\r1.exe" "https://cran.r-project.org/bin/windows/base/old/$R_VERSION/R-$R_VERSION-win.exe"'
-$cmd2 = '& "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\vscode1.zip" "https://update.code.visualstudio.com/latest/win32-x64-archive/stable"'
+#-------------------------- Download R + VSCode ---------------------------
+# Define download commands using aria2 only
+$UrlsWithNames = @(
+    "https://cran.r-project.org/bin/windows/base/old/$R_VERSION/R-$R_VERSION-win.exe"
+    "  out=r.exe"
+    "https://update.code.visualstudio.com/latest/win32-x64-archive/stable"
+    "  out=vscode.zip"
+#    "https://https://update.code.visualstudio.com/$VSCODE_VERSION/win32-x64-archive/stable"
+#    "  out=vscode.zip"
+#    "https://download1.rstudio.org/electron/windows/RStudio-$RSTUDIO_VERSION.zip"
+#    "  out=rstudio.zip"
+)
 
-# Launch both in separate windows
-$p1 = Start-Process powershell.exe -ArgumentList "-Command", $cmd1 -PassThru
-$p2 = Start-Process powershell.exe -ArgumentList "-Command", $cmd2 -PassThru
-
-Write-Host "Downloads running in separate windows... waiting for completion." -ForegroundColor Cyan
-
-# Block execution until both downloads finish
-$p1, $p2 | Wait-Process
-
-Write-Host "All downloads completed!" -ForegroundColor Green
-#>
+$UrlsWithNames | & "c:\temp\aria2c" -j 4 --disable-ipv6=true --allow-overwrite=true --summary-interval=0 -i -
 
 
 
-# -------------------------- Download R ---------------------------
-Write-Output "Downloading R..."
+
+
+# -------------------------- Install R ---------------------------
+<#Write-Output "Downloading R..."
 if (-not (Test-Path -Path "C:\temp\r.exe")) {
     # & "C:\temp\curl.exe" --progress-bar -o "C:\temp\r.exe" "https://cran.r-project.org/bin/windows/base/old/$R_VERSION/R-$R_VERSION-win.exe"
-    & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\r.exe" "https://cran.r-project.org/bin/windows/base/old/$R_VERSION/R-$R_VERSION-win.exe"
+    # & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\r.exe" "https://cran.r-project.org/bin/windows/base/old/$R_VERSION/R-$R_VERSION-win.exe"
 }
+#>
 
 if (-not (Test-Path -Path "c:\RVSCode\R\bin")) {
-    Start-Process -Verb RunAs -FilePath "C:\temp\r.exe" -ArgumentList "/VERYSILENT", "/NORESTART", "/MERGETASKS=!desktopicon", "/SP-", "/DIR=`"c:\RVSCode\R`"" -Wait
-    # & "C:\temp\r.exe" /VERYSILENT /DIR="c:\RVSCode\R" /NOICONS
+    Start-Process -Verb RunAs -FilePath "C:\temp\r.exe" -ArgumentList "/SILENT", "/NORESTART", "/MERGETASKS=!desktopicon", "/SP-", "/DIR=`"c:\RVSCode\R`"" -Wait
 }
 
-Copy-Item -Path "c:\RVSCode\R\bin\x64\Rblas.dll" -Destination "c:\RVSCode\R\library\stats\libs\x64" -Force
-Copy-Item -Path "c:\RVSCode\R\bin\x64\Rlapack.dll" -Destination "c:\RVSCode\R\library\stats\libs\x64" -Force
+Copy-Item -Path "c:\RVSCode\R\bin\Rblas.dll" -Destination "c:\RVSCode\R\library\stats\libs" -Force
+Copy-Item -Path "c:\RVSCode\R\bin\Rlapack.dll" -Destination "c:\RVSCode\R\library\stats\libs" -Force
+Copy-Item -Path "c:\RVSCode\R\bin\x64\Rblas.dll" -Destination "c:\RVSCode\R\library\stats\x64\libs" -Force
+Copy-Item -Path "c:\RVSCode\R\bin\x64\Rlapack.dll" -Destination "c:\RVSCode\R\library\stats\x64\libs" -Force
 
 & "C:\RVSCode\R\bin\R.exe" -e "install.packages('languageserver', repos='https://cloud.r-project.org')"
-& "C:\RVSCode\R\bin\R.exe" -e "install.packages('httpgd', repos = c('https://community.r-multiverse.org', 'https://cloud.r-project.org'))"
+& "C:\RVSCode\R\bin\R.exe" -e "install.packages('jgd', repos='https://cloud.r-project.org)"
 & "C:\RVSCode\R\bin\R.exe" -e "install.packages('vscDebugger', repos = 'https://manuelhentschel.r-universe.dev')"
 
+& "C:\RVSCode\R\bin\R.exe" -e "install.packages('remotes', repos='https://cloud.r-project.org')"
+& "C:\RVSCode\R\bin\R.exe" -e "remotes::install_github("REditorSupport/vscode-R/sess")"
 
-# ----------------- Download VSCode --- ZIP for portable ------------------
-Write-Output "Downloading VSCode..."
+# ----------------- Install VSCode --- ZIP for portable ------------------
+<#Write-Output "Downloading VSCode..."
 if (-not (Test-Path -Path "C:\temp\RVSCode.zip")) {
     # & "C:\temp\curl.exe" -L --progress-bar -o "C:\temp\RVSCode.zip" "https://update.code.visualstudio.com/latest/win32-x64-archive/stable"
-    & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\vscode.zip" "https://update.code.visualstudio.com/latest/win32-x64-archive/stable"
+    & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\vscode.zip" "https://update.code.visualstudio.com/1.97.2/win32-x64-archive/stable"
     # aria2c --disable-ipv6 -x 2 -s 2 -o "VSCode-win32-x64.zip" "https://update.code.visualstudio.com/latest/win32-x64-archive/stable"
-
 }
-
+#>
 
 if (-not (Test-Path -Path "C:\RVSCode\code.exe")) {
     New-Item -Path "C:\RVSCode" -ItemType Directory -Force
     # Expand-Archive -Path "C:\temp\vscode.zip" -DestinationPath "C:\RVSCode"
-    & "C:\temp\7z.exe" x "C:\temp\vscode.zip" -o"C:\RVSCode" -y -mmt=on -bso0 -bsp0
+    & "C:\temp\7zg.exe" x "C:\temp\vscode.zip" -o"C:\RVSCode" -y -mmt=on -bso0 -bsp0
 }
 
 # Make folders for main course files
@@ -157,27 +162,20 @@ New-Item -Path "C:\RVSCode\Course\EpiData" -ItemType Directory -Force
 # Set settings.json for R in VSCode
 $settingsJson = @"
 {
-    "r.rpath.windows": "C:\\RVSCode\\R\\bin\\R.exe",
+    "r.rpath.windows": "C:\\RVSCode\\R\\bin\\\R.exe",
     "editor.dropIntoEditor.preferences": [],
     "r.rterm.option": [
         "--r-binary=C:\\RVSCode\\R\\bin\\R.exe",
         "--no-save",
         "--no-restore"
     ],
-    "r.rterm.windows": "C:\\RVSCode\\R\\bin\\R.exe",
+    "r.rterm.windows": "C:\\RVSCode\\R\\bin\\\R.exe",
     "r.bracketedPaste": true,
     "r.sessionWatcher": true,
     "editor.wordSeparators": "`~!@#%$^&*()-=+[{]}\\|;:'\",<>/?",
-    "r.plot.useHttpgd": true,
-    "terminal.integrated.profiles.windows": {
-        "R": {
-            "path": "C:\\RVSCode\\R\\bin\\R.exe",
-            "args": [ "--no-save", "--no-restore" ],
-            "env": {
-                "PATH": "C:\\RVSCode\\R\\bin"
-            }
-        }
-    }
+    "r.plot.backend": "auto",
+    "r.alwaysUseActiveTerminal": true,
+    "editor.hover.enabled": "off"
 }
 "@
 $settingsJson | Out-File -FilePath "C:\RVSCode\data\user-data\User\settings.json" -Encoding UTF8
@@ -185,7 +183,8 @@ $settingsJson | Out-File -FilePath "C:\RVSCode\data\user-data\User\settings.json
 # Add extensions to VSCode
 & "C:\RVSCode\bin\code.cmd" --install-extension github.copilot --force > $null 2>&1
 # & "C:\RVSCode\bin\code.exe" --install-extension github.copilot-chat
-& "C:\RVSCode\bin\code.cmd" --install-extension reditorsupport.r --force > $null 2>&1
+    & "c:\temp\curl.exe" -L "https://github.com/REditorSupport/vscode-R/releases/download/latest/vscode-R.vsix" -o "c:\temp\vscode-R.vsix"
+    & "C:\RVSCode\bin\code.cmd" --install-extension "c:\temp\vscode-R.vsix" --force
 & "C:\RVSCode\bin\code.cmd" --install-extension rdebugger.r-debugger --force > $null 2>&1
 & "C:\RVSCode\bin\code.cmd" --install-extension rlang.r --force > $null 2>&1
 
@@ -205,13 +204,15 @@ $vs.IconLocation = "C:\RVSCode\code.exe,0"
 $vs.WorkingDirectory = "C:\RVSCode"
 $vs.Save()
 
-<# ---------------- Download RStudio --- ZIP for portable --------------------
-Write-Output "Downloading RStudio..."
+<# ---------------- Install RStudio --- ZIP for portable --------------------
+<#Write-Output "Downloading RStudio..."
 if (-not (Test-Path -Path "C:\temp\rstudio.zip")) {
     # & "C:\temp\curl.exe" --progress-bar -o "C:\temp\rstudio.zip" "https://download1.rstudio.org/electron/windows/RStudio-$RSTUDIO_VERSION.zip"
     & "C:\temp\wget.exe" --no-verbose --show-progress -O "C:\temp\rstudio.zip" "https://download1.rstudio.org/electron/windows/RStudio-$RSTUDIO_VERSION.zip"
 }
-if (-not (Test-Path -Path "C:\RStudio\rstudio.exe")) {
+#>
+
+<#if (-not (Test-Path -Path "C:\RStudio\rstudio.exe")) {
     New-Item -Path "C:\RStudio" -ItemType Directory -Force
     # Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\RStudio"
     & "C:\temp\7z.exe" x "C:\temp\rstudio.zip" -o"C:\RStudio" -y -mmt=on
@@ -232,7 +233,7 @@ New-Item -Path "C:\RStudio\resources\themes" -ItemType Directory -Force
 & robocopy "C:\RVSCode\R" "C:\RStudio\R" /E /NFL /NDL /NJH /NJS /MT:4
 
 # Set environment variables
-$env:RSTUDIO_WHICH_R = ".\R\bin\x64\R.exe"
+$env:RSTUDIO_WHICH_R = ".\R\bin\R.exe"
 $env:RSTUDIO_CONFIG_HOME = "C:\RStudio\user-data"
 $env:RSTUDIO_DATA_HOME = "C:\RStudio\user-data"
 [Environment]::SetEnvironmentVariable("RSTUDIO_WHICH_R", $env:RSTUDIO_WHICH_R, "User")
