@@ -1,7 +1,7 @@
 # Title: PowerShell script to install Jamovi
 # Author: David Burg
 # For: Stats/Econometrics course
-# Date: 25/09/2026
+# Date: 11/08/2026
 
 # ---------------------- Get Admin privelegs -------------------------------
 
@@ -26,7 +26,7 @@ Write-Host "Running with administrative privileges!" -ForegroundColor Green
 
 # ---------------------- Get everything ready -------------------------------
 $CURL_VERSION = "8.21.0_6"
-$ARIA_VERSION = "1.37.0"
+    $ARIA_VERSION = "1.37.0"
 $CURL = "C:\temp\curl.exe"
 #$R_VERSION = "4.5.3"
 #$RSTUDIO_VERSION = "2026.07.1-147"
@@ -37,6 +37,18 @@ Set-Location -Path "C:\"
 if (-not (Test-Path -Path "C:\temp")) { New-Item -Path "C:\temp" -ItemType Directory }
 Set-Location -Path "C:\temp"
 
+# Get 7zip
+if (-not (Test-Path -Path "C:\temp\7.zip")) {
+    Invoke-WebRequest -Uri "https://www.7-zip.org/a/7za920.zip" -OutFile "C:\temp\7za.zip"
+    Invoke-WebRequest -Uri "https://github.com/ip7z/7zip/releases/download/26.03/7z2603-x64.exe" -OutFile "C:\temp\7zip.exe"
+}
+
+if (-not (Test-Path -Path "C:\temp\7za.exe")) {
+    & Expand-Archive -Path "C:\temp\7za.zip" -DestinationPath "C:\temp\7za" -Force
+    & "C:\temp\7za\7za.exe" x "C:\temp\7zip.exe" -o"c:\temp" -y -mmt=on
+}
+
+<#
 if (-not (Test-Path -Path "C:\temp\curl.zip")) {
     Invoke-WebRequest -Uri "https://curl.se/windows/dl-$CURL_VERSION/curl-$CURL_VERSION-win64-mingw.zip" -OutFile "C:\temp\curl.zip"
 }
@@ -44,21 +56,17 @@ if (-not (Test-Path -Path "C:\temp\curl.exe")) {
     Expand-Archive -Path "C:\temp\curl.zip" -DestinationPath "C:\temp"
     Move-Item -Path "C:\temp\curl-$CURL_VERSION-win64-mingw\bin\*.*" -Destination "C:\temp" -Force
 }
+#>
 
-if (-not (Test-Path -Path "C:\temp\aria.zip")) {
-    Invoke-WebRequest -Uri "https://github.com/aria2/aria2/releases/download/release-$ARIA_VERSION/aria2-$ARIA_VERSION-win-64bit-build1.zip" -OutFile "C:\temp\aria.zip"
+if (-not (Test-Path -Path "C:\temp\aria2.zip")) {
+    Invoke-WebRequest -Uri "https://github.com/aria2/aria2/releases/download/release-$ARIA_VERSION/aria2-$ARIA_VERSION-win-64bit-build1.zip" -OutFile "C:\temp\aria2.zip"
 }
-if (-not (Test-Path -Path "C:\temp\aria2.exe")) {
-    Expand-Archive -Path "C:\temp\aria.zip" -DestinationPath "C:\temp"
+if (-not (Test-Path -Path "C:\temp\aria2c.exe")) {
+    & "C:\temp\7z.exe" x "C:\temp\aria.zip" -o"c:\temp" -y -mmt=on
     Move-Item -Path "C:\temp\aria2-$ARIA_VERSION-win-64bit-build1\*.*" -Destination "C:\temp" -Force
 }
 
-if (-not (Test-Path -Path "C:\temp\7.zip")) {
-    & "C:\temp\curl.exe" --progress-bar -o "C:\temp\7.zip" "https://www.7-zip.org/a/7za920.zip"
-}
-if (-not (Test-Path -Path "C:\temp\7z.exe")) {
-    Expand-Archive -Path "C:\temp\7.zip" -DestinationPath "C:\temp"
-}
+
 
 # -------------------------- Download R ---------------------------
 #Write-Output "Downloading R..."
@@ -83,15 +91,31 @@ $curlOptions = @(
     "-o"
 )
 
+$aria2Options = @(
+    "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 OPR/133.0.0.0"
+    "--referer=https://www.jamovi.org/"
+    "--header=Accept: */*"
+    "--header=Accept-Language: en-US,en;q=0.9"
+    "--disable-ipv6=true"
+    "--file-allocation=none"
+    "--allow-overwrite=true"
+    "--summary-interval=0"
+#    "--continue=true"
+    "--max-connection-per-server=2"
+)
+
+
+
 if (-not (Test-Path -Path "C:\Jamovi")) {
     New-Item -Path "C:\Jamovi" -ItemType Directory -Force
     New-Item -Path "C:\Jamovi\Course" -ItemType Directory -Force
 }
 
 if (-not (Test-Path -Path "C:\temp\jamovi.exe")) {
-    & "C:\temp\curl.exe" @curlOptions "C:\temp\jamovi.exe" "https://dl-cdn.jamovi.org/jamovi-$JAMOVI_VERSION-win-x64.exe"
-#   & "C:\temp\curl.exe" --progress-bar -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36" -e "https://www.jamovi.org/" -o "C:\temp\jamovi.zip" "https://dl-cdn.jamovi.org/jamovi-28.1.0.0-win-x64.zip"
-    C:\temp\jamovi.exe /S /D=C:\Jamovi
+    #& "C:\temp\curl.exe" @curlOptions "C:\temp\jamovi.exe" "https://dl-cdn.jamovi.org/jamovi-$JAMOVI_VERSION-win-x64.exe"
+    & "C:\temp\aria2c.exe" $aria2Options "https://dl-cdn.jamovi.org/jamovi-$JAMOVI_VERSION-win-x64.exe" --dir="C:\temp" --out="Jamovi.exe"
+    #C:\temp\jamovi.exe /S /D=C:\Jamovi
+    C:\temp\jamovi.exe /S
 }
 
 
@@ -129,36 +153,59 @@ $curlOptions = @(
 )
 
 
-$modules = @(
-    @{ Name = "r-datasets";  Version = $rdatasets }
-    @{ Name = "lsj-data";    Version = $lsj }
-    @{ Name = "GAMLj3";      Version = $GAMLj3 }
-    @{ Name = "Rj";          Version = $RJ }
-    @{ Name = "esci";        Version = $esci }
-    @{ Name = "moretests";   Version = $MORETETS }
-    @{ Name = "semlj";       Version = $SEMLJ }
-    @{ Name = "snowCluster"; Version = $snowCluster }
-    @{ Name = "jsurvival";   Version = $jsurvival }
-    @{ Name = "flexplot";    Version = $flexplot }
+$aria2Options = @(
+    "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 OPR/133.0.0.0"
+    "--referer=https://library-cdn.jamovi.org/"
+    "--header=Accept: */*"
+    "--header=Accept-Language: en-US,en;q=0.9"
+    "--disable-ipv6=true"
+    "--file-allocation=none"
+    "--allow-overwrite=true"
+    "--summary-interval=0"
+    "--enable-http-keep-alive=false"
+    "--http-no-cache=true"
+#    "--continue=true"
+    "--max-connection-per-server=2"
+    "--dir=c:\temp"
 )
+
 
 $destPath = "$env:AppData\jamovi\modules"
 $curlExe  = "C:\temp\curl.exe"
+$aria2Exe  = "C:\temp\aria2c.exe"
 
-foreach ($module in $modules) {
-    $name    = $module.Name
-    $version = $module.Version
 
-    Write-Output "Adding module - $name..."
+$modules = @(
+    @{ Name = "r-datasets";  Version = "1.0.1" }
+    @{ Name = "lsj-data";    Version = "1.0.1" }
+    @{ Name = "GAMLj3";      Version = "3.7.1" }
+    @{ Name = "Rj";          Version = "2.7.18" }
+    @{ Name = "esci";        Version = "1.0.10" }
+    @{ Name = "moretests";   Version = "0.9.5" }
+    @{ Name = "semlj";       Version = "1.2.8" }
+    @{ Name = "snowCluster"; Version =  "7.6.8" }
+    @{ Name = "jsurvival";   Version = "1.0.6" }
+    @{ Name = "flexplot";    Version = "0.7.2" }
+)
 
-    $zipFile = "C:\temp\$name.zip"
-    $url     = "https://library.jamovi.org/win64/R$JMO_VERSION-x64/$name-$version.jmo"
-
-    & $curlExe @curlOptions $zipFile $url
-    Expand-Archive -Path $zipFile -DestinationPath $destPath -Force
+$UrlsWithNames = $modules | ForEach-Object {
+    "https://library-cdn.jamovi.org/win64/R$JMO_VERSION-x64/$($_.Name)-$($_.Version).jmo"
+    "  out=$($_.Name).jmo"
 }
 
+$UrlsWithNames | & "c:\temp\aria2c" -j 4 --disable-ipv6=true --allow-overwrite=true --summary-interval=0 -i -
 
+
+foreach ($module in $modules) {
+    $jmoFile = "C:\temp\$($module.Name).jmo"
+
+    if (Test-Path $jmoFile) {
+        Write-Output "Installing $($module.Name)..."
+        Write-Output "Extracting to: $destPath"
+        #Expand-Archive -Path $jmoFile -DestinationPath $destPath -Force
+        & "C:\temp\7zg.exe" x "$jmoFile" -o"$destPath" -y -mmt=on
+    }
+}
 
 
 # -------------------- Add R packages for Rj ---------------------------
