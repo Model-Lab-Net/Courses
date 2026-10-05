@@ -129,6 +129,7 @@ Copy-Item -Path "c:\RVSCode\R\bin\x64\Rblas.dll" -Destination "c:\RVSCode\R\libr
 Copy-Item -Path "c:\RVSCode\R\bin\x64\Rlapack.dll" -Destination "c:\RVSCode\R\library\stats\x64\libs" -Force
 
 & "C:\RVSCode\R\bin\R.exe" -e "install.packages('languageserver', repos='https://cloud.r-project.org')"
+& "C:\RVSCode\R\bin\R.exe" -e "install.packages('jsonlite', lib = .Library, repos='https://cloud.r-project.org')"
 & "C:\RVSCode\R\bin\R.exe" -e "install.packages('jgd', repos='https://cloud.r-project.org)"
 & "C:\RVSCode\R\bin\R.exe" -e "install.packages('vscDebugger', repos = 'https://manuelhentschel.r-universe.dev')"
 
