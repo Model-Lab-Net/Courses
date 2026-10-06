@@ -173,7 +173,7 @@ $settingsJson = @"
     "r.rterm.windows": "C:\\RVSCode\\R\\bin\\\R.exe",
     "r.bracketedPaste": true,
     "r.sessionWatcher": true,
-    "editor.wordSeparators": "`~!@#%$^&*()-=+[{]}\\|;:'\",<>/?",
+    "editor.wordSeparators": "`~!@#%$^&*()=+[{]}\\|;:'\",<>/?",
     "r.plot.backend": "auto",
     "r.alwaysUseActiveTerminal": true,
     "editor.hover.enabled": "off"
