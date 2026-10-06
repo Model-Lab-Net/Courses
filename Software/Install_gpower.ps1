@@ -3,6 +3,29 @@
 # For: Stats/Econometrics course
 # Date: 24/08/2026
 
+
+# ---------------------- Get Admin privelegs -------------------------------
+
+# Check if current session has Administrator privileges
+$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = New-Object Security.Principal.WindowsPrincipal($identity)
+$isAdmin =$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+if (-not $isAdmin) {
+    Write-Host "Requesting administrative privileges..." -ForegroundColor Yellow
+
+    # Relaunch script with elevated permissions ('RunAs')
+    $scriptPath =$MyInvocation.MyCommand.Path
+    Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
+
+    # Exit current non-elevated process
+    exit
+}
+
+# --- YOUR ELEVATED CODE GOES HERE ---
+Write-Host "Running with administrative privileges!" -ForegroundColor Green
+
+
 # ---------------------- Get everything ready -------------------------------
 $GP_VERSION = "3.1.9.7"
 $CURL_VERSION = "8.21.0_6"
