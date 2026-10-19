@@ -119,7 +119,7 @@ $UrlsWithNames = @(
 #    "  out=rstudio.zip"
 )
 
-$UrlsWithNames | & "c:\temp\aria2c" -j 4 --disable-ipv6=true --allow-overwrite=true --summary-interval=0 -i -
+$UrlsWithNames | & "c:\temp\aria2c" -j 4 --disable-ipv6=true --allow-overwrite=true  --file-allocation=none --summary-interval=0 -i -
 
 
 
@@ -232,9 +232,15 @@ $vs.Save()
     # Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\RStudio"
     & "C:\temp\7z.exe" x "C:\temp\nodejs.zip" -o"C:\VScode\nodejs" -y -mmt=on
 
-    New-Item -Path "C:\VScode\OmniRoute" -ItemType Directory -Force
-    & "C:\temp\7z.exe" x "C:\temp\OmniRoute.exe" -o"C:\temp\OmniRoute" -y -mmt=on
+    New-Item -Path "C:\VSCode\OmniRoute" -ItemType Directory -Force
+    # Expand-Archive -Path "C:\temp\vscode.zip" -DestinationPath "C:\RVSCode"
+    & "C:\temp\7zg.exe" x "C:\temp\OmniRoute.exe" -o"C:\temp" -y -mmt=on -bso0 -bsp0
+    & "C:\temp\7zg.exe" x "C:\temp\`$PLUGINSDIR\app-64.7z" -o"C:\VSCode\OmniRoute" -y -mmt=on -bso0 -bsp0
+    ### for omni route to listen for remote connections:
+    # New-NetFirewallRule -DisplayName "OmniRoute Tailscale Proxy Pass" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 20128 -Profile Public, Private
+    # netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=20128 connectaddress=127.0.0.1 connectport=20128
 
+    
     New-Item -Path "C:\VScode\Python" -ItemType Directory -Force
     # Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\RStudio"
     & "C:\temp\7z.exe" x "C:\temp\python.7z" -o"C:\VScode" -y -mmt=on
