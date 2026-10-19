@@ -149,6 +149,7 @@ if (-not (Test-Path -Path "C:\VSCode\nodejs\node.exe")) {
 
 }
 
+
 # Make folders for main course files
 New-Item -Path "C:\VSCode\data\user-data\User" -ItemType Directory -Force
 New-Item -Path "C:\VSCode\nodejs" -ItemType Directory -Force
@@ -232,7 +233,7 @@ $vs.Save()
     & "C:\temp\7z.exe" x "C:\temp\nodejs.zip" -o"C:\VScode\nodejs" -y -mmt=on
 
     New-Item -Path "C:\VScode\OmniRoute" -ItemType Directory -Force
-    Move-Item -Path "C:\temp\OmniRoute*.*" -Destination "C:\VScode\OmniRoute" -Force
+    & "C:\temp\7z.exe" x "C:\temp\OmniRoute.exe" -o"C:\temp\OmniRoute" -y -mmt=on
 
     New-Item -Path "C:\VScode\Python" -ItemType Directory -Force
     # Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\RStudio"
