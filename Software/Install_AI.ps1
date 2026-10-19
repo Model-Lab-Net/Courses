@@ -1,7 +1,7 @@
 # Title: PowerShell script to install VSCode, nodejs, etc
 # Author: David Burg
 # Project: Vibe coding
-# Date: 12/10/2026
+# Date: 19/10/2026
 
 
 # ---------------------- Get Admin privelegs -------------------------------
@@ -38,6 +38,12 @@ Write-Host "Running with administrative privileges!" -ForegroundColor Green
     $GIT_VERSION2 = if (((Invoke-RestMethod -Uri "https://api.github.com/repos/git-for-windows/git/releases/latest").assets | Where-Object name -match 'PortableGit-.*-64-bit\.7z\.exe').name -match 'PortableGit-(.*?)-64-bit') { $Matches[1] }
 # Find latest omnituote
     $OMNIROUTE_VERSION = ((Invoke-RestMethod "https://api.github.com/repos/diegosouzapw/OmniRoute/releases/latest" -Headers @{ "User-Agent" = "PowerShell" }).tag_name).TrimStart('v')
+# Find latest hermes
+    $HERMES_VERSION = (Invoke-RestMethod -Uri "https://api.github.com/repos/aivrar/portable-hermes-agent/releases/latest").tag_name.TrimStart('v')
+# Find latest hermese-desktop
+    $HERMESDESKTOP_VERSION = (Invoke-RestMethod -Uri "https://api.github.com/repos/RedWoodOG/Hermes-Desktop/releases/latest").tag_name.TrimStart('v')
+# Find latest hermese-desktop
+    $HERMESDESKTOPUSB_VERSION = (Invoke-RestMethod -Uri "https://api.github.com/repos/RedWoodOG/Hermes-Desktop/releases/latest").tag_name.TrimStart('v')
 # Find latest python
 #    $PYTHON_VERSION = ([regex]::Match((Invoke-WebRequest "https://www.python.org/downloads/" -UseBasicParsing).Content, 'Python\s+([0-9]+\.[0-9]+\.[0-9]+)')).Groups[1].Value
 
@@ -112,7 +118,15 @@ $UrlsWithNames = @(
     "  out=omniroute.exe"
     "https://github.com/winpython/winpython/releases/download/17.12.20260522/WinPython/WinPython64-$PYTHON_VERSION.0slim.7z"
     "  out=python.7z"
-
+    "https://github.com/winpython/winpython/releases/download/17.12.20260522/WinPython/WinPython64-$PYTHON_VERSION.0slim.7z"
+    "  out=python.7z"
+    "https://github.com/winpython/winpython/releases/download/17.12.20260522/WinPython/WinPython64-$PYTHON_VERSION.0slim.7z"
+    "  out=python.7z"
+    "https://github.com/aivrar/portable-hermes-agent/releases/download/v$HERMES_VERSION/portable-hermes-agent-v1.4.14.zip"
+    "  out=hermes-agent.zip"    
+    "https://github.com/RedWoodOG/Hermes-Desktop/releases/download/v$HERMESDESKTOPUSB_VERSION/HermesDesktop-portable-x64.zip"
+    "  out=hermes-desktop-portable.zip"
+    
 #    "https://https://update.code.visualstudio.com/$VSCODE_VERSION/win32-x64-archive/stable"
 #    "  out=vscode.zip"
 #    "https://download1.rstudio.org/electron/windows/RStudio-$RSTUDIO_VERSION.zip"
@@ -228,6 +242,11 @@ $vs.Save()
     # Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\RStudio"
     & "C:\temp\7z.exe" x "C:\temp\git.exe" -o"C:\VScode\git" -y -mmt=on
 
+    New-Item -Path "C:\VScode\Python" -ItemType Directory -Force
+    # Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\RStudio"
+    & "C:\temp\7z.exe" x "C:\temp\python.7z" -o"C:\VScode" -y -mmt=on
+    Get-ChildItem -Directory -Filter "C:\VScode\WPy64-*" | Select-Object -First 1 | Rename-Item -NewName "python"
+
     New-Item -Path "C:\VScode\nodejs" -ItemType Directory -Force
     # Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\RStudio"
     & "C:\temp\7z.exe" x "C:\temp\nodejs.zip" -o"C:\VScode\nodejs" -y -mmt=on
@@ -240,11 +259,6 @@ $vs.Save()
     # New-NetFirewallRule -DisplayName "OmniRoute Tailscale Proxy Pass" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 20128 -Profile Public, Private
     # netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=20128 connectaddress=127.0.0.1 connectport=20128
 
-    
-    New-Item -Path "C:\VScode\Python" -ItemType Directory -Force
-    # Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\RStudio"
-    & "C:\temp\7z.exe" x "C:\temp\python.7z" -o"C:\VScode" -y -mmt=on
-    Get-ChildItem -Directory -Filter "C:\VScode\WPy64-*" | Select-Object -First 1 | Rename-Item -NewName "python"
 
 <# ---------------- Install RStudio --- ZIP for portable --------------------
 <#Write-Output "Downloading RStudio..."
