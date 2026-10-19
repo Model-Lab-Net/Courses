@@ -149,25 +149,25 @@ if (-not (Test-Path -Path "C:\temp\RVSCode.zip")) {
 }
 #>
 
-if (-not (Test-Path -Path "C:\VSCode\code.exe")) {
-    New-Item -Path "C:\VSCode" -ItemType Directory -Force
+if (-not (Test-Path -Path "c:\AI\code.exe")) {
+    New-Item -Path "c:\AI" -ItemType Directory -Force
     # Expand-Archive -Path "C:\temp\vscode.zip" -DestinationPath "C:\RVSCode"
-    & "C:\temp\7zg.exe" x "C:\temp\vscode.zip" -o"C:\VSCode" -y -mmt=on -bso0 -bsp0
+    & "C:\temp\7zg.exe" x "C:\temp\vscode.zip" -o"c:\AI" -y -mmt=on -bso0 -bsp0
 }
 
-if (-not (Test-Path -Path "C:\VSCode\nodejs\node.exe")) {
-    New-Item -Path "C:\VSCode\nodejs" -ItemType Directory -Force
+if (-not (Test-Path -Path "c:\AI\nodejs\node.exe")) {
+    New-Item -Path "c:\AI\nodejs" -ItemType Directory -Force
     # Expand-Archive -Path "C:\temp\vscode.zip" -DestinationPath "C:\RVSCode"
     & "C:\temp\7zg.exe" x "C:\temp\nodejs.zip" -o"C:\temp" -y -mmt=on -bso0 -bsp0
-    Move-Item -Path "C:\temp\node-v$NODEJS_VERSION-win-x64\*.*" -Destination "C:\VSCode\nodejs" -Force
+    Move-Item -Path "C:\temp\node-v$NODEJS_VERSION-win-x64\*.*" -Destination "c:\AI\nodejs" -Force
 
 }
 
 
 # Make folders for main course files
-New-Item -Path "C:\VSCode\data\user-data\User" -ItemType Directory -Force
-New-Item -Path "C:\VSCode\nodejs" -ItemType Directory -Force
-New-Item -Path "C:\VSCode\Course\VideCoding" -ItemType Directory -Force
+New-Item -Path "c:\AI\data\user-data\User" -ItemType Directory -Force
+New-Item -Path "c:\AI\nodejs" -ItemType Directory -Force
+New-Item -Path "c:\AI\Course\VideCoding" -ItemType Directory -Force
 
 # Copy R to VSCode main folder
 #robocopy "$env:ProgramFiles\R" "C:\RVSCode\R" /E /NFL /NDL /NJH /NJS /MT:4
@@ -195,10 +195,10 @@ $settingsJson = @"
     "python.defaultInterpreterPath": "C:\\VSCode\\python\\python.exe"
 }
 "@
-$settingsJson | Out-File -FilePath "C:\VSCode\data\user-data\User\settings.json" -Encoding UTF8
+$settingsJson | Out-File -FilePath "c:\AI\data\user-data\User\settings.json" -Encoding UTF8
 
 # Add extensions to VSCode
-$Code = "C:\VSCode\bin\code.cmd"
+$Code = "c:\AI\bin\code.cmd"
 $Extensions = @(
     "github.copilot"
     "diegosouzapw.omnicopilot"
@@ -229,32 +229,32 @@ $shell = New-Object -ComObject WScript.Shell
 $desktop = 'C:\Users\Public\Desktop'
 # VSCode shortcut
 $vs = $shell.CreateShortcut("$desktop\VSCode.lnk")
-$vs.TargetPath = "C:\VSCode\code.exe"
-$vs.Arguments = '"C:\VSCode\Course"'
-$vs.IconLocation = "C:\VSCode\code.exe,0"
-$vs.WorkingDirectory = "C:\VSCode"
+$vs.TargetPath = "c:\AI\code.exe"
+$vs.Arguments = '"c:\AI\Course"'
+$vs.IconLocation = "c:\AI\code.exe,0"
+$vs.WorkingDirectory = "c:\AI"
 $vs.Save()
 
 
  #---------------- expand everything else --------------------
 
-    New-Item -Path "C:\VScode\git" -ItemType Directory -Force
+    New-Item -Path "c:\AI\git" -ItemType Directory -Force
     # Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\RStudio"
-    & "C:\temp\7z.exe" x "C:\temp\git.exe" -o"C:\VScode\git" -y -mmt=on
+    & "C:\temp\7z.exe" x "C:\temp\git.exe" -o"c:\AI\git" -y -mmt=on
 
-    New-Item -Path "C:\VScode\Python" -ItemType Directory -Force
+    New-Item -Path "c:\AI\Python" -ItemType Directory -Force
     # Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\RStudio"
-    & "C:\temp\7z.exe" x "C:\temp\python.7z" -o"C:\VScode" -y -mmt=on
-    Get-ChildItem -Directory -Filter "C:\VScode\WPy64-*" | Select-Object -First 1 | Rename-Item -NewName "python"
+    & "C:\temp\7z.exe" x "C:\temp\python.7z" -o"c:\AI" -y -mmt=on
+    Get-ChildItem -Directory -Filter "c:\AI\WPy64-*" | Select-Object -First 1 | Rename-Item -NewName "python"
 
-    New-Item -Path "C:\VScode\nodejs" -ItemType Directory -Force
+    New-Item -Path "c:\AI\nodejs" -ItemType Directory -Force
     # Expand-Archive -Path "C:\temp\rstudio.zip" -DestinationPath "C:\RStudio"
-    & "C:\temp\7z.exe" x "C:\temp\nodejs.zip" -o"C:\VScode\nodejs" -y -mmt=on
+    & "C:\temp\7z.exe" x "C:\temp\nodejs.zip" -o"c:\AI\nodejs" -y -mmt=on
 
-    New-Item -Path "C:\VSCode\OmniRoute" -ItemType Directory -Force
+    New-Item -Path "c:\AI\OmniRoute" -ItemType Directory -Force
     # Expand-Archive -Path "C:\temp\vscode.zip" -DestinationPath "C:\RVSCode"
     & "C:\temp\7zg.exe" x "C:\temp\OmniRoute.exe" -o"C:\temp" -y -mmt=on -bso0 -bsp0
-    & "C:\temp\7zg.exe" x "C:\temp\`$PLUGINSDIR\app-64.7z" -o"C:\VSCode\OmniRoute" -y -mmt=on -bso0 -bsp0
+    & "C:\temp\7zg.exe" x "C:\temp\`$PLUGINSDIR\app-64.7z" -o"c:\AI\OmniRoute" -y -mmt=on -bso0 -bsp0
     ### for omni route to listen for remote connections:
     # New-NetFirewallRule -DisplayName "OmniRoute Tailscale Proxy Pass" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 20128 -Profile Public, Private
     # netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=20128 connectaddress=127.0.0.1 connectport=20128
