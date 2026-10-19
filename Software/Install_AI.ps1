@@ -37,7 +37,8 @@ Write-Host "Running with administrative privileges!" -ForegroundColor Green
     $GIT_VERSION1 = (Invoke-RestMethod -Uri "https://api.github.com/repos/git-for-windows/git/releases/latest").tag_name
     $GIT_VERSION2 = if (((Invoke-RestMethod -Uri "https://api.github.com/repos/git-for-windows/git/releases/latest").assets | Where-Object name -match 'PortableGit-.*-64-bit\.7z\.exe').name -match 'PortableGit-(.*?)-64-bit') { $Matches[1] }
 # Find latest omnituote
-    $OMNIROUTE_VERSION = ((Invoke-RestMethod "https://api.github.com/repos/diegosouzapw/OmniRoute/releases/latest" -Headers @{ "User-Agent" = "PowerShell" }).tag_name).TrimStart('v')
+    #$OMNIROUTE_VERSION = ((Invoke-RestMethod "https://api.github.com/repos/diegosouzapw/OmniRoute/releases/latest" -Headers @{ "User-Agent" = "PowerShell" }).tag_name).TrimStart('v')
+    $OMNIROUTE_VERSION = "3.8.50"
 # Find latest hermes
     $HERMES_VERSION = (Invoke-RestMethod -Uri "https://api.github.com/repos/aivrar/portable-hermes-agent/releases/latest").tag_name.TrimStart('v')
 # Find latest hermese-desktop
