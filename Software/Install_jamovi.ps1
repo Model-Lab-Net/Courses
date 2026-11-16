@@ -58,8 +58,8 @@ if (-not (Test-Path -Path "C:\temp\curl.exe")) {
 }
 #>
 
-if (-not (Test-Path -Path "C:\temp\aria2.zip")) {
-    Invoke-WebRequest -Uri "https://github.com/aria2/aria2/releases/download/release-$ARIA_VERSION/aria2-$ARIA_VERSION-win-64bit-build1.zip" -OutFile "C:\temp\aria2.zip"
+if (-not (Test-Path -Path "C:\temp\aria.zip")) {
+    Invoke-WebRequest -Uri "https://github.com/aria2/aria2/releases/download/release-$ARIA_VERSION/aria2-$ARIA_VERSION-win-64bit-build1.zip" -OutFile "C:\temp\aria.zip"
 }
 if (-not (Test-Path -Path "C:\temp\aria2c.exe")) {
     & "C:\temp\7z.exe" x "C:\temp\aria.zip" -o"c:\temp" -y -mmt=on
