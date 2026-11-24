@@ -216,8 +216,9 @@ $RScriptPath = "C:\Program Files\jamovi $JAMOVI_VERSION\Frameworks\R\bin\RScript
 
 $Packages = @('gtsummary', 'AER', 'DescTools', 'skedastic', 'sandwich',
               'modelbased', 'VGAM', 'car', 'jmvconnect', 'performance',
-              'parameters', 'systemfit', 'quantreg', 'merTools',
-              'MCMCpack', 'bayestestR', 'coda', 'merge'
+              'parameters', 'systemfit', 'quantreg', 'lme4', 'merTools',
+              'MCMCpack', 'bayestestR', 'coda', 'margins', 'dplyr',
+              'ggplot2', 'GGally', 'gt', 'infer', 'boot', 'tidyverse'
               )
 
 # Joins the packages into a single R vector string: c('pkg1', 'pkg2', ...)
