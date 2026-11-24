@@ -1,7 +1,7 @@
 # Title: PowerShell script to install Jamovi
 # Author: David Burg
 # For: Stats/Econometrics course
-# Date: 11/08/2026
+# Date: 25/11/2026
 
 # ---------------------- Get Admin privelegs -------------------------------
 
